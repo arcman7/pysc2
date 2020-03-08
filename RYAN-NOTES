@@ -1,0 +1,18 @@
+RYAN-NOTES
+
+Y = np.arange(12).reshape(3,4)
+
+
+ 
+Y.shape
+
+row = Y[0]
+
+row.shape
+
+
+Y.shape[-1:] == row.shape
+
+
+tup = (1,2,3,4)
+tup[:-1]
