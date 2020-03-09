@@ -17,7 +17,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import collections
+# import collections
 import math
 import random
 
@@ -27,7 +27,12 @@ import numpy
 from pysc2.lib import static_data
 
 
-class Color(collections.namedtuple("Color", ["r", "g", "b"])):
+# class Color(collections.namedtuple("Color", ["r", "g", "b"])):
+class Color(object):
+  def __init_(self, r, g, b):
+    self.r = r
+    self.g = g
+    self.b = b
   """A basic Color class."""
   __slots__ = ()
 

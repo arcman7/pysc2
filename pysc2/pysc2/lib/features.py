@@ -18,13 +18,13 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import collections
+# import collections
 from absl import logging
 import random
 
 import enum as Enum
 import numpy as np
-import six
+# import six
 from pysc2.lib import actions
 from pysc2.lib import colors
 from pysc2.lib import named_array
@@ -35,6 +35,35 @@ from pysc2.lib import transform
 
 from s2clientprotocol import raw_pb2 as sc_raw
 from s2clientprotocol import sc2api_pb2 as sc_pb
+
+# necessary shim(s) for eventual javascript transpiling:
+def iteritems(d, **kw):
+    return iter(d.items(**kw))
+
+class defaultdict(dict):
+  def __init__(self, *args, **kwargs):
+    if 'default' in kwargs:
+      self.default = kwargs['default']
+      del kwargs['default']
+    else:
+      self.default = None
+    dict.__init__(self, *args, **kwargs)
+
+  def __repr__(self):
+    return 'defaultdict(%s, %s)' % (self.default, dict.__repr__(self))
+
+  def __missing__(self, key):
+    if self.default:
+      return self.default(key)
+    else:
+      raise KeyError(key)
+
+  def __getitem__(self, key):
+    try:
+      return dict.__getitem__(self, key)
+    except KeyError:
+      return self.__missing__(key)
+# shims end
 
 sw = stopwatch.sw
 
@@ -241,9 +270,10 @@ class ProductionQueue(Enum.IntEnum):
   build_progress = 1
 
 
-class Feature(collections.namedtuple(
-    "Feature", ["index", "name", "layer_set", "full_name", "scale", "type",
-                "palette", "clip"])):
+# class Feature(collections.namedtuple(
+#     "Feature", ["index", "name", "layer_set", "full_name", "scale", "type",
+#                 "palette", "clip"])):
+class Feature(object):
   """Define properties of a feature layer.
 
   Attributes:
@@ -256,6 +286,15 @@ class Feature(collections.namedtuple(
     palette: A color palette for rendering.
     clip: Whether to clip the values for coloring.
   """
+  def __init__(self, index, name, layer, full_name, scale, type, palette):
+    self.index = index
+    self.name = name
+    self.layer = layer
+    self.full_name full_name
+    self.scale = scale
+    self.type = type
+    self.palette = palette
+
   __slots__ = ()
 
   dtypes = {
@@ -305,19 +344,97 @@ class Feature(collections.namedtuple(
     return self.palette[plane]
 
 
-class ScreenFeatures(collections.namedtuple("ScreenFeatures", [
-    "height_map", "visibility_map", "creep", "power", "player_id",
-    "player_relative", "unit_type", "selected", "unit_hit_points",
-    "unit_hit_points_ratio", "unit_energy", "unit_energy_ratio", "unit_shields",
-    "unit_shields_ratio", "unit_density", "unit_density_aa", "effects",
-    "hallucinations", "cloaked", "blip", "buffs", "buff_duration", "active",
-    "build_progress", "pathable", "buildable", "placeholder"])):
+# class ScreenFeatures(collections.namedtuple("ScreenFeatures", [
+#     "height_map", "visibility_map", "creep", "power", "player_id",
+#     "player_relative", "unit_type", "selected", "unit_hit_points",
+#     "unit_hit_points_ratio", "unit_energy", "unit_energy_ratio", "unit_shields",
+#     "unit_shields_ratio", "unit_density", "unit_density_aa", "effects",
+#     "hallucinations", "cloaked", "blip", "buffs", "buff_duration", "active",
+#     "build_progress", "pathable", "buildable", "placeholder"])):
+class ScreenFeatures(object):
   """The set of screen feature layers."""
+  def __init__(self, **kwargs):
+    self.height_map = None
+    self.visibility_map = None
+    self.creep = None
+    self.power = None
+    self.player_id = None
+    self.player_relative = None
+    self.unit_type = None
+    self.selected = None
+    self.unit_hit_points = None
+    self.unit_hit_points_ratio = None
+    self.unit_energy = None
+    self.unit_energy_ratio = None
+    self.unit_shields = None
+    self.unit_shields_ratio = None
+    self.unit_density = None
+    self.unit_density_aa = None
+    self.effects = None
+    self.hallucinations = None
+    self.cloaked = None
+    self.blip = None
+    self.buffs = None
+    self.buff_duration
+    self.active = None
+    self.build_progress = None
+    self.pathable = None
+    self.buildable = None
+    self.placeholder = None
+    # for name, (scale, type_, palette, clip) in six.iteritems(kwargs):
+    for name, (scale, type_, palette, clip) in iteritems(kwargs):
+      setattr(self, name, Feature(
+          index=ScreenFeatures._fields.index(name),
+          name=name,
+          layer_set="renders",
+          full_name="screen " + name,
+          scale=scale,
+          type=type_,
+          palette=palette(scale) if callable(palette) else palette,
+          clip=clip))
+
   __slots__ = ()
+
+  # def __init__(self, height_map, visibility_map,  creep, power, player_id,
+  #   player_relative, unit_type, selected, unit_hit_points,
+  #   unit_hit_points_ratio, unit_energy, unit_energy_ratio, unit_shields,
+  #   unit_shields_ratio, unit_density, unit_density_aa, effects,
+  #   hallucinations, cloaked, blip, buffs, buff_duration, active,
+  #   build_progress, pathable, buildable, placeholder):
+  #   self.height_map = height_map
+  #   self.visibility_map = visibility_map
+  #   self.creep = creep
+  #   self.power = power
+  #   self.player_id = player_id
+  #   self.player_relative = player_relative
+  #   self.unit_type = unit_type
+  #   self.selected = selected
+  #   self.unit_hit_points = unit_hit_points
+  #   self.unit_hit_points_ratio = unit_hit_points_ratio
+  #   self.unit_energy = unit_energy
+  #   self.unit_energy_ratio = unit_energy_ratio
+  #   self.unit_shields = unit_shields
+  #   self.unit_shields_ratio = unit_shields_ratio
+  #   self.unit_density = unit_density
+  #   self.unit_density_aa = unit_density_aa
+  #   self.effects = effects
+  #   self.hallucinations = hallucinations
+  #   self.cloaked = cloaked
+  #   self.blip = blip
+  #   self.buffs = buffs
+  #   self.buff_duration
+  #   self.active = active
+  #   self.build_progress = build_progress
+  #   self.pathable = pathable
+  #   self.buildable = buildable
+  #   self.placeholder = placeholder
+
+  # __slots__ = ()
 
   def __new__(cls, **kwargs):
     feats = {}
-    for name, (scale, type_, palette, clip) in six.iteritems(kwargs):
+    # for name, (scale, type_, palette, clip) in six.iteritems(kwargs):
+    for name, (scale, type_, palette, clip) in iteritems(kwargs):
       feats[name] = Feature(
           index=ScreenFeatures._fields.index(name),
           name=name,
@@ -327,20 +444,36 @@ class ScreenFeatures(collections.namedtuple("ScreenFeatures", [
           type=type_,
           palette=palette(scale) if callable(palette) else palette,
           clip=clip)
-    return ScreenFeatures.__init__(self, **feats)
     # return super(ScreenFeatures, cls).__new__(cls, **feats)  # pytype: disable=missing-parameter
+    return super().__new__(cls, **feats)
 
 
-class MinimapFeatures(collections.namedtuple("MinimapFeatures", [
-    "height_map", "visibility_map", "creep", "camera", "player_id",
-    "player_relative", "selected", "unit_type", "alerts", "pathable",
-    "buildable"])):
+# class MinimapFeatures(collections.namedtuple("MinimapFeatures", [
+#     "height_map", "visibility_map", "creep", "camera", "player_id",
+#     "player_relative", "selected", "unit_type", "alerts", "pathable",
+#     "buildable"])):
+class MinimapFeatures(object):
   """The set of minimap feature layers."""
+  def __init__(self, height_map, visibility_map, creep, camera, player_id,
+    player_relative, selected, unit_type, alerts, pathable,
+    buildable):
+    self.height_map = height_map
+    self.visibility_map = visibility_map
+    self.creep = creep
+    self.camera = camera
+    self.player_id = player_id
+    self.player_relative = player_relative
+    self.selected = selected
+    self.unit_type = unit_type
+    self.alerts = alerts
+    self.pathable = pathable
+    self.buildable = buildable
   __slots__ = ()
 
   def __new__(cls, **kwargs):
     feats = {}
-    for name, (scale, type_, palette) in six.iteritems(kwargs):
+    # for name, (scale, type_, palette) in six.iteritems(kwargs):
+    for name, (scale, type_, palette) in iteritems(kwargs):
       feats[name] = Feature(
           index=MinimapFeatures._fields.index(name),
           name=name,
@@ -350,7 +483,7 @@ class MinimapFeatures(collections.namedtuple("MinimapFeatures", [
           type=type_,
           palette=palette(scale) if callable(palette) else palette,
           clip=False)
-    return MinimapFeatures.__init__(cls, **feats)  # pytype: disable=missing-parameter
+    return super().__new__(cls, **feats)
     # return super(MinimapFeatures, cls).__new__(cls, **feats)  # pytype: disable=missing-parameter
 
 
@@ -1504,7 +1637,7 @@ class Features(object):
 
     if aif.use_unit_counts:
       with sw("unit_counts"):
-        unit_counts = collections.defaultdict(int)
+        unit_counts = defaultdict(default=lambda key: 0)
         for u in raw.units:
           if u.alliance == sc_raw.Self:
             unit_counts[u.unit_type] += 1
@@ -1549,7 +1682,8 @@ class Features(object):
     """Return the list of available action ids."""
     available_actions = set()
     hide_specific_actions = self._agent_interface_format.hide_specific_actions
-    for i, func in six.iteritems(actions.FUNCTIONS_AVAILABLE):
+    # for i, func in six.iteritems(actions.FUNCTIONS_AVAILABLE):
+    for i, func in iteritems(actions.FUNCTIONS_AVAILABLE):
       if func.avail_fn(obs):
         available_actions.add(i)
     for a in obs.abilities:

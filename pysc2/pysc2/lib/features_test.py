@@ -25,7 +25,7 @@ from absl.testing import absltest
 from absl.testing import parameterized
 from future.builtins import range  # pylint: disable=redefined-builtin
 import numpy
-import six
+# import six
 from pysc2.lib import actions
 from pysc2.lib import features
 from pysc2.lib import point
@@ -33,6 +33,9 @@ from pysc2.lib import point
 from google.protobuf import text_format
 from s2clientprotocol import sc2api_pb2 as sc_pb
 
+# necessary shim for eventual javascript transpiling
+def iteritems(d, **kw):
+    return iter(d.items(**kw))
 
 # Heavily trimmed, so this is useful for testing actions, but not observations.
 observation_text_proto = """
@@ -65,7 +68,8 @@ class AvailableActionsTest(absltest.TestCase):
   }
 
   def setUp(self):
-    super(AvailableActionsTest, self).setUp()
+    # super(AvailableActionsTest, self).setUp()
+    super().setUp()
     self.obs = text_format.Parse(observation_text_proto, sc_pb.Observation())
     self.hideSpecificActions(True)
 
@@ -396,7 +400,8 @@ class FeaturesTest(absltest.TestCase):
       self.assertEqual(i, f.id, "id doesn't match for %s" % f.id)
 
   def testAllVersionsOfAnAbilityHaveTheSameGeneral(self):
-    for ability_id, funcs in six.iteritems(actions.ABILITY_IDS):
+    # for ability_id, funcs in six.iteritems(actions.ABILITY_IDS):
+    for ability_id, funcs in iteritems(actions.ABILITY_IDS):
       self.assertLen({f.general_id for f in funcs}, 1,
                      "Multiple generals for %s" % ability_id)
 

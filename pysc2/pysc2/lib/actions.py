@@ -20,9 +20,9 @@ from __future__ import print_function
 import collections
 import numbers
 
-import enum
+import enum as Enum
 import numpy
-import six
+# import six
 from pysc2.lib import point
 
 from s2clientprotocol import spatial_pb2 as sc_spatial

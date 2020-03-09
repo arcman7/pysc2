@@ -178,10 +178,8 @@ class Rect(object):
       p1, p2 = args
       if not isinstance(p1, Point) or not isinstance(p2, Point):
         raise TypeError("Rect expected Points")
-      #return ScreenFeatures.__init__(self, **feats)
-      # return super(ScreenFeatures, cls).__new__(cls, **feats)  # pytype: disable=missing-parameter
       # return super(Rect, cls).__new__(
-      return Rect.__init__(
+      return super().__new__(
           cls,
           min(p1.y, p2.y),
           min(p1.x, p2.x),
@@ -192,7 +190,7 @@ class Rect(object):
         raise TypeError("Rect requires: t <= b and l <= r")
       # TODO(b/117657518): Remove the disable once the pytype bug is fixed.
       # return super(Rect, cls).__new__(cls, *args)  # pytype: disable=missing-parameter
-      return Rect.__init__(cls, *args)  # pytype: disable=missing-parameter
+      return super().__new__(cls, *args)  # pytype: disable=missing-parameter
     raise TypeError(
         "Unexpected arguments to Rect. Takes 1 or 2 Points, or 4 coords.")
 
