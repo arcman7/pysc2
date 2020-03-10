@@ -55,11 +55,20 @@ class Color(object):
   def __add__(self, o):
     return Color(self.r + o.r, self.g + o.g, self.b + o.b)
 
+  def __radd__(self, o):
+    return self.__add__(o)
+
   def __sub__(self, o):
     return Color(self.r - o.r, self.g - o.g, self.b - o.b)
 
+  def __rsub__(self, o):
+    return self.__sub_(-1 * o)
+
   def __mul__(self, val):
     return Color(self.r * val, self.g * val, self.b * val)
+  
+  def __rmul__(self, val):
+    return self.__mul__(val)
 
   def __truediv__(self, val):
     return Color(self.r / val, self.g / val, self.b / val)
@@ -68,6 +77,16 @@ class Color(object):
     return Color(self.r // val, self.g // val, self.b // val)
 
   __div__ = __truediv__
+
+  def __getitem__(self, key):
+    if key == 0:
+      return [self.r]
+    elif key == 1:
+      return [self.r, self.g]
+    elif key == 2:
+      return [self.r, self.g, self.b]
+    else:
+      raise IndexError("not valid key '{}'".format(key))
 
 black = Color(0, 0, 0)
 white = Color(255, 255, 255)
@@ -152,7 +171,11 @@ def piece_wise_linear(scale, points):
       p2, c2 = points[next_pt]
       next_pt += 1
     frac = (v - p1) / (p2 - p1)
-    out[i, :] = c1 * (1 - frac) + c2 * frac
+    temp = c1 * (1 - frac) + c2 * frac
+    print(c1)
+    out[i, :] = temp
+
+    # out[i, :] = c1 * (1 - frac) + c2 * frac
   return out
 
 
