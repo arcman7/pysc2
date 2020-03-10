@@ -22,11 +22,12 @@ import random
 
 # class Point(collections.namedtuple("Point", ["x", "y"])):
 class Point(object):
-  _fields = ["x", "y"]
-  __slots__ = ("x", "y")
+  _fields = ["x", "y", "_index"]
+  __slots__ = ("x", "y", "_index")
   def __init__(self, x, y):
     self.x = x
     self.y = y
+    self._index = 0
 
   """A basic Point class."""
 
@@ -158,6 +159,26 @@ class Point(object):
       return Point(int(self.x // pt_or_val), int(self.y // pt_or_val))
 
   __div__ = __truediv__
+
+  def __next__(self):
+    # should look like:
+    # if self._index < len((self.x, self.y))
+    # for speed we do:
+    if self._index < 2:
+      if self._index == 0:
+        result = self.x
+        self._index += 1
+        return result
+      elif self._index == 1:
+        result = self.y
+        self._index += 1
+        return result
+    else:
+      self._index = 0
+      raise StopIteration
+
+  def __iter__(self):
+    return self
 
 
 origin = Point(0, 0)
