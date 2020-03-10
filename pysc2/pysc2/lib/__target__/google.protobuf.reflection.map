@@ -1,0 +1,8 @@
+{
+	"version": 3,
+	"file": "google.protobuf.reflection.js",
+	"sources": [
+		"google.protobuf.reflection.py"
+	],
+	"mappings": "AAAA;AAkDA;AACA;AADA;AAlDA;AA+CA;AAQA;AAEA;AAIA;AAaA;AACA;AACA;AACA;AAAA;AAIA;AAaA;AAAA;AA5CA"
+}

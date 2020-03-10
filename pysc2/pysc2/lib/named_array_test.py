@@ -18,12 +18,12 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import collections
+# import collections
 import pickle
 
 from absl.testing import absltest
 from absl.testing import parameterized
-import enum
+import enum as Enum
 import numpy as np
 
 from pysc2.lib import named_array
@@ -41,23 +41,29 @@ class NamedDictTest(absltest.TestCase):
     self.assertEqual(a["c"], 3)
 
 
-class TestEnum(enum.IntEnum):
+class TestEnum(Enum.IntEnum):
   a = 0
   b = 1
   c = 2
 
 
-class BadEnum(enum.IntEnum):
+class BadEnum(Enum.IntEnum):
   a = 1
   b = 2
   c = 3
 
 
-class TestNamedTuple(collections.namedtuple("TestNamedTuple", ["a", "b", "c"])):
+# class TestNamedTuple(collections.namedtuple("TestNamedTuple", ["a", "b", "c"])):
+class TestNamedTuple(object):
+  _fields = ["a", "b", "c"]
+  __slots__ = ("a", "b", "c")
   pass
 
 
-class BadNamedTuple(collections.namedtuple("BadNamedTuple", ["a", "b"])):
+# class BadNamedTuple(collections.namedtuple("BadNamedTuple", ["a", "b"])):
+class BadNamedTuple(object):
+  _fields = ["a", "b"]
+  __slots__ = ("a", "b")
   pass
 
 

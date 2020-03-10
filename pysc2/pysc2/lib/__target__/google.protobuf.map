@@ -1,0 +1,8 @@
+{
+	"version": 3,
+	"file": "google.protobuf.js",
+	"sources": [
+		"google.protobuf.py"
+	],
+	"mappings": "AAAA;AAsCA;AAtCA;AAgCA;AAEA;AACA;AACA;AAAA;AAAA;AAAA;AAEA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA"
+}

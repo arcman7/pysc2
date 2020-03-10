@@ -17,19 +17,46 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import collections
+# necessary shim(s) for eventual javascript transpiling:
+def iteritems(d, **kw):
+    return iter(d.items(**kw))
+    
+class defaultdict(dict):
+  def __init__(self, *args, **kwargs):
+    if 'default' in kwargs:
+      self.default = kwargs['default']
+      del kwargs['default']
+    else:
+      self.default = None
+    dict.__init__(self, *args, **kwargs)
+  def __repr__(self):
+    return 'defaultdict(%s, %s)' % (self.default, dict.__repr__(self))
+  def __missing__(self, key):
+    # if self.default:
+    #   setattr(self, key, self.default())
+    #   return self[key]
+    if self.default:
+      return self.default(key)
+    else:
+      raise KeyError(key)
+  def __getitem__(self, key):
+    try:
+      return dict.__getitem__(self, key)
+    except KeyError:
+      return self.__missing__(key)
+
 import numbers
 
 import enum as Enum
 import numpy
-# import six
 from pysc2.lib import point
+# import point
 
 from s2clientprotocol import spatial_pb2 as sc_spatial
 from s2clientprotocol import ui_pb2 as sc_ui
 
 
-class ActionSpace(enum.Enum):
+class ActionSpace(Enum.Enum):
   FEATURES = 1  # Act in feature layer pixel space with FUNCTIONS below.
   RGB = 2       # Act in RGB pixel space with FUNCTIONS below.
   RAW = 3       # Act with unit tags with RAW_FUNCTIONS below.
@@ -208,7 +235,7 @@ def numpy_to_python(val):
   """Convert numpy types to their corresponding python types."""
   if isinstance(val, (int, float)):
     return val
-  if isinstance(val, six.string_types):
+  if isinstance(val, str):
     return val
   if (isinstance(val, numpy.number) or
       isinstance(val, numpy.ndarray) and not val.shape):  # numpy.array(1)
@@ -218,8 +245,18 @@ def numpy_to_python(val):
   raise ValueError("Unknown value. Type: %s, repr: %s" % (type(val), repr(val)))
 
 
-class ArgumentType(collections.namedtuple(
-    "ArgumentType", ["id", "name", "sizes", "fn", "values", "count"])):
+# class ArgumentType(collections.namedtuple(
+#     "ArgumentType", ["id", "name", "sizes", "fn", "values", "count"])):
+class ArgumentType(object):
+  _fields = ["id", "name", "sizes", "fn", "values", "count"]
+  __slots__ = ("id", "name", "sizes", "fn", "values", "count")
+  def __init__(self, id, name, sizes, fn, values, count):
+    self.id = id
+    self.name = name
+    self.sizes = sizes
+    self.fn = fn
+    self.values = values
+    self.count = count
   """Represents a single argument type.
 
   Attributes:
@@ -232,8 +269,6 @@ class ArgumentType(collections.namedtuple(
         if this isn't an enum argument type.
     count: Number of valid values. Only useful for unit_tags.
   """
-  __slots__ = ()
-
   def __str__(self):
     return "%s/%s %s" % (self.id, self.name, list(self.sizes))
 
@@ -278,10 +313,30 @@ class ArgumentType(collections.namedtuple(
     return lambda i, name: cls(i, name, (size,), clean, None, count)
 
 
-class Arguments(collections.namedtuple("Arguments", [
+# class Arguments(collections.namedtuple("Arguments", [
+#     "screen", "minimap", "screen2", "queued", "control_group_act",
+#     "control_group_id", "select_point_act", "select_add", "select_unit_act",
+#     "select_unit_id", "select_worker", "build_queue_id", "unload_id"])):
+class Arguments(object):
+  _fields = [
     "screen", "minimap", "screen2", "queued", "control_group_act",
-    "control_group_id", "select_point_act", "select_add", "select_unit_act",
-    "select_unit_id", "select_worker", "build_queue_id", "unload_id"])):
+    "control_group_id", "select_point_act", "select_add", "select_unit_act", "select_unit_id", "select_worker", "build_queue_id", "unload_id"]
+  __slots__ = ("screen", "minimap", "screen2", "queued", "control_group_act", "control_group_id", "select_point_act", "select_add", "select_unit_act", "select_unit_id", "select_worker", "build_queue_id", "unload_id")
+  def __init__(self, screen, minimap, screen2, queued, control_group_act, control_group_id, select_point_act, select_add, select_unit_act, select_unit_id, select_worker, build_queue_id, unload_id):
+    self.screen = screen
+    self.minimap = minimap
+    self.screen2 = screen2
+    self.queued = queued
+    self.control_group_act = control_group_act
+    self.control_group_id = control_group_id
+    self.select_point_act = select_point_act
+    self.select_add = select_add
+    self.select_unit_act = select_unit_act
+    self.select_unit_id = select_unit_id
+    self.select_worker = select_worker
+    self.build_queue_id = build_queue_id
+    self.unload_id = unload_id
+
   """The full list of argument types.
 
   Take a look at TYPES and FUNCTION_TYPES for more details.
@@ -303,21 +358,28 @@ class Arguments(collections.namedtuple("Arguments", [
     build_queue_id: Which build queue index to target.
     unload_id: Which unit to target in a transport/nydus/command center.
   """
-  __slots__ = ()
 
   @classmethod
   def types(cls, **kwargs):
     """Create an Arguments of the possible Types."""
     named = {name: factory(Arguments._fields.index(name), name)
-             for name, factory in six.iteritems(kwargs)}
+             for name, factory in iteritems(kwargs)}
     return cls(**named)
 
   def __reduce__(self):
-    return self.__class__, tuple(self)
+    return self.__class__, (self.screen, self.minimap, self.screen2, self.queued, self.control_group_act, self.control_group_id, self.select_point_act, self.select_add, self.select_unit_act, self.select_unit_id, self.select_worker, self.build_queue_id, self.unload_id)
 
 
-class RawArguments(collections.namedtuple("RawArguments", [
-    "world", "queued", "unit_tags", "target_unit_tag"])):
+# class RawArguments(collections.namedtuple("RawArguments", [
+#     "world", "queued", "unit_tags", "target_unit_tag"])):
+class RawArguments(object):
+  _fields = ["world", "queued", "unit_tags", "target_unit_tag"]
+  __slots__ = ("world", "queued", "unit_tags", "target_unit_tag")
+  def __init__(self, world, queued, unit_tags, target_unit_tag):
+    self.world = world
+    self.queued = queued
+    self.unit_tags = unit_tags
+    self.target_unit_tag = target_unit_tag
   """The full list of argument types.
 
   Take a look at TYPES and FUNCTION_TYPES for more details.
@@ -329,21 +391,20 @@ class RawArguments(collections.namedtuple("RawArguments", [
     unit_tags: Which units should execute this action.
     target_unit_tag: The target unit of this action.
   """
-  __slots__ = ()
 
   @classmethod
   def types(cls, **kwargs):
     """Create an Arguments of the possible Types."""
     named = {name: factory(RawArguments._fields.index(name), name)
-             for name, factory in six.iteritems(kwargs)}
+             for name, factory in iteritems(kwargs)}
     return cls(**named)
 
   def __reduce__(self):
-    return self.__class__, tuple(self)
+    return self.__class__, (self.worldself, self.queuedself, self.unit_tagsself,  self.target_unit_tag)
 
 
 def _define_position_based_enum(name, options):
-  return enum.IntEnum(
+  return Enum.IntEnum(
       name, {opt_name: i for i, (opt_name, _) in enumerate(options)})
 
 
@@ -465,9 +526,28 @@ POINT_REQUIRED_FUNCS = {
 always = lambda _: True
 
 
-class Function(collections.namedtuple(
-    "Function", ["id", "name", "ability_id", "general_id", "function_type",
-                 "args", "avail_fn", "raw"])):
+# class Function(collections.namedtuple(
+#     "Function", ["id", "name", "ability_id", "general_id", "function_type",
+#                  "args", "avail_fn", "raw"])):
+class Function(object):
+  _fields = ["id", "name", "ability_id", "general_id", "function_type", "args", "avail_fn", "raw"]
+  __slots__ = ("id", "name", "ability_id", "general_id", "function_type", "args", "avail_fn", "raw")
+  def __init__(self, id, name, ability_id, general_id, function_type, args, avail_fn, raw):
+    self.id = id
+    self.name = name
+    self.ability_id = ability_id
+    self.general_id = general_id
+    self.function_type = function_type
+    self.args = args
+    self.avail_fn = avail_fn
+    self.raw = raw
+
+  def _replace(self, **kwds):
+    result = Function(id = self.id, name = self.name, ability_id = self.ability_id, general_id = self.general_id, function_type = self.function_type, args = self.args, avail_fn = self.avail_fn, raw = self.raw)
+    for field in kwds:
+      setattr(result, field, kwds[field])
+    return result
+
   """Represents a function action.
 
   Attributes:
@@ -483,7 +563,6 @@ class Function(collections.namedtuple(
         valid.
     raw: Whether the function is raw or not.
   """
-  __slots__ = ()
 
   @classmethod
   def ui_func(cls, id_, name, function_type, avail_fn=always):
@@ -528,7 +607,7 @@ class Function(collections.namedtuple(
     return FunctionCall.init_with_validation(self.id, args, raw=self.raw)
 
   def __reduce__(self):
-    return self.__class__, tuple(self)
+    return self.__class__, (self.id, self.name, self.ability_id, self.general_id, self.function_type, self.args, self.avail_fn, self.raw)
 
   def str(self, space=False):
     """String version. Set space=True to line them all up nicely."""
@@ -1168,17 +1247,17 @@ _FUNCTIONS = [
 
 # Create an IntEnum of the function names/ids so that printing the id will
 # show something useful.
-_Functions = enum.IntEnum(  # pylint: disable=invalid-name
+_Functions = Enum.IntEnum(  # pylint: disable=invalid-name
     "_Functions", {f.name: f.id for f in _FUNCTIONS})
 _FUNCTIONS = [f._replace(id=_Functions(f.id)) for f in _FUNCTIONS]
 FUNCTIONS = Functions(_FUNCTIONS)
 
 # Some indexes to support features.py and action conversion.
-ABILITY_IDS = collections.defaultdict(set)  # {ability_id: {funcs}}
+ABILITY_IDS = defaultdict(default=lambda key: set())  # {ability_id: {funcs}}
 for _func in FUNCTIONS:
   if _func.ability_id >= 0:
     ABILITY_IDS[_func.ability_id].add(_func)
-ABILITY_IDS = {k: frozenset(v) for k, v in six.iteritems(ABILITY_IDS)}
+ABILITY_IDS = {k: frozenset(v) for k, v in iteritems(ABILITY_IDS)}
 FUNCTIONS_AVAILABLE = {f.id: f for f in FUNCTIONS if f.avail_fn}
 
 
@@ -1753,24 +1832,31 @@ _RAW_FUNCTIONS = [
 
 # Create an IntEnum of the function names/ids so that printing the id will
 # show something useful.
-_Raw_Functions = enum.IntEnum(  # pylint: disable=invalid-name
+_Raw_Functions = Enum.IntEnum(  # pylint: disable=invalid-name
     "_Raw_Functions", {f.name: f.id for f in _RAW_FUNCTIONS})
 _RAW_FUNCTIONS = [f._replace(id=_Raw_Functions(f.id)) for f in _RAW_FUNCTIONS]
 RAW_FUNCTIONS = Functions(_RAW_FUNCTIONS)
 
 # Some indexes to support features.py and action conversion.
-RAW_ABILITY_IDS = collections.defaultdict(set)  # {ability_id: {funcs}}
+# RAW_ABILITY_IDS = defaultdict(set)  # {ability_id: {funcs}}
+RAW_ABILITY_IDS = defaultdict(default=lambda key: set())  # {ability_id: {funcs}}
 for _func in RAW_FUNCTIONS:
   if _func.ability_id >= 0:
     RAW_ABILITY_IDS[_func.ability_id].add(_func)
-RAW_ABILITY_IDS = {k: frozenset(v) for k, v in six.iteritems(RAW_ABILITY_IDS)}
+RAW_ABILITY_IDS = {k: frozenset(v) for k, v in iteritems(RAW_ABILITY_IDS)}
 RAW_FUNCTIONS_AVAILABLE = {f.id: f for f in RAW_FUNCTIONS if f.avail_fn}
 RAW_ABILITY_ID_TO_FUNC_ID = {k: min(f.id for f in v)  # pylint: disable=g-complex-comprehension
-                             for k, v in six.iteritems(RAW_ABILITY_IDS)}
+                             for k, v in iteritems(RAW_ABILITY_IDS)}
 
 
-class FunctionCall(collections.namedtuple(
-    "FunctionCall", ["function", "arguments"])):
+# class FunctionCall(collections.namedtuple(
+#     "FunctionCall", ["function", "arguments"])):
+class FunctionCall(object):
+  _fields = ["function", "arguments"]
+  __slots__ = ("function", "arguments")
+  def __init__(self, function, arguments):
+    self.function = function
+    self.arguments = arguments
   """Represents a function call action.
 
   Attributes:
@@ -1778,14 +1864,13 @@ class FunctionCall(collections.namedtuple(
     arguments: The list of arguments for that function, each being a list of
         ints. For select_point this could be: [[0], [23, 38]].
   """
-  __slots__ = ()
 
   @classmethod
   def init_with_validation(cls, function, arguments, raw=False):
     """Return a `FunctionCall` given some validation for the function and args.
 
     Args:
-      function: A function name or id, to be converted into a function id enum.
+      function: A function name or id, to be converted into a function id Enum.
       arguments: An iterable of function arguments. Arguments that are enum
           types can be passed by name. Arguments that only take one value (ie
           not a point) don't need to be wrapped in a list.
@@ -1803,7 +1888,7 @@ class FunctionCall(collections.namedtuple(
     for arg, arg_type in zip(arguments, func.args):
       arg = numpy_to_python(arg)
       if arg_type.values:  # Allow enum values by name or int.
-        if isinstance(arg, six.string_types):
+        if isinstance(arg, str):
           try:
             args.append([arg_type.values[arg]])
           except KeyError:
@@ -1851,11 +1936,18 @@ class FunctionCall(collections.namedtuple(
     return cls(function, arguments)
 
   def __reduce__(self):
-    return self.__class__, tuple(self)
+    # return self.__class__, tuple(self)
+    return self.__class__, (self.function, self.arguments)
 
 
-class ValidActions(collections.namedtuple(
-    "ValidActions", ["types", "functions"])):
+# class ValidActions(collections.namedtuple(
+#     "ValidActions", ["types", "functions"])):
+class ValidActions(object):
+  _fields = ["types", "functions"]
+  __slots__ = ("types", "functions")
+  def __init__(self, types, functions):
+    self.types = types
+    self.functions = functions
   """The set of types and functions that are valid for an agent to use.
 
   Attributes:
@@ -1863,7 +1955,6 @@ class ValidActions(collections.namedtuple(
         above, this includes the sizes for screen and minimap.
     functions: A namedtuple of all the functions.
   """
-  __slots__ = ()
-
   def __reduce__(self):
-    return self.__class__, tuple(self)
+    # return self.__class__, tuple(self)
+    return self.__class__, (self.types, self.functions)

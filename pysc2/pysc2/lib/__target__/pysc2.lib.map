@@ -1,0 +1,8 @@
+{
+	"version": 3,
+	"file": "pysc2.lib.js",
+	"sources": [
+		"pysc2.lib.py"
+	],
+	"mappings": "AAAA;AAAA;AAAA;AAAA"
+}

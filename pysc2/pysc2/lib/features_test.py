@@ -23,12 +23,14 @@ import pickle
 
 from absl.testing import absltest
 from absl.testing import parameterized
-from future.builtins import range  # pylint: disable=redefined-builtin
 import numpy
 # import six
-from pysc2.lib import actions
-from pysc2.lib import features
-from pysc2.lib import point
+# from pysc2.lib import actions
+import actions
+# from pysc2.lib import features
+import features
+# from pysc2.lib import point
+import point
 
 from google.protobuf import text_format
 from s2clientprotocol import sc2api_pb2 as sc_pb
@@ -595,7 +597,6 @@ class FeaturesTest(absltest.TestCase):
                      (len(features.MINIMAP_FEATURES), 67, 64))
     self.assertEqual(obs_spec["rgb_screen"], (132, 128, 3))
     self.assertEqual(obs_spec["rgb_minimap"], (77, 74, 3))
-
 
 if __name__ == "__main__":
   absltest.main()

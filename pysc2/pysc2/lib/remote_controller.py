@@ -52,7 +52,8 @@ class ConnectError(Exception):
 class RequestError(Exception):
 
   def __init__(self, description, res):
-    super(RequestError, self).__init__(description)
+    # super(RequestError, self).__init__(description)
+    super().__init__(description)
     self.res = res
 
 

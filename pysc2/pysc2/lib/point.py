@@ -13,21 +13,22 @@
 # limitations under the License.
 """Basic Point and Rect classes."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
+# from __future__ import absolute_import
+# from __future__ import division
+# from __future__ import print_function
 
 import math
 import random
 
-
+# class Point(collections.namedtuple("Point", ["x", "y"])):
 class Point(object):
+  _fields = ["x", "y"]
+  __slots__ = ("x", "y")
   def __init__(self, x, y):
     self.x = x
     self.y = y
 
   """A basic Point class."""
-  __slots__ = ()
 
   @classmethod
   def build(cls, obj):
@@ -161,36 +162,30 @@ class Point(object):
 
 origin = Point(0, 0)
 
-
+# class Rect(collections.namedtuple("Rect", ["t", "l", "b", "r"])):
 class Rect(object):
-  def __init__(self, t, l, b, r):
-    self.t = t
-    self.l = l
-    self.b = b
-    self.r = r
   """A basic Rect class. Assumes tl <= br."""
-  __slots__ = ()
-
-  def __new__(cls, *args):
-    if len(args) == 1 or (len(args) == 2 and args[1] is None):
-      args = (origin, args[0])
-    if len(args) == 2:
-      p1, p2 = args
+  _fields = ["t", "l", "b", "r"]
+  __slots__ = ("t", "l", "b", "r")
+  def __init__(self, **kwargs):
+    if len(kargs) == 1 or (len(kargs) == 2 and kargs[1] is None):
+      kargs = (origin, kargs[0])
+    if len(kargs) == 2:
+      p1, p2 = kargs
       if not isinstance(p1, Point) or not isinstance(p2, Point):
         raise TypeError("Rect expected Points")
-      # return super(Rect, cls).__new__(
-      return super().__new__(
-          cls,
-          min(p1.y, p2.y),
-          min(p1.x, p2.x),
-          max(p1.y, p2.y),
-          max(p1.x, p2.x))
-    if len(args) == 4:
-      if args[0] > args[2] or args[1] > args[3]:
+        self.t = min(p1.y, p2.y)
+        self.l = min(p1.x, p2.x)
+        self.b = max(p1.y, p2.y)
+        self.r = max(p1.x, p2.x)
+    if len(kargs) == 4:
+      if kargs[0] > kargs[2] or kargs[1] > kargs[3]:
         raise TypeError("Rect requires: t <= b and l <= r")
-      # TODO(b/117657518): Remove the disable once the pytype bug is fixed.
-      # return super(Rect, cls).__new__(cls, *args)  # pytype: disable=missing-parameter
-      return super().__new__(cls, *args)  # pytype: disable=missing-parameter
+      t,l,b,r = kwargs
+      self.t = t
+      self.l = l
+      self.b = b
+      self.r = r
     raise TypeError(
         "Unexpected arguments to Rect. Takes 1 or 2 Points, or 4 coords.")
 

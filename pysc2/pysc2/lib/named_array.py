@@ -24,17 +24,17 @@ from __future__ import print_function
 import numbers
 import re
 
-import enum
+import enum as Enum
 from future.builtins import range  # pylint: disable=redefined-builtin
 import numpy as np
-import six
 
 
 class NamedDict(dict):
   """A dict where you can use `d["element"]` or `d.element`."""
 
   def __init__(self, *args, **kwargs):
-    super(NamedDict, self).__init__(*args, **kwargs)
+    # super(NamedDict, self).__init__(*args, **kwargs)
+    super().__init__(*args, **kwargs)
     self.__dict__ = self
 
 
@@ -97,7 +97,7 @@ class NamedNumpyArray(np.ndarray):
         index_names.append(o)
       else:
         only_none = False
-        if isinstance(o, enum.EnumMeta):
+        if isinstance(o, Enum.EnumMeta):
           for j, n in enumerate(o._member_names_):
             if j != o[n]:
               raise ValueError("Enum has holes or doesn't start from 0.")
@@ -107,15 +107,15 @@ class NamedNumpyArray(np.ndarray):
             o = o._fields
           except AttributeError:
             raise ValueError("Bad names. Must be None, a list of strings, "
-                             "a namedtuple, or IntEnum.")
+                             "a namedtuple, or Intenum.")
         elif isinstance(o, (list, tuple)):
           for n in o:
-            if not isinstance(n, six.string_types):
+            if not isinstance(n, str):
               raise ValueError(
                   "Bad name, must be a list of strings, not %s" % type(n))
         else:
           raise ValueError("Bad names. Must be None, a list of strings, "
-                           "a namedtuple, or IntEnum.")
+                           "a namedtuple, or Intenum.")
         if obj.shape[i] != len(o):
           raise ValueError(
               "Wrong number of names in dimension %s. Got %s, expected %s." % (
@@ -142,14 +142,16 @@ class NamedNumpyArray(np.ndarray):
 
   def __setattr__(self, name, value):
     if name == "_index_names":  # Need special handling to avoid recursion.
-      super(NamedNumpyArray, self).__setattr__(name, value)
+      # super(NamedNumpyArray, self).__setattr__(name, value)
+      super().__setattr__(name, value)
     else:
       self.__setitem__(name, value)
 
   def __getitem__(self, indices):
     """Get by indexing lookup."""
     indices = self._indices(indices)
-    obj = super(NamedNumpyArray, self).__getitem__(indices)
+    # obj = super(NamedNumpyArray, self).__getitem__(indices)
+    obj = super().__getitem__(indices)
 
     if (isinstance(indices, np.ndarray) and len(indices.shape) > 1 and
         indices.dtype == bool):
@@ -205,7 +207,8 @@ class NamedNumpyArray(np.ndarray):
     return obj
 
   def __setitem__(self, indices, value):
-    super(NamedNumpyArray, self).__setitem__(self._indices(indices), value)
+    # super(NamedNumpyArray, self).__setitem__(self._indices(indices), value)
+    super().__setitem__(self._indices(indices), value)
 
   def __getslice__(self, i, j):  # deprecated, but still needed...
     # https://docs.python.org/2.0/ref/sequence-methods.html
@@ -237,14 +240,16 @@ class NamedNumpyArray(np.ndarray):
 
   def __reduce__(self):
     # Support pickling: https://stackoverflow.com/a/26599346
-    state = super(NamedNumpyArray, self).__reduce__()  # pytype: disable=attribute-error
+    # state = super(NamedNumpyArray, self).__reduce__()  # pytype: disable=attribute-error
+    state = super().__reduce__()  # pytype: disable=attribute-error
     assert len(state) == 3  # Verify numpy hasn't changed their protocol.
     return (state[0], state[1], state[2] + (self._index_names,))
 
   def __setstate__(self, state):
     # Support pickling: https://stackoverflow.com/a/26599346
     self._index_names = state[-1]
-    super(NamedNumpyArray, self).__setstate__(state[0:-1])  # pytype: disable=attribute-error
+    # super(NamedNumpyArray, self).__setstate__(state[0:-1])  # pytype: disable=attribute-error
+    super().__setstate__(state[0:-1])  # pytype: disable=attribute-error
 
   def _indices(self, indices):
     """Turn all string indices into int indices, preserving ellipsis."""
@@ -266,7 +271,7 @@ class NamedNumpyArray(np.ndarray):
 
   def _get_index(self, dim, index):
     """Turn a string into a real index, otherwise return the index."""
-    if isinstance(index, six.string_types):
+    if isinstance(index, str):
       try:
         return self._index_names[dim][index]
       except KeyError:

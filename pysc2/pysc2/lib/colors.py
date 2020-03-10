@@ -17,24 +17,23 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-# import collections
 import math
 import random
 
-from future.builtins import range  # pylint: disable=redefined-builtin
 import numpy
 
-from pysc2.lib import static_data
+import static_data
 
 
 # class Color(collections.namedtuple("Color", ["r", "g", "b"])):
 class Color(object):
-  def __init_(self, r, g, b):
+  _fields = ["r", "g", "b"]
+  __slots__ = ("r", "g", "b")
+  def __init__(self, r, g, b):
     self.r = r
     self.g = g
     self.b = b
   """A basic Color class."""
-  __slots__ = ()
 
   def set(self, r=None, g=None, b=None):
     return Color(r or self.r, b or self.b, g or self.g)
@@ -142,7 +141,10 @@ def piece_wise_linear(scale, points):
   p1, c1 = points[0]
   p2, c2 = points[1]
   next_pt = 2
-
+  print('inside piece_wise_linear:', scale)
+  print('points: ', points)
+  if not isinstance(scale, float):
+    print ('scale not right arg type', type(scale))
   for i in range(1, scale):  # Leave 0 as black.
     v = i / scale
     if v > p2:

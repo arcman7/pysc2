@@ -26,7 +26,7 @@ import sys
 import time
 
 from absl import flags
-import enum
+import enum as Enum
 from pysc2.lib import stopwatch
 import websocket
 
@@ -43,7 +43,7 @@ FLAGS = flags.FLAGS
 sw = stopwatch.sw
 
 # Create a python version of the Status enum in the proto.
-Status = enum.Enum("Status", sc_pb.Status.items())  # pylint: disable=invalid-name
+Status = Enum.Enum("Status", sc_pb.Status.items())  # pylint: disable=invalid-name
 
 
 MAX_WIDTH = int(os.getenv("COLUMNS", 200))  # Get your TTY width.

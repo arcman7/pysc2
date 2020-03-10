@@ -17,7 +17,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import collections
+# import collections
 import ctypes
 import functools
 import itertools
@@ -30,7 +30,7 @@ import subprocess
 import threading
 import time
 
-import enum
+import enum as Enum
 from future.builtins import range  # pylint: disable=redefined-builtin
 import numpy as np
 import pygame
@@ -75,7 +75,7 @@ def clamp(n, smallest, largest):
   return max(smallest, min(n, largest))
 
 
-class MouseButtons(enum.IntEnum):
+class MouseButtons(Enum.IntEnum):
   # https://www.pygame.org/docs/ref/mouse.html
   LEFT = 1
   MIDDLE = 2
@@ -84,7 +84,7 @@ class MouseButtons(enum.IntEnum):
   WHEEL_DOWN = 5
 
 
-class SurfType(enum.IntEnum):
+class SurfType(Enum.IntEnum):
   """Used to tell what a mouse click refers to."""
   CHROME = 1  # ie help, feature layer titles, etc
   SCREEN = 2
@@ -93,31 +93,31 @@ class SurfType(enum.IntEnum):
   RGB = 16
 
 
-class ActionCmd(enum.Enum):
+class ActionCmd(Enum.Enum):
   STEP = 1
   RESTART = 2
   QUIT = 3
 
 
-class _Ability(collections.namedtuple("_Ability", [
-    "ability_id", "name", "footprint_radius", "requires_point", "hotkey"])):
+# class _Ability(collections.namedtuple("_Ability", [
+#     "ability_id", "name", "footprint_radius", "requires_point", "hotkey"])):
+class _Ability(object):
   """Hold the specifics of available abilities."""
-
-  def __new__(cls, ability, static_data):
+  _fields = [
+    "ability_id", "name", "footprint_radius", "requires_point", "hotkey"]
+  __slots__ = (
+    "ability_id", "name", "footprint_radius", "requires_point", "hotkey")
+  def __init__(self, ability, static_data):
     specific_data = static_data[ability.ability_id]
     if specific_data.remaps_to_ability_id:
       general_data = static_data[specific_data.remaps_to_ability_id]
     else:
       general_data = specific_data
-    return super(_Ability, cls).__new__(
-        cls,
-        ability_id=general_data.ability_id,
-        name=(general_data.friendly_name or general_data.button_name or
-              general_data.link_name),
-        footprint_radius=general_data.footprint_radius,
-        requires_point=ability.requires_point,
-        hotkey=specific_data.hotkey)
-
+    self.ability_id=general_data.ability_id
+    self.name = (general_data.friendly_name or general_data.button_name or general_data.link_name)
+    self.footprint_radius = general_data.footprint_radius
+    self.requires_point = ability.requires_point
+    self.hotkey=specific_data.hotkey
 
 class _Surface(object):
   """A surface to display on screen."""
