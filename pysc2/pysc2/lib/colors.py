@@ -23,7 +23,7 @@ import random
 import numpy
 
 import static_data
-
+import collections
 
 # class Color(collections.namedtuple("Color", ["r", "g", "b"])):
 class Color(object):
@@ -80,13 +80,16 @@ class Color(object):
 
   def __getitem__(self, key):
     if key == 0:
-      return [self.r]
+      return self.r
     elif key == 1:
-      return [self.r, self.g]
+      return self.g
     elif key == 2:
-      return [self.r, self.g, self.b]
+      return self.b
     else:
       raise IndexError("not valid key '{}'".format(key))
+  
+  def __len__(self):
+    return len(self._fields)
 
 black = Color(0, 0, 0)
 white = Color(255, 255, 255)
@@ -160,10 +163,6 @@ def piece_wise_linear(scale, points):
   p1, c1 = points[0]
   p2, c2 = points[1]
   next_pt = 2
-  print('inside piece_wise_linear:', scale)
-  print('points: ', points)
-  if not isinstance(scale, float):
-    print ('scale not right arg type', type(scale))
   for i in range(1, scale):  # Leave 0 as black.
     v = i / scale
     if v > p2:
@@ -172,10 +171,8 @@ def piece_wise_linear(scale, points):
       next_pt += 1
     frac = (v - p1) / (p2 - p1)
     temp = c1 * (1 - frac) + c2 * frac
-    print(c1)
-    out[i, :] = temp
+    out[i, :] = [temp.r, temp.g, temp.b]
 
-    # out[i, :] = c1 * (1 - frac) + c2 * frac
   return out
 
 
