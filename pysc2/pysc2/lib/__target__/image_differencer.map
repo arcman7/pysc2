@@ -1,8 +1,0 @@
-{
-	"version": 3,
-	"file": "image_differencer.js",
-	"sources": [
-		"image_differencer.py"
-	],
-	"mappings": "AAAA;AAgBA;AAQA;AAFA;AADA;AADA;AAFA;AADA;AADA;AAhBA;AA2BA;AAEA;AACA;AACA;AACA;AACA;AACA;AACA;AACA;AAAA;AAAA;AAEA;AAAA;AAtBA"
-}

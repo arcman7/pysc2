@@ -1,8 +1,0 @@
-{
-	"version": 3,
-	"file": "google.protobuf.pyext.cpp_message.js",
-	"sources": [
-		"google.protobuf.pyext.cpp_message.py"
-	],
-	"mappings": "AAAA;AAsCA;AAAA;AAtCA;AAoCA;AAKA;AAAA;AAuBA;AAAA;AA1BA"
-}

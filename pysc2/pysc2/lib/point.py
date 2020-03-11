@@ -161,10 +161,8 @@ class Point(object):
   __div__ = __truediv__
 
   def __next__(self):
-    # should look like:
-    # if self._index < len((self.x, self.y))
-    # for speed we do:
-    if self._index < 2:
+    # minus one because _fields is used for iterating
+    if self._index < len(self._fields) - 1:
       if self._index == 0:
         result = self.x
         self._index += 1

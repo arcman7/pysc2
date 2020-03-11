@@ -1,17 +1,17 @@
 import actions
 
-def validate(param):
-  if not isinstance(param, actions.ActionSpace):
-    print(param == actions.ActionSpace.FEATURES)
-    print ('type param:')
-    print(type(param))
-    print('value : ', param)
-    raise ValueError("action_space must be of type ActionSpace.")
-  else:
-    print('LGTM')
+# def validate(param):
+#   if not isinstance(param, actions.ActionSpace):
+#     print(param == actions.ActionSpace.FEATURES)
+#     print ('type param:')
+#     print(type(param))
+#     print('value : ', param)
+#     raise ValueError("action_space must be of type ActionSpace.")
+#   else:
+#     print('LGTM')
 
 
-validate(actions.ActionSpace.FEATURES)
+# validate(actions.ActionSpace.FEATURES)
 # def iteritems(d, **kw):
 #     return iter(d.items(**kw))
 
@@ -20,17 +20,26 @@ validate(actions.ActionSpace.FEATURES)
 #     return iter(cls.__name__)
 
 # class Rect(metaclass=meta_af):
-# class Rect(object):
-#   _fields = ["t", "l", "b", "r"]
-#   __slots__ = ("t", "l", "b", "r")
-#   # def __init__(self, *kwargs): 
-#   #   print('kwargs: ', kwargs)
-#   #   print('type: ', type(kwargs)) # prints out tuple
-#   def __init__(self, t, l, b, r):
-#     self.t = t
-#     self.l = l
-#     self.b = b
-#     self.r = r
+class Rect(object):
+  _fields = ["t", "l", "b", "r"]
+  __slots__ = ("t", "l", "b", "r")
+
+  # def __new__(cls, fields):
+  #   print('cls:')
+  #   print(cls._fields)
+  #   print('fields:')
+  #   print(fields)
+  #   return cls
+  # def __init__(self, *kwargs): 
+  #   print('kwargs: ', kwargs)
+  #   print('type: ', type(kwargs)) # prints out tuple
+  # def __init__(self, t, l, b, r):
+  def __init__(self, **kwargs):
+    print('init: ', kwargs)
+    # self.t = t
+    # self.l = l
+    # self.b = b
+    # self.r = r
   
 #   def _replace(self, **kwds):
 #     # result = self._make(map(kwds.pop, self._fields, self))
@@ -48,6 +57,7 @@ validate(actions.ActionSpace.FEATURES)
 #     return len(self._fields)
 
 # a = Rect(1,2,3,4)
+a = Rect(t = 1, l = 2, b = 3, r = 4)
 
 # a._replace(t=0)
 

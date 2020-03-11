@@ -49,8 +49,7 @@ import numbers
 
 import enum as Enum
 import numpy
-from pysc2.lib import point
-# import point
+import point
 
 from s2clientprotocol import spatial_pb2 as sc_spatial
 from s2clientprotocol import ui_pb2 as sc_ui
@@ -248,8 +247,9 @@ def numpy_to_python(val):
 # class ArgumentType(collections.namedtuple(
 #     "ArgumentType", ["id", "name", "sizes", "fn", "values", "count"])):
 class ArgumentType(object):
-  _fields = ["id", "name", "sizes", "fn", "values", "count"]
-  __slots__ = ("id", "name", "sizes", "fn", "values", "count")
+  _fields = ["id", "name", "sizes", "fn", "values", "count", "_index"]
+  __slots__ = ("id", "name", "sizes", "fn", "values", "count", "_index")
+  
   def __init__(self, id, name, sizes, fn, values, count):
     self.id = id
     self.name = name
@@ -257,6 +257,7 @@ class ArgumentType(object):
     self.fn = fn
     self.values = values
     self.count = count
+    self._index = 0
   """Represents a single argument type.
 
   Attributes:
@@ -312,6 +313,23 @@ class ArgumentType(object):
       return arg[:count]
     return lambda i, name: cls(i, name, (size,), clean, None, count)
 
+  def __next__(self):
+    # minus one because _fields is used for iterating
+    if self._index < len(self._fields) - 1:
+      if self._index == 0:
+        result = self.x
+        self._index += 1
+        return result
+      elif self._index == 1:
+        result = self.y
+        self._index += 1
+        return result
+    else:
+      self._index = 0
+      raise StopIteration
+
+  def __iter__(self):
+    return self
 
 # class Arguments(collections.namedtuple("Arguments", [
 #     "screen", "minimap", "screen2", "queued", "control_group_act",
@@ -320,8 +338,8 @@ class ArgumentType(object):
 class Arguments(object):
   _fields = [
     "screen", "minimap", "screen2", "queued", "control_group_act",
-    "control_group_id", "select_point_act", "select_add", "select_unit_act", "select_unit_id", "select_worker", "build_queue_id", "unload_id"]
-  __slots__ = ("screen", "minimap", "screen2", "queued", "control_group_act", "control_group_id", "select_point_act", "select_add", "select_unit_act", "select_unit_id", "select_worker", "build_queue_id", "unload_id")
+    "control_group_id", "select_point_act", "select_add", "select_unit_act", "select_unit_id", "select_worker", "build_queue_id", "unload_id", "_index"]
+  __slots__ = ("screen", "minimap", "screen2", "queued", "control_group_act", "control_group_id", "select_point_act", "select_add", "select_unit_act", "select_unit_id", "select_worker", "build_queue_id", "unload_id", "_index")
   def __init__(self, screen, minimap, screen2, queued, control_group_act, control_group_id, select_point_act, select_add, select_unit_act, select_unit_id, select_worker, build_queue_id, unload_id):
     self.screen = screen
     self.minimap = minimap
@@ -336,6 +354,7 @@ class Arguments(object):
     self.select_worker = select_worker
     self.build_queue_id = build_queue_id
     self.unload_id = unload_id
+    self._index = 0
 
   """The full list of argument types.
 
@@ -369,6 +388,23 @@ class Arguments(object):
   def __reduce__(self):
     return self.__class__, (self.screen, self.minimap, self.screen2, self.queued, self.control_group_act, self.control_group_id, self.select_point_act, self.select_add, self.select_unit_act, self.select_unit_id, self.select_worker, self.build_queue_id, self.unload_id)
 
+  def __next__(self):
+    # minus one because _fields is used for iterating
+    if self._index < len(self._fields) - 1:
+      if self._index == 0:
+        result = self.x
+        self._index += 1
+        return result
+      elif self._index == 1:
+        result = self.y
+        self._index += 1
+        return result
+    else:
+      self._index = 0
+      raise StopIteration
+
+  def __iter__(self):
+    return self
 
 # class RawArguments(collections.namedtuple("RawArguments", [
 #     "world", "queued", "unit_tags", "target_unit_tag"])):
