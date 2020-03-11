@@ -34,13 +34,20 @@ class Rect(object):
   #   print('kwargs: ', kwargs)
   #   print('type: ', type(kwargs)) # prints out tuple
   # def __init__(self, t, l, b, r):
-  def __init__(self, **kwargs):
-    print('init: ', kwargs)
+  def __init__(self):
+  # def __init__(self, **kwargs):
+    # print('Rect init: ', kwargs)
+    print('Rect init: ')
+    # for name,val in kwargs:
+    #   self[name] = val
     # self.t = t
     # self.l = l
     # self.b = b
     # self.r = r
-  
+
+  def __len__(self):
+    return len(self._fields)
+
 #   def _replace(self, **kwds):
 #     # result = self._make(map(kwds.pop, self._fields, self))
 #     print(kwds)
@@ -53,11 +60,17 @@ class Rect(object):
 #     # return self.__class__, tuple(self)
 #     return self.__class__, (self.t, self.l, self.b, self.r)
 
-#   def __len__(self):
-#     return len(self._fields)
+  # def __len__(self):
+  #   return len(self._fields)
 
 # a = Rect(1,2,3,4)
-a = Rect(t = 1, l = 2, b = 3, r = 4)
+def __new__(cls, **kwargs):
+  print('inside redefined new')
+  print(kwargs)
+
+# Rect.__new__ = __new__
+# a = Rect(t = 1, l = 2, b = 3, r = 4)
+a = Rect()
 
 # a._replace(t=0)
 

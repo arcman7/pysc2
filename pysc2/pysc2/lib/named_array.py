@@ -25,7 +25,6 @@ import numbers
 import re
 
 import enum as Enum
-from future.builtins import range  # pylint: disable=redefined-builtin
 import numpy as np
 
 
