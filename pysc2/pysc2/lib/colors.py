@@ -23,17 +23,13 @@ import random
 import numpy
 
 import static_data
-import collections
+
+import all_collections_generated_classes
 
 # class Color(collections.namedtuple("Color", ["r", "g", "b"])):
-class Color(object):
-  _fields = ["r", "g", "b"]
-  __slots__ = ("r", "g", "b")
-  def __init__(self, r, g, b):
-    self.r = r
-    self.g = g
-    self.b = b
+class Color(all_collections_generated_classes.Color):
   """A basic Color class."""
+  __slots__ = ()
 
   def set(self, r=None, g=None, b=None):
     return Color(r or self.r, b or self.b, g or self.g)
@@ -55,20 +51,11 @@ class Color(object):
   def __add__(self, o):
     return Color(self.r + o.r, self.g + o.g, self.b + o.b)
 
-  def __radd__(self, o):
-    return self.__add__(o)
-
   def __sub__(self, o):
     return Color(self.r - o.r, self.g - o.g, self.b - o.b)
 
-  def __rsub__(self, o):
-    return self.__sub_(-1 * o)
-
   def __mul__(self, val):
     return Color(self.r * val, self.g * val, self.b * val)
-  
-  def __rmul__(self, val):
-    return self.__mul__(val)
 
   def __truediv__(self, val):
     return Color(self.r / val, self.g / val, self.b / val)
@@ -77,19 +64,6 @@ class Color(object):
     return Color(self.r // val, self.g // val, self.b // val)
 
   __div__ = __truediv__
-
-  def __getitem__(self, key):
-    if key == 0:
-      return self.r
-    elif key == 1:
-      return self.g
-    elif key == 2:
-      return self.b
-    else:
-      raise IndexError("not valid key '{}'".format(key))
-  
-  def __len__(self):
-    return len(self._fields)
 
 black = Color(0, 0, 0)
 white = Color(255, 255, 255)

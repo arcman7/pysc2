@@ -8,7 +8,7 @@
 # # def class_factory(x):
 # #     return type("C", (A,), {"p": x})
 
-# # import my_collections as mc
+# # import all_collections_generated_classes as mc
 # classes = {}
 # # class iluvgarbage(type):
 #   # def __new__(cls, **kwargs):
@@ -179,4 +179,4 @@ print(p2)
 # for i in p1:
 #   print(i)
 
-# import my_collections as mc
+# import all_collections_generated_classes as mc

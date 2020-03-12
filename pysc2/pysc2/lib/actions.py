@@ -17,6 +17,11 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+from absl import logging
+
+
+import all_collections_generated_classes
+
 # necessary shim(s) for eventual javascript transpiling:
 def iteritems(d, **kw):
     return iter(d.items(**kw))
@@ -32,11 +37,9 @@ class defaultdict(dict):
   def __repr__(self):
     return 'defaultdict(%s, %s)' % (self.default, dict.__repr__(self))
   def __missing__(self, key):
-    # if self.default:
-    #   setattr(self, key, self.default())
-    #   return self[key]
     if self.default:
-      return self.default(key)
+      self[key] = self.default(key)
+      return self[key]
     else:
       raise KeyError(key)
   def __getitem__(self, key):
@@ -246,30 +249,20 @@ def numpy_to_python(val):
 
 # class ArgumentType(collections.namedtuple(
 #     "ArgumentType", ["id", "name", "sizes", "fn", "values", "count"])):
-class ArgumentType(object):
-  _fields = ["id", "name", "sizes", "fn", "values", "count", "_index"]
-  __slots__ = ("id", "name", "sizes", "fn", "values", "count", "_index")
-  
-  def __init__(self, id, name, sizes, fn, values, count):
-    self.id = id
-    self.name = name
-    self.sizes = sizes
-    self.fn = fn
-    self.values = values
-    self.count = count
-    self._index = 0
-  """Represents a single argument type.
 
-  Attributes:
-    id: The argument id. This is unique.
-    name: The name of the argument, also unique.
-    sizes: The max+1 of each of the dimensions this argument takes.
-    fn: The function to convert the list of integers into something more
-        meaningful to be set in the protos to send to the game.
-    values: An enum representing the values this argument type could hold. None
-        if this isn't an enum argument type.
-    count: Number of valid values. Only useful for unit_tags.
-  """
+class ArgumentType(all_collections_generated_classes.ArgumentType):
+  # """Represents a single argument type.
+
+  # Attributes:
+  #   id: The argument id. This is unique.
+  #   name: The name of the argument, also unique.
+  #   sizes: The max+1 of each of the dimensions this argument takes.
+  #   fn: The function to convert the list of integers into something more
+  #       meaningful to be set in the protos to send to the game.
+  #   values: An enum representing the values this argument type could hold. None
+  #       if this isn't an enum argument type.
+  #   count: Number of valid values. Only useful for unit_tags.
+  # """
   def __str__(self):
     return "%s/%s %s" % (self.id, self.name, list(self.sizes))
 
@@ -313,70 +306,35 @@ class ArgumentType(object):
       return arg[:count]
     return lambda i, name: cls(i, name, (size,), clean, None, count)
 
-  def __next__(self):
-    # minus one because _fields is used for iterating
-    if self._index < len(self._fields) - 1:
-      if self._index == 0:
-        result = self.x
-        self._index += 1
-        return result
-      elif self._index == 1:
-        result = self.y
-        self._index += 1
-        return result
-    else:
-      self._index = 0
-      raise StopIteration
-
-  def __iter__(self):
-    return self
-
 # class Arguments(collections.namedtuple("Arguments", [
 #     "screen", "minimap", "screen2", "queued", "control_group_act",
 #     "control_group_id", "select_point_act", "select_add", "select_unit_act",
 #     "select_unit_id", "select_worker", "build_queue_id", "unload_id"])):
-class Arguments(object):
-  _fields = [
-    "screen", "minimap", "screen2", "queued", "control_group_act",
-    "control_group_id", "select_point_act", "select_add", "select_unit_act", "select_unit_id", "select_worker", "build_queue_id", "unload_id", "_index"]
-  __slots__ = ("screen", "minimap", "screen2", "queued", "control_group_act", "control_group_id", "select_point_act", "select_add", "select_unit_act", "select_unit_id", "select_worker", "build_queue_id", "unload_id", "_index")
-  def __init__(self, screen, minimap, screen2, queued, control_group_act, control_group_id, select_point_act, select_add, select_unit_act, select_unit_id, select_worker, build_queue_id, unload_id):
-    self.screen = screen
-    self.minimap = minimap
-    self.screen2 = screen2
-    self.queued = queued
-    self.control_group_act = control_group_act
-    self.control_group_id = control_group_id
-    self.select_point_act = select_point_act
-    self.select_add = select_add
-    self.select_unit_act = select_unit_act
-    self.select_unit_id = select_unit_id
-    self.select_worker = select_worker
-    self.build_queue_id = build_queue_id
-    self.unload_id = unload_id
-    self._index = 0
 
-  """The full list of argument types.
+class Arguments(all_collections_generated_classes.Arguments):
+  # """The full list of argument types.
 
-  Take a look at TYPES and FUNCTION_TYPES for more details.
+  # Take a look at TYPES and FUNCTION_TYPES for more details.
 
-  Attributes:
-    screen: A point on the screen.
-    minimap: A point on the minimap.
-    screen2: The second point for a rectangle. This is needed so that no
-        function takes the same type twice.
-    queued: Whether the action should be done immediately or after all other
-        actions queued for this unit.
-    control_group_act: What to do with the control group.
-    control_group_id: Which control group to do it with.
-    select_point_act: What to do with the unit at the point.
-    select_add: Whether to add the unit to the selection or replace it.
-    select_unit_act: What to do when selecting a unit by id.
-    select_unit_id: Which unit to select by id.
-    select_worker: What to do when selecting a worker.
-    build_queue_id: Which build queue index to target.
-    unload_id: Which unit to target in a transport/nydus/command center.
-  """
+  # Attributes:
+  #   screen: A point on the screen.
+  #   minimap: A point on the minimap.
+  #   screen2: The second point for a rectangle. This is needed so that no
+  #       function takes the same type twice.
+  #   queued: Whether the action should be done immediately or after all other
+  #       actions queued for this unit.
+  #   control_group_act: What to do with the control group.
+  #   control_group_id: Which control group to do it with.
+  #   select_point_act: What to do with the unit at the point.
+  #   select_add: Whether to add the unit to the selection or replace it.
+  #   select_unit_act: What to do when selecting a unit by id.
+  #   select_unit_id: Which unit to select by id.
+  #   select_worker: What to do when selecting a worker.
+  #   build_queue_id: Which build queue index to target.
+  #   unload_id: Which unit to target in a transport/nydus/command center.
+  # """
+
+  __slots__ = ()
 
   @classmethod
   def types(cls, **kwargs):
@@ -386,47 +344,22 @@ class Arguments(object):
     return cls(**named)
 
   def __reduce__(self):
-    return self.__class__, (self.screen, self.minimap, self.screen2, self.queued, self.control_group_act, self.control_group_id, self.select_point_act, self.select_add, self.select_unit_act, self.select_unit_id, self.select_worker, self.build_queue_id, self.unload_id)
-
-  def __next__(self):
-    # minus one because _fields is used for iterating
-    if self._index < len(self._fields) - 1:
-      if self._index == 0:
-        result = self.x
-        self._index += 1
-        return result
-      elif self._index == 1:
-        result = self.y
-        self._index += 1
-        return result
-    else:
-      self._index = 0
-      raise StopIteration
-
-  def __iter__(self):
-    return self
+    return self.__class__, tuple(self)
 
 # class RawArguments(collections.namedtuple("RawArguments", [
 #     "world", "queued", "unit_tags", "target_unit_tag"])):
-class RawArguments(object):
-  _fields = ["world", "queued", "unit_tags", "target_unit_tag"]
-  __slots__ = ("world", "queued", "unit_tags", "target_unit_tag")
-  def __init__(self, world, queued, unit_tags, target_unit_tag):
-    self.world = world
-    self.queued = queued
-    self.unit_tags = unit_tags
-    self.target_unit_tag = target_unit_tag
-  """The full list of argument types.
+class RawArguments(all_collections_generated_classes.RawArguments):
+  # """The full list of argument types.
 
-  Take a look at TYPES and FUNCTION_TYPES for more details.
+  # Take a look at TYPES and FUNCTION_TYPES for more details.
 
-  Attributes:
-    world: A point in world coordinates
-    queued: Whether the action should be done immediately or after all other
-        actions queued for this unit.
-    unit_tags: Which units should execute this action.
-    target_unit_tag: The target unit of this action.
-  """
+  # Attributes:
+  #   world: A point in world coordinates
+  #   queued: Whether the action should be done immediately or after all other
+  #       actions queued for this unit.
+  #   unit_tags: Which units should execute this action.
+  #   target_unit_tag: The target unit of this action.
+  # """
 
   @classmethod
   def types(cls, **kwargs):
@@ -565,24 +498,7 @@ always = lambda _: True
 # class Function(collections.namedtuple(
 #     "Function", ["id", "name", "ability_id", "general_id", "function_type",
 #                  "args", "avail_fn", "raw"])):
-class Function(object):
-  _fields = ["id", "name", "ability_id", "general_id", "function_type", "args", "avail_fn", "raw"]
-  __slots__ = ("id", "name", "ability_id", "general_id", "function_type", "args", "avail_fn", "raw")
-  def __init__(self, id, name, ability_id, general_id, function_type, args, avail_fn, raw):
-    self.id = id
-    self.name = name
-    self.ability_id = ability_id
-    self.general_id = general_id
-    self.function_type = function_type
-    self.args = args
-    self.avail_fn = avail_fn
-    self.raw = raw
-
-  def _replace(self, **kwds):
-    result = Function(id = self.id, name = self.name, ability_id = self.ability_id, general_id = self.general_id, function_type = self.function_type, args = self.args, avail_fn = self.avail_fn, raw = self.raw)
-    for field in kwds:
-      setattr(result, field, kwds[field])
-    return result
+class Function(all_collections_generated_classes.Function):
 
   """Represents a function action.
 
@@ -1874,7 +1790,6 @@ _RAW_FUNCTIONS = [f._replace(id=_Raw_Functions(f.id)) for f in _RAW_FUNCTIONS]
 RAW_FUNCTIONS = Functions(_RAW_FUNCTIONS)
 
 # Some indexes to support features.py and action conversion.
-# RAW_ABILITY_IDS = defaultdict(set)  # {ability_id: {funcs}}
 RAW_ABILITY_IDS = defaultdict(default=lambda key: set())  # {ability_id: {funcs}}
 for _func in RAW_FUNCTIONS:
   if _func.ability_id >= 0:
@@ -1885,14 +1800,10 @@ RAW_ABILITY_ID_TO_FUNC_ID = {k: min(f.id for f in v)  # pylint: disable=g-comple
                              for k, v in iteritems(RAW_ABILITY_IDS)}
 
 
+
 # class FunctionCall(collections.namedtuple(
 #     "FunctionCall", ["function", "arguments"])):
-class FunctionCall(object):
-  _fields = ["function", "arguments"]
-  __slots__ = ("function", "arguments")
-  def __init__(self, function, arguments):
-    self.function = function
-    self.arguments = arguments
+class FunctionCall(all_collections_generated_classes.FunctionCall):
   """Represents a function call action.
 
   Attributes:
@@ -1978,12 +1889,8 @@ class FunctionCall(object):
 
 # class ValidActions(collections.namedtuple(
 #     "ValidActions", ["types", "functions"])):
-class ValidActions(object):
-  _fields = ["types", "functions"]
-  __slots__ = ("types", "functions")
-  def __init__(self, types, functions):
-    self.types = types
-    self.functions = functions
+class ValidActions(all_collections_generated_classes.ValidActions):
+
   """The set of types and functions that are valid for an agent to use.
 
   Attributes:

@@ -20,16 +20,13 @@
 import math
 import random
 
-# class Point(collections.namedtuple("Point", ["x", "y"])):
-class Point(object):
-  _fields = ["x", "y", "_index"]
-  __slots__ = ("x", "y", "_index")
-  def __init__(self, x, y):
-    self.x = x
-    self.y = y
-    self._index = 0
+import all_collections_generated_classes
 
+
+# class Point(collections.namedtuple("Point", ["x", "y"])):
+class Point(all_collections_generated_classes.Point):
   """A basic Point class."""
+  __slots__ = ()
 
   @classmethod
   def build(cls, obj):
@@ -43,8 +40,12 @@ class Point(object):
 
   def assign_to(self, obj):
     """Assign `x` and `y` to an object that has properties `x` and `y`."""
-    obj.x = self.x
-    obj.y = self.y
+    if isinstance(obj.x, int):
+      obj.x = int(round(self.x))
+      obj.y = int(round(self.y))
+    else:
+      obj.x = self.x
+      obj.y = self.y
 
   def dist(self, other):
     """Distance to some other point."""
@@ -129,30 +130,40 @@ class Point(object):
     return Point(-self.x, -self.y)
 
   def __add__(self, pt_or_val):
+    if isinstance(pt_or_val, int) and isinstance(self.x, float):
+      pt_or_val = float(pt_or_val)
     if isinstance(pt_or_val, Point):
       return Point(self.x + pt_or_val.x, self.y + pt_or_val.y)
     else:
       return Point(self.x + pt_or_val, self.y + pt_or_val)
 
   def __sub__(self, pt_or_val):
+    if isinstance(pt_or_val, int) and isinstance(self.x, float):
+      pt_or_val = float(pt_or_val)
     if isinstance(pt_or_val, Point):
-      return Point(self.x - pt_or_val.x, self.y - pt_or_val.y)
+      return Point(float(self.x) - float(pt_or_val.x), float(self.y) - float(pt_or_val.y))
     else:
-      return Point(self.x - pt_or_val, self.y - pt_or_val)
+      return Point(float(self.x)- pt_or_val, float(self.y) - pt_or_val)
 
   def __mul__(self, pt_or_val):
+    if isinstance(pt_or_val, int) and isinstance(self.x, float):
+      pt_or_val = float(pt_or_val)
     if isinstance(pt_or_val, Point):
       return Point(self.x * pt_or_val.x, self.y * pt_or_val.y)
     else:
       return Point(self.x * pt_or_val, self.y * pt_or_val)
 
   def __truediv__(self, pt_or_val):
+    if isinstance(pt_or_val, int) and isinstance(self.x, float):
+      pt_or_val = float(pt_or_val)
     if isinstance(pt_or_val, Point):
       return Point(self.x / pt_or_val.x, self.y / pt_or_val.y)
     else:
       return Point(self.x / pt_or_val, self.y / pt_or_val)
 
   def __floordiv__(self, pt_or_val):
+    if isinstance(pt_or_val, int) and isinstance(self.x, float):
+      pt_or_val = float(pt_or_val)
     if isinstance(pt_or_val, Point):
       return Point(int(self.x // pt_or_val.x), int(self.y // pt_or_val.y))
     else:
@@ -160,51 +171,31 @@ class Point(object):
 
   __div__ = __truediv__
 
-  def __next__(self):
-    # minus one because _fields is used for iterating
-    if self._index < len(self._fields) - 1:
-      if self._index == 0:
-        result = self.x
-        self._index += 1
-        return result
-      elif self._index == 1:
-        result = self.y
-        self._index += 1
-        return result
-    else:
-      self._index = 0
-      raise StopIteration
-
-  def __iter__(self):
-    return self
-
-
-origin = Point(0, 0)
+origin = Point(0.0, 0.0)
 
 # class Rect(collections.namedtuple("Rect", ["t", "l", "b", "r"])):
-class Rect(object):
+class Rect(all_collections_generated_classes.Rect):
   """A basic Rect class. Assumes tl <= br."""
-  _fields = ["t", "l", "b", "r"]
-  __slots__ = ("t", "l", "b", "r")
-  def __init__(self, **kwargs):
-    if len(kargs) == 1 or (len(kargs) == 2 and kargs[1] is None):
-      kargs = (origin, kargs[0])
-    if len(kargs) == 2:
-      p1, p2 = kargs
+  __slots__ = ()
+
+  def __new__(cls, *args):
+    if len(args) == 1 or (len(args) == 2 and args[1] is None):
+      args = (origin, args[0])
+    if len(args) == 2:
+      p1, p2 = args
       if not isinstance(p1, Point) or not isinstance(p2, Point):
         raise TypeError("Rect expected Points")
-        self.t = min(p1.y, p2.y)
-        self.l = min(p1.x, p2.x)
-        self.b = max(p1.y, p2.y)
-        self.r = max(p1.x, p2.x)
-    if len(kargs) == 4:
-      if kargs[0] > kargs[2] or kargs[1] > kargs[3]:
+      return super(Rect, cls).__new__(
+          cls,
+          min(p1.y, p2.y),
+          min(p1.x, p2.x),
+          max(p1.y, p2.y),
+          max(p1.x, p2.x))
+    if len(args) == 4:
+      if args[0] > args[2] or args[1] > args[3]:
         raise TypeError("Rect requires: t <= b and l <= r")
-      t,l,b,r = kwargs
-      self.t = t
-      self.l = l
-      self.b = b
-      self.r = r
+      # TODO(b/117657518): Remove the disable once the pytype bug is fixed.
+      return super(Rect, cls).__new__(cls, *args)  # pytype: disable=missing-parameter
     raise TypeError(
         "Unexpected arguments to Rect. Takes 1 or 2 Points, or 4 coords.")
 
