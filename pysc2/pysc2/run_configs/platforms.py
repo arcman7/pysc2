@@ -27,9 +27,11 @@ import sys
 from absl import flags
 
 from pysc2.lib import sc_process
-from pysc2.run_configs import lib
 
+# from pysc2.run_configs import lib
+import lib
 
+# if not flags.sc2_version:
 flags.DEFINE_enum("sc2_version", None, sorted(lib.VERSIONS.keys()),
                   "Which version of the game to use.")
 flags.DEFINE_bool("sc2_dev_build", False,
@@ -58,7 +60,10 @@ class LocalBase(lib.RunConfig):
     base_dir = os.path.expanduser(base_dir)
     version = version or FLAGS.sc2_version or "latest"
     cwd = cwd and os.path.join(base_dir, cwd)
-    super(LocalBase, self).__init__(
+    # super(LocalBase, self).__init__(
+    #     replay_dir=os.path.join(base_dir, "Replays"),
+    #     data_dir=base_dir, tmp_dir=None, version=version, cwd=cwd, env=env)
+    super().__init__(
         replay_dir=os.path.join(base_dir, "Replays"),
         data_dir=base_dir, tmp_dir=None, version=version, cwd=cwd, env=env)
     if FLAGS.sc2_dev_build:
@@ -117,8 +122,9 @@ class Windows(LocalBase):
     exec_path = (os.environ.get("SC2PATH") or
                  _read_execute_info(os.path.expanduser("~/Documents"), 3) or
                  "C:/Program Files (x86)/StarCraft II")
-    super(Windows, self).__init__(exec_path, "SC2_x64.exe",
-                                  version=version, cwd="Support64")
+    # super(Windows, self).__init__(exec_path, "SC2_x64.exe",
+    #                               version=version, cwd="Support64")
+    super().__init__(exec_path, "SC2_x64.exe", version=version, cwd="Support64")
 
   @classmethod
   def priority(cls):
@@ -132,7 +138,9 @@ class Cygwin(LocalBase):
   def __init__(self, version=None):
     exec_path = os.environ.get(
         "SC2PATH", "/cygdrive/c/Program Files (x86)/StarCraft II")
-    super(Cygwin, self).__init__(exec_path, "SC2_x64.exe",
+    # super(Cygwin, self).__init__(exec_path, "SC2_x64.exe",
+    #                              version=version, cwd="Support64")
+    super().__init__(exec_path, "SC2_x64.exe",
                                  version=version, cwd="Support64")
 
   @classmethod
@@ -149,7 +157,9 @@ class MacOS(LocalBase):
                  _read_execute_info(os.path.expanduser(
                      "~/Library/Application Support/Blizzard"), 6) or
                  "/Applications/StarCraft II")
-    super(MacOS, self).__init__(exec_path, "SC2.app/Contents/MacOS/SC2",
+    # super(MacOS, self).__init__(exec_path, "SC2.app/Contents/MacOS/SC2",
+    #                             version=version)
+    super().__init__(exec_path, "SC2.app/Contents/MacOS/SC2",
                                 version=version)
 
   @classmethod
@@ -176,7 +186,8 @@ class Linux(LocalBase):
     env["LD_LIBRARY_PATH"] = ":".join(filter(None, [
         os.environ.get("LD_LIBRARY_PATH"),
         os.path.join(base_dir, "Libs/")]))
-    super(Linux, self).__init__(base_dir, "SC2_x64", version=version, env=env)
+    # super(Linux, self).__init__(base_dir, "SC2_x64", version=version, env=env)
+    super().__init__(base_dir, "SC2_x64", version=version, env=env)
 
   @classmethod
   def priority(cls):
@@ -201,5 +212,7 @@ class Linux(LocalBase):
             "No GL library found, so RGB rendering will be disabled. "
             "For software rendering install libosmesa.")
 
-    return super(Linux, self).start(
+    # return super(Linux, self).start(
+    #     want_rgb=want_rgb, extra_args=extra_args, **kwargs)
+    return super().start(
         want_rgb=want_rgb, extra_args=extra_args, **kwargs)

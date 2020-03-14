@@ -17,9 +17,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-from future.builtins import range  # pylint: disable=redefined-builtin
-
-from pysc2.lib import units
+import units
 
 
 def get_printable_unit_types():

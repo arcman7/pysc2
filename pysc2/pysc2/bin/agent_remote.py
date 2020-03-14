@@ -12,7 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-r"""Play an agent with an SC2 instance that isn't owned.
+"""Play an agent with an SC2 instance that isn't owned.
 
 This can be used to play on the sc2ai.net ladder, as well as to play vs humans.
 

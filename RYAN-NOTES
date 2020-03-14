@@ -1,4 +1,13 @@
-RYAN-NOTES
+RYAN-NOTES 
+========================================================================
+Node / NPM package equivalents required:
+1. numpy
+2. collections.dequeue
+3. queue
+4. WeakSet and or _weakrefset
+5. threading
+6. importlib
+7. getpass
 
 Y = np.arange(12).reshape(3,4)
 

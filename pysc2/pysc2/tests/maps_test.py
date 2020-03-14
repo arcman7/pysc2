@@ -25,11 +25,10 @@ import random
 
 from absl.testing import absltest
 from absl.testing import parameterized
-from future.builtins import range  # pylint: disable=redefined-builtin
 
 from pysc2 import maps
 from pysc2 import run_configs
-from pysc2.tests import utils
+import utils
 
 from s2clientprotocol import common_pb2 as sc_common
 from s2clientprotocol import sc2api_pb2 as sc_pb
@@ -70,7 +69,8 @@ class MapsTest(parameterized.TestCase, utils.TestCase):
     if _sc2_proc:
       _sc2_proc.close()
       _sc2_proc = None
-    super(MapsTest, cls).tearDownClass()
+    # super(MapsTest, cls).tearDownClass()
+    super().tearDownClass()
 
   @parameterized.parameters(get_maps())
   def test_list_all_maps(self, map_name):

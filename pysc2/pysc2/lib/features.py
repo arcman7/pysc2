@@ -33,6 +33,7 @@ sw = stopwatch.sw
 
 import transform
 
+# import all_collections_generated_classes_orig as all_collections_generated_classes
 import all_collections_generated_classes
 
 from s2clientprotocol import raw_pb2 as sc_raw
@@ -50,16 +51,14 @@ class defaultdict(dict):
     else:
       self.default = None
     dict.__init__(self, *args, **kwargs)
-
   def __repr__(self):
     return 'defaultdict(%s, %s)' % (self.default, dict.__repr__(self))
-
   def __missing__(self, key):
     if self.default:
-      return self.default(key)
+      self[key] = self.default(key)
+      return self[key]
     else:
       raise KeyError(key)
-
   def __getitem__(self, key):
     try:
       return dict.__getitem__(self, key)

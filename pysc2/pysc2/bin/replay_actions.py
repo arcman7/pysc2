@@ -18,7 +18,6 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import collections
 import multiprocessing
 import os
 import signal
@@ -28,9 +27,7 @@ import time
 
 from absl import app
 from absl import flags
-from future.builtins import range  # pylint: disable=redefined-builtin
 import queue
-import six
 
 from pysc2 import run_configs
 from pysc2.lib import features
@@ -43,6 +40,33 @@ from pysc2.lib import static_data
 from pysc2.lib import gfile
 from s2clientprotocol import common_pb2 as sc_common
 from s2clientprotocol import sc2api_pb2 as sc_pb
+
+
+# necessary shim(s) for eventual javascript transpiling:
+def iteritems(d, **kw):
+    return iter(d.items(**kw))
+    
+class defaultdict(dict):
+  def __init__(self, *args, **kwargs):
+    if 'default' in kwargs:
+      self.default = kwargs['default']
+      del kwargs['default']
+    else:
+      self.default = None
+    dict.__init__(self, *args, **kwargs)
+  def __repr__(self):
+    return 'defaultdict(%s, %s)' % (self.default, dict.__repr__(self))
+  def __missing__(self, key):
+    if self.default:
+      self[key] = self.default(key)
+      return self[key]
+    else:
+      raise KeyError(key)
+  def __getitem__(self, key):
+    try:
+      return dict.__getitem__(self, key)
+    except KeyError:
+      return self.__missing__(key)
 
 FLAGS = flags.FLAGS
 flags.DEFINE_integer("parallel", 1, "How many instances to run in parallel.")
@@ -74,23 +98,34 @@ class ReplayStats(object):
     self.select_pt = 0
     self.select_rect = 0
     self.control_group = 0
-    self.maps = collections.defaultdict(int)
-    self.races = collections.defaultdict(int)
-    self.unit_ids = collections.defaultdict(int)
-    self.valid_abilities = collections.defaultdict(int)
-    self.made_abilities = collections.defaultdict(int)
-    self.valid_actions = collections.defaultdict(int)
-    self.made_actions = collections.defaultdict(int)
-    self.buffs = collections.defaultdict(int)
-    self.upgrades = collections.defaultdict(int)
-    self.effects = collections.defaultdict(int)
+    # self.maps = collections.defaultdict(int)
+    # self.races = collections.defaultdict(int)
+    # self.unit_ids = collections.defaultdict(int)
+    # self.valid_abilities = collections.defaultdict(int)
+    # self.made_abilities = collections.defaultdict(int)
+    # self.valid_actions = collections.defaultdict(int)
+    # self.made_actions = collections.defaultdict(int)
+    # self.buffs = collections.defaultdict(int)
+    # self.upgrades = collections.defaultdict(int)
+    # self.effects = collections.defaultdict(int)
+    self.maps = defaultdict(int)
+    self.races = defaultdict(int)
+    self.unit_ids = defaultdict(int)
+    self.valid_abilities = defaultdict(int)
+    self.made_abilities = defaultdict(int)
+    self.valid_actions = defaultdict(int)
+    self.made_actions = defaultdict(int)
+    self.buffs = defaultdict(int)
+    self.upgrades = defaultdict(int)
+    self.effects = defaultdict(int)
     self.crashing_replays = set()
     self.invalid_replays = set()
 
   def merge(self, other):
     """Merge another ReplayStats into this one."""
     def merge_dict(a, b):
-      for k, v in six.iteritems(b):
+      # for k, v in six.iteritems(b):
+      for k, v in iteritems(b):
         a[k] += v
 
     self.replays += other.replays
@@ -189,7 +224,8 @@ class ReplayProcessor(multiprocessing.Process):
   """A Process that pulls replays and processes them."""
 
   def __init__(self, proc_id, run_config, replay_queue, stats_queue):
-    super(ReplayProcessor, self).__init__()
+    # super(ReplayProcessor, self).__init__()
+    super().__init__()
     self.stats = ProcessStats(proc_id)
     self.run_config = run_config
     self.replay_queue = replay_queue

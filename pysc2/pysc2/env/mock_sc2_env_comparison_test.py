@@ -20,15 +20,16 @@ from __future__ import print_function
 
 from absl.testing import absltest
 
-from pysc2.env import mock_sc2_env
-from pysc2.env import sc2_env
+import mock_sc2_env
+import sc2_env
 
 
 class TestCompareEnvironments(absltest.TestCase):
 
   @classmethod
   def setUpClass(cls):
-    super(TestCompareEnvironments, cls).setUpClass()
+    # super(TestCompareEnvironments, cls).setUpClass()
+    super().setUpClass()
     players = [
         sc2_env.Agent(race=sc2_env.Race.terran),
         sc2_env.Agent(race=sc2_env.Race.protoss),
@@ -58,7 +59,8 @@ class TestCompareEnvironments(absltest.TestCase):
 
   @classmethod
   def tearDownClass(cls):
-    super(TestCompareEnvironments, cls).tearDownClass()
+    # super(TestCompareEnvironments, cls).tearDownClass()
+    super().tearDownClass()
     cls._env.close()
     cls._mock_env.close()
 

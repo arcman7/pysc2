@@ -24,7 +24,7 @@ from pysc2.lib import actions
 from pysc2.lib import buffs
 from pysc2.lib import features
 from pysc2.lib import units
-from pysc2.tests import utils
+import utils
 
 from s2clientprotocol import debug_pb2 as sc_debug
 from s2clientprotocol import raw_pb2 as sc_raw

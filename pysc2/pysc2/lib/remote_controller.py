@@ -25,9 +25,9 @@ import sys
 import time
 
 from absl import flags
-from pysc2.lib import protocol
-from pysc2.lib import static_data
-from pysc2.lib import stopwatch
+import protocol
+import static_data
+import stopwatch
 import websocket
 
 from s2clientprotocol import debug_pb2 as sc_debug

@@ -17,15 +17,18 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import collections
+# import p_collections as collections
 import datetime
 import os
 
 from pysc2.lib import gfile
 
+import all_collections_generated_classes
 
-class Version(collections.namedtuple("Version", [
-    "game_version", "build_version", "data_version", "binary"])):
+
+# class Version(collections.namedtuple("Version", [
+#     "game_version", "build_version", "data_version", "binary"])):
+class Version(all_collections_generated_classes.Version):
   """Represents a single version of the game."""
   __slots__ = ()
 

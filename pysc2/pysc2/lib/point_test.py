@@ -21,7 +21,7 @@ from __future__ import print_function
 from absl.testing import absltest
 from future.builtins import int  # pylint: disable=redefined-builtin
 
-from pysc2.lib import point
+import point
 
 
 class FakePoint(object):

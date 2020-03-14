@@ -19,7 +19,7 @@ from __future__ import division
 from __future__ import print_function
 
 from absl.testing import absltest
-from pysc2.lib import proto_diff
+import proto_diff
 
 from s2clientprotocol import sc2api_pb2 as sc_pb
 from s2clientprotocol import score_pb2

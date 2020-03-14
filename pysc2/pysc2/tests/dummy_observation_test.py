@@ -25,7 +25,7 @@ from pysc2.lib import actions
 from pysc2.lib import features
 from pysc2.lib import point
 from pysc2.lib import units
-from pysc2.tests import dummy_observation
+import dummy_observation
 
 from s2clientprotocol import common_pb2
 
@@ -43,7 +43,8 @@ _MOTHERSHIP = dummy_observation.Unit(
 class DummyObservationTest(parameterized.TestCase):
 
   def setUp(self):
-    super(DummyObservationTest, self).setUp()
+    # super(DummyObservationTest, self).setUp()
+    super().setUp()
     self._features = features.Features(
         features.AgentInterfaceFormat(
             feature_dimensions=features.Dimensions(

@@ -20,12 +20,11 @@ from __future__ import print_function
 
 from absl.testing import absltest
 from absl.testing import parameterized
-from future.builtins import range  # pylint: disable=redefined-builtin
 
 from pysc2.agents import random_agent
 from pysc2.env import run_loop
 from pysc2.env import sc2_env
-from pysc2.tests import utils
+import utils
 
 
 class TestMultiplayerEnv(parameterized.TestCase, utils.TestCase):

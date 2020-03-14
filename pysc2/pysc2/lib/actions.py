@@ -13,13 +13,20 @@
 # limitations under the License.
 """Define the static list of types and actions for SC2."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
+import numbers
+
+import enum as Enum
+import numpy
+# import numscrypt as numpy
+import point
+
+from s2clientprotocol import spatial_pb2 as sc_spatial
+from s2clientprotocol import ui_pb2 as sc_ui
 
 from absl import logging
 
 
+# import all_collections_generated_classes_orig as all_collections_generated_classes
 import all_collections_generated_classes
 
 # necessary shim(s) for eventual javascript transpiling:
@@ -47,15 +54,6 @@ class defaultdict(dict):
       return dict.__getitem__(self, key)
     except KeyError:
       return self.__missing__(key)
-
-import numbers
-
-import enum as Enum
-import numpy
-import point
-
-from s2clientprotocol import spatial_pb2 as sc_spatial
-from s2clientprotocol import ui_pb2 as sc_ui
 
 
 class ActionSpace(Enum.Enum):

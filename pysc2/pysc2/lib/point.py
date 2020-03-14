@@ -20,8 +20,8 @@
 import math
 import random
 
+# import all_collections_generated_classes_orig as all_collections_generated_classes
 import all_collections_generated_classes
-
 
 # class Point(collections.namedtuple("Point", ["x", "y"])):
 class Point(all_collections_generated_classes.Point):
@@ -185,7 +185,8 @@ class Rect(all_collections_generated_classes.Rect):
       p1, p2 = args
       if not isinstance(p1, Point) or not isinstance(p2, Point):
         raise TypeError("Rect expected Points")
-      return super(Rect, cls).__new__(
+      # return super(Rect, cls).__new__(
+      return super().__new__(
           cls,
           min(p1.y, p2.y),
           min(p1.x, p2.x),
@@ -195,7 +196,8 @@ class Rect(all_collections_generated_classes.Rect):
       if args[0] > args[2] or args[1] > args[3]:
         raise TypeError("Rect requires: t <= b and l <= r")
       # TODO(b/117657518): Remove the disable once the pytype bug is fixed.
-      return super(Rect, cls).__new__(cls, *args)  # pytype: disable=missing-parameter
+      # return super(Rect, cls).__new__(cls, *args)  # pytype: disable=missing-parameter
+      return super().__new__(cls, *args)  # pytype: disable=missing-parameter
     raise TypeError(
         "Unexpected arguments to Rect. Takes 1 or 2 Points, or 4 coords.")
 

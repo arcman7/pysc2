@@ -17,7 +17,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import functools
+# import functools
 from absl import logging
 
 from absl.testing import absltest
@@ -37,17 +37,22 @@ from s2clientprotocol import error_pb2 as sc_error
 from s2clientprotocol import raw_pb2 as sc_raw
 from s2clientprotocol import sc2api_pb2 as sc_pb
 
+import my_functools
+
+wraps = my_functools.wraps
 
 class TestCase(absltest.TestCase):
   """A test base class that enables stopwatch profiling."""
 
   def setUp(self):
-    super(TestCase, self).setUp()
+    # super(TestCase, self).setUp()
+    super().setUp()
     stopwatch.sw.clear()
     stopwatch.sw.enable()
 
   def tearDown(self):
-    super(TestCase, self).tearDown()
+    # super(TestCase, self).tearDown()
+    super().tearDown()
     s = str(stopwatch.sw)
     if s:
       logging.info("Stop watch profile:\n%s", s)
@@ -83,7 +88,8 @@ def xy_locs(mask):
 
 
 def only_in_game(func):
-  @functools.wraps(func)
+  # @functools.wraps(func)
+  @wraps(func)
   def decorator(self, *args, **kwargs):
     if self.in_game:
       return func(self, *args, **kwargs)
@@ -97,7 +103,8 @@ class GameReplayTestCase(TestCase):
   def setup(**kwargs):
     """A decorator to replace unittest.setUp so it can take args."""
     def decorator(func):  # pylint: disable=missing-docstring
-      @functools.wraps(func)
+      # @functools.wraps(func)
+      @wraps(func)
       def _setup(self):  # pylint: disable=missing-docstring
         def test_in_game():
           print((" %s: Starting game " % func.__name__).center(80, "-"))

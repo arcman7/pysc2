@@ -19,14 +19,13 @@ from __future__ import division
 from __future__ import print_function
 
 from absl.testing import absltest
-from future.builtins import range  # pylint: disable=redefined-builtin
 
 import numpy as np
 
 from pysc2 import maps
 from pysc2 import run_configs
 from pysc2.lib import features
-from pysc2.tests import utils
+import utils
 
 from s2clientprotocol import common_pb2 as sc_common
 from s2clientprotocol import sc2api_pb2 as sc_pb

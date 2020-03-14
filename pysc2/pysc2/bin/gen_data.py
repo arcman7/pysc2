@@ -18,8 +18,6 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import collections
-
 from absl import app
 from pysc2 import maps
 from pysc2 import run_configs
@@ -28,7 +26,28 @@ from pysc2.lib import static_data
 from s2clientprotocol import common_pb2 as sc_common
 from s2clientprotocol import sc2api_pb2 as sc_pb
 
-
+class defaultdict(dict):
+  def __init__(self, *args, **kwargs):
+    if 'default' in kwargs:
+      self.default = kwargs['default']
+      del kwargs['default']
+    else:
+      self.default = None
+    dict.__init__(self, *args, **kwargs)
+  def __repr__(self):
+    return 'defaultdict(%s, %s)' % (self.default, dict.__repr__(self))
+  def __missing__(self, key):
+    if self.default:
+      self[key] = self.default(key)
+      return self[key]
+    else:
+      raise KeyError(key)
+  def __getitem__(self, key):
+    try:
+      return dict.__getitem__(self, key)
+    except KeyError:
+      return self.__missing__(key)
+      
 def get_data():
   """Get the game's static data from an actual game."""
   run_config = run_configs.get()
@@ -50,7 +69,8 @@ def get_data():
 
 def generate_py_units(data):
   """Generate the list of units in units.py."""
-  units = collections.defaultdict(list)
+  # units = collections.defaultdict(list)
+  units = defaultdict(default= lambda key: list())
   for unit in sorted(data.units, key=lambda a: a.name):
     if unit.unit_id in static_data.UNIT_TYPES:
       units[unit.race].append(unit)

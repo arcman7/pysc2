@@ -20,14 +20,13 @@ from __future__ import print_function
 
 # pylint: disable=g-import-not-at-top
 
-import collections
+import all_collections_generated_classes
 import random
 import sys
 import time
 
 from absl import app
 from absl import flags
-from future.builtins import range  # pylint: disable=redefined-builtin
 
 try:
   import psutil
@@ -62,8 +61,9 @@ flags.DEFINE_list("map", "Catalyst", "Which map(s) to test on.")
 FLAGS = flags.FLAGS
 
 
-class Timestep(collections.namedtuple(
-    "Timestep", ["episode", "time", "cpu", "memory", "name"])):
+# class Timestep(collections.namedtuple(
+#     "Timestep", ["episode", "time", "cpu", "memory", "name"])):
+class Timestep(all_collections_generated_classes.Timestep):
 
   def __str__(self):
     return "[%3d: %7.3f] cpu: %5.1f s, mem: %4d Mb; %s" % self

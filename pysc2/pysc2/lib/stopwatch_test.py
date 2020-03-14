@@ -21,10 +21,9 @@ from __future__ import print_function
 import os
 
 from absl.testing import absltest
-from future.builtins import range  # pylint: disable=redefined-builtin
 
 import mock
-from pysc2.lib import stopwatch
+import stopwatch
 
 
 def ham_dist(str1, str2):

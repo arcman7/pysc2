@@ -19,11 +19,10 @@ from __future__ import division
 from __future__ import print_function
 
 from absl.testing import absltest
-from future.builtins import range  # pylint: disable=redefined-builtin
 
 from pysc2 import run_configs
 from pysc2.lib import stopwatch
-from pysc2.tests import utils
+import utils
 
 
 class TestPing(utils.TestCase):

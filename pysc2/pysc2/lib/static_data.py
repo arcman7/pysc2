@@ -17,8 +17,9 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import six
-
+# import six
+def iteritems(d, **kw):
+    return iter(d.items(**kw))
 
 class StaticData(object):
   """Expose static data in a more useful form than the raw protos."""
@@ -33,7 +34,8 @@ class StaticData(object):
                                for a in data.abilities
                                if a.remaps_to_ability_id}
 
-    for a in six.itervalues(self._abilities):
+    # for a in six.itervalues(self._abilities):
+    for a in itervalues(self._abilities):
       a.hotkey = a.hotkey.lower()
 
   @property

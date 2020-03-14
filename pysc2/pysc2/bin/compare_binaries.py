@@ -18,7 +18,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import collections
+import all_collections_generated_classes
 import sys
 
 from absl import app
@@ -112,7 +112,7 @@ def main(argv):
         controllers.append(proc.controller)
 
   diff_counts = [0] * len(controllers)
-  diff_paths = collections.Counter()
+  diff_paths = all_collections_generated_classes.Counter()
 
   try:
     print("-" * 80)

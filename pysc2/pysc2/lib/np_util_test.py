@@ -21,7 +21,7 @@ from __future__ import print_function
 from absl.testing import absltest
 from absl.testing import parameterized
 import numpy as np
-from pysc2.lib import np_util
+import np_util
 
 
 class NpUtilTest(parameterized.TestCase):

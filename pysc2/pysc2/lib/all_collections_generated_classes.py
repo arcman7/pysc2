@@ -1,5 +1,38 @@
 
-from operator import itemgetter as _itemgetter, eq as _eq
+def eq(a, b):
+    "Same as a == b."
+    return a == b
+
+class itemgetter:
+    """
+    Return a callable object that fetches the given item(s) from its operand.
+    After f = itemgetter(2), the call f(r) returns r[2].
+    After g = itemgetter(2, 5, 3), the call g(r) returns (r[2], r[5], r[3])
+    """
+    __slots__ = ('_items', '_call')
+
+    def __init__(self, item, *items):
+        if not items:
+            self._items = (item,)
+            def func(obj):
+                return obj[item]
+            self._call = func
+        else:
+            self._items = items = (item,) + items
+            def func(obj):
+                return tuple(obj[i] for i in items)
+            self._call = func
+
+    def __call__(self, obj):
+        return self._call(obj)
+
+    def __repr__(self):
+        return '%s.%s(%s)' % (self.__class__.__module__,
+                              self.__class__.__name__,
+                              ', '.join(map(repr, self._items)))
+
+    def __reduce__(self):
+        return self.__class__, self._items
 
 class ArgumentType(tuple):
         #'ArgumentType(id, name, sizes, fn, values, count)'
@@ -39,12 +72,12 @@ class ArgumentType(tuple):
             #'Return self as a plain tuple.  Used by copy and pickle.'
             return tuple(self)
 
-        id = property(_itemgetter(0), doc='Alias for field number 0')
-        name = property(_itemgetter(1), doc='Alias for field number 1')
-        sizes = property(_itemgetter(2), doc='Alias for field number 2')
-        fn = property(_itemgetter(3), doc='Alias for field number 3')
-        values = property(_itemgetter(4), doc='Alias for field number 4')
-        count = property(_itemgetter(5), doc='Alias for field number 5')
+        # id = property(itemgetter(0), doc='Alias for field number 0')
+        # name = property(itemgetter(1), doc='Alias for field number 1')
+        # sizes = property(itemgetter(2), doc='Alias for field number 2')
+        # fn = property(itemgetter(3), doc='Alias for field number 3')
+        # values = property(itemgetter(4), doc='Alias for field number 4')
+        # count = property(itemgetter(5), doc='Alias for field number 5')
 
 class Arguments(tuple):
         #'Arguments(screen, minimap, screen2, queued, control_group_act, control_group_id, select_point_act, select_add, select_unit_act, select_unit_id, select_worker, build_queue_id, unload_id)'
@@ -84,19 +117,19 @@ class Arguments(tuple):
             #'Return self as a plain tuple.  Used by copy and pickle.'
             return tuple(self)
 
-        screen = property(_itemgetter(0), doc='Alias for field number 0')
-        minimap = property(_itemgetter(1), doc='Alias for field number 1')
-        screen2 = property(_itemgetter(2), doc='Alias for field number 2')
-        queued = property(_itemgetter(3), doc='Alias for field number 3')
-        control_group_act = property(_itemgetter(4), doc='Alias for field number 4')
-        control_group_id = property(_itemgetter(5), doc='Alias for field number 5')
-        select_point_act = property(_itemgetter(6), doc='Alias for field number 6')
-        select_add = property(_itemgetter(7), doc='Alias for field number 7')
-        select_unit_act = property(_itemgetter(8), doc='Alias for field number 8')
-        select_unit_id = property(_itemgetter(9), doc='Alias for field number 9')
-        select_worker = property(_itemgetter(10), doc='Alias for field number 10')
-        build_queue_id = property(_itemgetter(11), doc='Alias for field number 11')
-        unload_id = property(_itemgetter(12), doc='Alias for field number 12')
+        # screen = property(itemgetter(0), doc='Alias for field number 0')
+        # minimap = property(itemgetter(1), doc='Alias for field number 1')
+        # screen2 = property(itemgetter(2), doc='Alias for field number 2')
+        # queued = property(itemgetter(3), doc='Alias for field number 3')
+        # control_group_act = property(itemgetter(4), doc='Alias for field number 4')
+        # control_group_id = property(itemgetter(5), doc='Alias for field number 5')
+        # select_point_act = property(itemgetter(6), doc='Alias for field number 6')
+        # select_add = property(itemgetter(7), doc='Alias for field number 7')
+        # select_unit_act = property(itemgetter(8), doc='Alias for field number 8')
+        # select_unit_id = property(itemgetter(9), doc='Alias for field number 9')
+        # select_worker = property(itemgetter(10), doc='Alias for field number 10')
+        # build_queue_id = property(itemgetter(11), doc='Alias for field number 11')
+        # unload_id = property(itemgetter(12), doc='Alias for field number 12')
 
 class RawArguments(tuple):
         #'RawArguments(world, queued, unit_tags, target_unit_tag)'
@@ -136,10 +169,10 @@ class RawArguments(tuple):
             #'Return self as a plain tuple.  Used by copy and pickle.'
             return tuple(self)
 
-        world = property(_itemgetter(0), doc='Alias for field number 0')
-        queued = property(_itemgetter(1), doc='Alias for field number 1')
-        unit_tags = property(_itemgetter(2), doc='Alias for field number 2')
-        target_unit_tag = property(_itemgetter(3), doc='Alias for field number 3')
+        # world = property(itemgetter(0), doc='Alias for field number 0')
+        # queued = property(itemgetter(1), doc='Alias for field number 1')
+        # unit_tags = property(itemgetter(2), doc='Alias for field number 2')
+        # target_unit_tag = property(itemgetter(3), doc='Alias for field number 3')
 
 class Function(tuple):
         #'Function(id, name, ability_id, general_id, function_type, args, avail_fn, raw)'
@@ -179,14 +212,14 @@ class Function(tuple):
             #'Return self as a plain tuple.  Used by copy and pickle.'
             return tuple(self)
 
-        id = property(_itemgetter(0), doc='Alias for field number 0')
-        name = property(_itemgetter(1), doc='Alias for field number 1')
-        ability_id = property(_itemgetter(2), doc='Alias for field number 2')
-        general_id = property(_itemgetter(3), doc='Alias for field number 3')
-        function_type = property(_itemgetter(4), doc='Alias for field number 4')
-        args = property(_itemgetter(5), doc='Alias for field number 5')
-        avail_fn = property(_itemgetter(6), doc='Alias for field number 6')
-        raw = property(_itemgetter(7), doc='Alias for field number 7')
+        # id = property(itemgetter(0), doc='Alias for field number 0')
+        # name = property(itemgetter(1), doc='Alias for field number 1')
+        # ability_id = property(itemgetter(2), doc='Alias for field number 2')
+        # general_id = property(itemgetter(3), doc='Alias for field number 3')
+        # function_type = property(itemgetter(4), doc='Alias for field number 4')
+        # args = property(itemgetter(5), doc='Alias for field number 5')
+        # avail_fn = property(itemgetter(6), doc='Alias for field number 6')
+        # raw = property(itemgetter(7), doc='Alias for field number 7')
 
 class FunctionCall(tuple):
         #'FunctionCall(function, arguments)'
@@ -226,8 +259,8 @@ class FunctionCall(tuple):
             #'Return self as a plain tuple.  Used by copy and pickle.'
             return tuple(self)
 
-        function = property(_itemgetter(0), doc='Alias for field number 0')
-        arguments = property(_itemgetter(1), doc='Alias for field number 1')
+        # function = property(itemgetter(0), doc='Alias for field number 0')
+        # arguments = property(itemgetter(1), doc='Alias for field number 1')
 
 class ValidActions(tuple):
         #'ValidActions(types, functions)'
@@ -267,8 +300,8 @@ class ValidActions(tuple):
             #'Return self as a plain tuple.  Used by copy and pickle.'
             return tuple(self)
 
-        types = property(_itemgetter(0), doc='Alias for field number 0')
-        functions = property(_itemgetter(1), doc='Alias for field number 1')
+        # types = property(itemgetter(0), doc='Alias for field number 0')
+        # functions = property(itemgetter(1), doc='Alias for field number 1')
 
 class Color(tuple):
         #'Color(r, g, b)'
@@ -308,9 +341,9 @@ class Color(tuple):
             #'Return self as a plain tuple.  Used by copy and pickle.'
             return tuple(self)
 
-        r = property(_itemgetter(0), doc='Alias for field number 0')
-        g = property(_itemgetter(1), doc='Alias for field number 1')
-        b = property(_itemgetter(2), doc='Alias for field number 2')
+        # r = property(itemgetter(0), doc='Alias for field number 0')
+        # g = property(itemgetter(1), doc='Alias for field number 1')
+        # b = property(itemgetter(2), doc='Alias for field number 2')
 
 class Point(tuple):
         #'Point(x, y)'
@@ -321,7 +354,7 @@ class Point(tuple):
 
         def __new__(_cls, x, y):
             #'Create new instance of Point(x, y)'
-            return tuple.__new__(_cls, (float(x), float(y)))
+            return tuple.__new__(_cls, (x, y))
 
         @classmethod
         def _make(cls, iterable, new=tuple.__new__, len=len):
@@ -350,8 +383,8 @@ class Point(tuple):
             #'Return self as a plain tuple.  Used by copy and pickle.'
             return tuple(self)
 
-        x = property(_itemgetter(0), doc='Alias for field number 0')
-        y = property(_itemgetter(1), doc='Alias for field number 1')
+        # x = property(itemgetter(0), doc='Alias for field number 0')
+        # y = property(itemgetter(1), doc='Alias for field number 1')
 
 class Rect(tuple):
         #'Rect(t, l, b, r)'
@@ -391,10 +424,10 @@ class Rect(tuple):
             #'Return self as a plain tuple.  Used by copy and pickle.'
             return tuple(self)
 
-        t = property(_itemgetter(0), doc='Alias for field number 0')
-        l = property(_itemgetter(1), doc='Alias for field number 1')
-        b = property(_itemgetter(2), doc='Alias for field number 2')
-        r = property(_itemgetter(3), doc='Alias for field number 3')
+        # t = property(itemgetter(0), doc='Alias for field number 0')
+        # l = property(itemgetter(1), doc='Alias for field number 1')
+        # b = property(itemgetter(2), doc='Alias for field number 2')
+        # r = property(itemgetter(3), doc='Alias for field number 3')
 
 class Feature(tuple):
         #'Feature(index, name, layer_set, full_name, scale, type, palette, clip)'
@@ -434,14 +467,14 @@ class Feature(tuple):
             #'Return self as a plain tuple.  Used by copy and pickle.'
             return tuple(self)
 
-        index = property(_itemgetter(0), doc='Alias for field number 0')
-        name = property(_itemgetter(1), doc='Alias for field number 1')
-        layer_set = property(_itemgetter(2), doc='Alias for field number 2')
-        full_name = property(_itemgetter(3), doc='Alias for field number 3')
-        scale = property(_itemgetter(4), doc='Alias for field number 4')
-        type = property(_itemgetter(5), doc='Alias for field number 5')
-        palette = property(_itemgetter(6), doc='Alias for field number 6')
-        clip = property(_itemgetter(7), doc='Alias for field number 7')
+        # index = property(itemgetter(0), doc='Alias for field number 0')
+        # name = property(itemgetter(1), doc='Alias for field number 1')
+        # layer_set = property(itemgetter(2), doc='Alias for field number 2')
+        # full_name = property(itemgetter(3), doc='Alias for field number 3')
+        # scale = property(itemgetter(4), doc='Alias for field number 4')
+        # type = property(itemgetter(5), doc='Alias for field number 5')
+        # palette = property(itemgetter(6), doc='Alias for field number 6')
+        # clip = property(itemgetter(7), doc='Alias for field number 7')
 
 class ScreenFeatures(tuple):
         #'ScreenFeatures(height_map, visibility_map, creep, power, player_id, player_relative, unit_type, selected, unit_hit_points, unit_hit_points_ratio, unit_energy, unit_energy_ratio, unit_shields, unit_shields_ratio, unit_density, unit_density_aa, effects, hallucinations, cloaked, blip, buffs, buff_duration, active, build_progress, pathable, buildable, placeholder)'
@@ -481,33 +514,33 @@ class ScreenFeatures(tuple):
             #'Return self as a plain tuple.  Used by copy and pickle.'
             return tuple(self)
 
-        height_map = property(_itemgetter(0), doc='Alias for field number 0')
-        visibility_map = property(_itemgetter(1), doc='Alias for field number 1')
-        creep = property(_itemgetter(2), doc='Alias for field number 2')
-        power = property(_itemgetter(3), doc='Alias for field number 3')
-        player_id = property(_itemgetter(4), doc='Alias for field number 4')
-        player_relative = property(_itemgetter(5), doc='Alias for field number 5')
-        unit_type = property(_itemgetter(6), doc='Alias for field number 6')
-        selected = property(_itemgetter(7), doc='Alias for field number 7')
-        unit_hit_points = property(_itemgetter(8), doc='Alias for field number 8')
-        unit_hit_points_ratio = property(_itemgetter(9), doc='Alias for field number 9')
-        unit_energy = property(_itemgetter(10), doc='Alias for field number 10')
-        unit_energy_ratio = property(_itemgetter(11), doc='Alias for field number 11')
-        unit_shields = property(_itemgetter(12), doc='Alias for field number 12')
-        unit_shields_ratio = property(_itemgetter(13), doc='Alias for field number 13')
-        unit_density = property(_itemgetter(14), doc='Alias for field number 14')
-        unit_density_aa = property(_itemgetter(15), doc='Alias for field number 15')
-        effects = property(_itemgetter(16), doc='Alias for field number 16')
-        hallucinations = property(_itemgetter(17), doc='Alias for field number 17')
-        cloaked = property(_itemgetter(18), doc='Alias for field number 18')
-        blip = property(_itemgetter(19), doc='Alias for field number 19')
-        buffs = property(_itemgetter(20), doc='Alias for field number 20')
-        buff_duration = property(_itemgetter(21), doc='Alias for field number 21')
-        active = property(_itemgetter(22), doc='Alias for field number 22')
-        build_progress = property(_itemgetter(23), doc='Alias for field number 23')
-        pathable = property(_itemgetter(24), doc='Alias for field number 24')
-        buildable = property(_itemgetter(25), doc='Alias for field number 25')
-        placeholder = property(_itemgetter(26), doc='Alias for field number 26')
+        # height_map = property(itemgetter(0), doc='Alias for field number 0')
+        # visibility_map = property(itemgetter(1), doc='Alias for field number 1')
+        # creep = property(itemgetter(2), doc='Alias for field number 2')
+        # power = property(itemgetter(3), doc='Alias for field number 3')
+        # player_id = property(itemgetter(4), doc='Alias for field number 4')
+        # player_relative = property(itemgetter(5), doc='Alias for field number 5')
+        # unit_type = property(itemgetter(6), doc='Alias for field number 6')
+        # selected = property(itemgetter(7), doc='Alias for field number 7')
+        # unit_hit_points = property(itemgetter(8), doc='Alias for field number 8')
+        # unit_hit_points_ratio = property(itemgetter(9), doc='Alias for field number 9')
+        # unit_energy = property(itemgetter(10), doc='Alias for field number 10')
+        # unit_energy_ratio = property(itemgetter(11), doc='Alias for field number 11')
+        # unit_shields = property(itemgetter(12), doc='Alias for field number 12')
+        # unit_shields_ratio = property(itemgetter(13), doc='Alias for field number 13')
+        # unit_density = property(itemgetter(14), doc='Alias for field number 14')
+        # unit_density_aa = property(itemgetter(15), doc='Alias for field number 15')
+        # effects = property(itemgetter(16), doc='Alias for field number 16')
+        # hallucinations = property(itemgetter(17), doc='Alias for field number 17')
+        # cloaked = property(itemgetter(18), doc='Alias for field number 18')
+        # blip = property(itemgetter(19), doc='Alias for field number 19')
+        # buffs = property(itemgetter(20), doc='Alias for field number 20')
+        # buff_duration = property(itemgetter(21), doc='Alias for field number 21')
+        # active = property(itemgetter(22), doc='Alias for field number 22')
+        # build_progress = property(itemgetter(23), doc='Alias for field number 23')
+        # pathable = property(itemgetter(24), doc='Alias for field number 24')
+        # buildable = property(itemgetter(25), doc='Alias for field number 25')
+        # placeholder = property(itemgetter(26), doc='Alias for field number 26')
 
 
 class MinimapFeatures(tuple):
@@ -548,14 +581,14 @@ class MinimapFeatures(tuple):
             #'Return self as a plain tuple.  Used by copy and pickle.'
             return tuple(self)
 
-        height_map = property(_itemgetter(0), doc='Alias for field number 0')
-        visibility_map = property(_itemgetter(1), doc='Alias for field number 1')
-        creep = property(_itemgetter(2), doc='Alias for field number 2')
-        camera = property(_itemgetter(3), doc='Alias for field number 3')
-        player_id = property(_itemgetter(4), doc='Alias for field number 4')
-        player_relative = property(_itemgetter(5), doc='Alias for field number 5')
-        selected = property(_itemgetter(6), doc='Alias for field number 6')
-        unit_type = property(_itemgetter(7), doc='Alias for field number 7')
-        alerts = property(_itemgetter(8), doc='Alias for field number 8')
-        pathable = property(_itemgetter(9), doc='Alias for field number 9')
-        buildable = property(_itemgetter(10), doc='Alias for field number 10')
+        # height_map = property(itemgetter(0), doc='Alias for field number 0')
+        # visibility_map = property(itemgetter(1), doc='Alias for field number 1')
+        # creep = property(itemgetter(2), doc='Alias for field number 2')
+        # camera = property(itemgetter(3), doc='Alias for field number 3')
+        # player_id = property(itemgetter(4), doc='Alias for field number 4')
+        # player_relative = property(itemgetter(5), doc='Alias for field number 5')
+        # selected = property(itemgetter(6), doc='Alias for field number 6')
+        # unit_type = property(itemgetter(7), doc='Alias for field number 7')
+        # alerts = property(itemgetter(8), doc='Alias for field number 8')
+        # pathable = property(itemgetter(9), doc='Alias for field number 9')
+        # buildable = property(itemgetter(10), doc='Alias for field number 10')

@@ -17,7 +17,6 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import collections
 import functools
 import math
 import os
@@ -25,9 +24,31 @@ import sys
 import threading
 import time
 
-from future.builtins import range  # pylint: disable=redefined-builtin
-import six
+# necessary shim(s) for eventual javascript transpiling:
+def iteritems(d, **kw):
+    return iter(d.items(**kw))
 
+class defaultdict(dict):
+  def __init__(self, *args, **kwargs):
+    if 'default' in kwargs:
+      self.default = kwargs['default']
+      del kwargs['default']
+    else:
+      self.default = None
+    dict.__init__(self, *args, **kwargs)
+  def __repr__(self):
+    return 'defaultdict(%s, %s)' % (self.default, dict.__repr__(self))
+  def __missing__(self, key):
+    if self.default:
+      self[key] = self.default(key)
+      return self[key]
+    else:
+      raise KeyError(key)
+  def __getitem__(self, key):
+    try:
+      return dict.__getitem__(self, key)
+    except KeyError:
+      return self.__missing__(key)
 
 class Stat(object):
   """A set of statistics about a single value series."""
@@ -158,7 +179,8 @@ class StopWatch(object):
   __slots__ = ("_times", "_local", "_factory")
 
   def __init__(self, enabled=True, trace=False):
-    self._times = collections.defaultdict(Stat)
+    # self._times = collections.defaultdict(Stat)
+    self._times = defaultdict(default=lambda key: Stat())
     self._local = threading.local()
     if trace:
       self.trace()
@@ -246,7 +268,8 @@ class StopWatch(object):
     return self._times
 
   def merge(self, other):
-    for k, v in six.iteritems(other.times):
+    # for k, v in six.iteritems(other.times):
+    for k, v in iteritems(other.times):
       self._times[k].merge(v)
 
   @staticmethod
@@ -266,7 +289,8 @@ class StopWatch(object):
     """Return a string representation of the timings."""
     if not self._times:
       return ""
-    total = sum(s.sum for k, s in six.iteritems(self._times) if "." not in k)
+    # total = sum(s.sum for k, s in six.iteritems(self._times) if "." not in k)
+    total = sum(s.sum for k, s in iteritems(self._times) if "." not in k)
     table = [["", "% total", "sum", "avg", "dev", "min", "max", "num"]]
     for k, v in sorted(self._times.items()):
       percent = 100 * v.sum / (total or 1)

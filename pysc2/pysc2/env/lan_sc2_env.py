@@ -21,7 +21,8 @@ from __future__ import division
 from __future__ import print_function
 
 import binascii
-import collections
+# import p_collections as collections
+import all_collections_generated_classes
 import hashlib
 import json
 from absl import logging
@@ -32,9 +33,8 @@ import subprocess
 import threading
 import time
 
-from future.builtins import range  # pylint: disable=redefined-builtin
 from pysc2 import run_configs
-from pysc2.env import sc2_env
+import sc2_env
 from pysc2.lib import features
 from pysc2.lib import run_parallel
 import whichcraft
@@ -42,7 +42,8 @@ import whichcraft
 from s2clientprotocol import sc2api_pb2 as sc_pb
 
 
-class Addr(collections.namedtuple("Addr", ["ip", "port"])):
+# class Addr(collections.namedtuple("Addr", ["ip", "port"])):
+class Addr(all_collections_generated_classes.Addr):
 
   def __str__(self):
     ip = "[%s]" % self.ip if ":" in self.ip else self.ip
@@ -365,4 +366,5 @@ class LanSC2Env(sc2_env.SC2Env):
       self._udp_sock.close()
       self._udp_sock = None
     self._run_config = None
-    super(LanSC2Env, self).close()
+    # super(LanSC2Env, self).close()
+    super().close()

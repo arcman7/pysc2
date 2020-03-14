@@ -17,12 +17,13 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import collections
+# import p_collections as collections
+import all_collections_generated_classes
 from absl import logging
 
 from pysc2 import maps
 from pysc2 import run_configs
-from pysc2.env import sc2_env
+import sc2_env
 from pysc2.lib import features
 from pysc2.lib import remote_controller
 from pysc2.lib import run_parallel
@@ -147,7 +148,7 @@ class RemoteSC2Env(sc2_env.SC2Env):
     interface = self._get_interface(
         agent_interface_format=agent_interface_format, require_raw=visualize)
 
-    if isinstance(lan_port, collections.Sequence):
+    if isinstance(lan_port, all_collections_generated_classes.Sequence):
       if len(lan_port) != 4:
         raise ValueError("lan_port sequence must be of length 4")
       ports = lan_port[:]
@@ -173,7 +174,8 @@ class RemoteSC2Env(sc2_env.SC2Env):
     self._controllers = None
     self._game_info = None
 
-    super(RemoteSC2Env, self).close()
+    # super(RemoteSC2Env, self).close()
+    super().close()
 
   def _connect_remote(self, host, host_port, lan_ports, race, name, map_inst,
                       save_map, interface, agent_interface_format):

@@ -23,7 +23,7 @@ from absl.testing import absltest
 
 from pysc2.lib import actions
 from pysc2.lib import units
-from pysc2.tests import utils
+import utils
 
 
 def raw_ability_ids(obs):

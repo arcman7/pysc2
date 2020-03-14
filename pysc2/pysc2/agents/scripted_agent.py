@@ -19,7 +19,7 @@ from __future__ import print_function
 
 import numpy
 
-from pysc2.agents import base_agent
+import base_agent
 from pysc2.lib import actions
 from pysc2.lib import features
 
@@ -41,7 +41,8 @@ class MoveToBeacon(base_agent.BaseAgent):
   """An agent specifically for solving the MoveToBeacon map."""
 
   def step(self, obs):
-    super(MoveToBeacon, self).step(obs)
+    # super(MoveToBeacon, self).step(obs)
+    super().step(obs)
     if FUNCTIONS.Move_screen.id in obs.observation.available_actions:
       player_relative = obs.observation.feature_screen.player_relative
       beacon = _xy_locs(player_relative == _PLAYER_NEUTRAL)
@@ -57,7 +58,8 @@ class CollectMineralShards(base_agent.BaseAgent):
   """An agent specifically for solving the CollectMineralShards map."""
 
   def step(self, obs):
-    super(CollectMineralShards, self).step(obs)
+    # super(CollectMineralShards, self).step(obs)
+    super().step(obs)
     if FUNCTIONS.Move_screen.id in obs.observation.available_actions:
       player_relative = obs.observation.feature_screen.player_relative
       minerals = _xy_locs(player_relative == _PLAYER_NEUTRAL)
@@ -82,17 +84,20 @@ class CollectMineralShardsFeatureUnits(base_agent.BaseAgent):
   """
 
   def setup(self, obs_spec, action_spec):
-    super(CollectMineralShardsFeatureUnits, self).setup(obs_spec, action_spec)
+    # super(CollectMineralShardsFeatureUnits, self).setup(obs_spec, action_spec)
+    super().setup(obs_spec, action_spec)
     if "feature_units" not in obs_spec:
       raise Exception("This agent requires the feature_units observation.")
 
   def reset(self):
-    super(CollectMineralShardsFeatureUnits, self).reset()
+    # super(CollectMineralShardsFeatureUnits, self).reset()
+    super().reset()
     self._marine_selected = False
     self._previous_mineral_xy = [-1, -1]
 
   def step(self, obs):
-    super(CollectMineralShardsFeatureUnits, self).step(obs)
+    # super(CollectMineralShardsFeatureUnits, self).step(obs)
+    super().step(obs)
     marines = [unit for unit in obs.observation.feature_units
                if unit.alliance == _PLAYER_SELF]
     if not marines:
@@ -138,17 +143,20 @@ class CollectMineralShardsRaw(base_agent.BaseAgent):
   """
 
   def setup(self, obs_spec, action_spec):
-    super(CollectMineralShardsRaw, self).setup(obs_spec, action_spec)
+    # super(CollectMineralShardsRaw, self).setup(obs_spec, action_spec)
+    super().setup(obs_spec, action_spec)
     if "raw_units" not in obs_spec:
       raise Exception("This agent requires the raw_units observation.")
 
   def reset(self):
-    super(CollectMineralShardsRaw, self).reset()
+    # super(CollectMineralShardsRaw, self).reset()
+    super().reset()
     self._last_marine = None
     self._previous_mineral_xy = [-1, -1]
 
   def step(self, obs):
-    super(CollectMineralShardsRaw, self).step(obs)
+    # super(CollectMineralShardsRaw, self).step(obs)
+    super().step(obs)
     marines = [unit for unit in obs.observation.raw_units
                if unit.alliance == _PLAYER_SELF]
     if not marines:
@@ -180,7 +188,8 @@ class DefeatRoaches(base_agent.BaseAgent):
   """An agent specifically for solving the DefeatRoaches map."""
 
   def step(self, obs):
-    super(DefeatRoaches, self).step(obs)
+    # super(DefeatRoaches, self).step(obs)
+    super().step(obs)
     if FUNCTIONS.Attack_screen.id in obs.observation.available_actions:
       player_relative = obs.observation.feature_screen.player_relative
       roaches = _xy_locs(player_relative == _PLAYER_ENEMY)
@@ -201,12 +210,14 @@ class DefeatRoachesRaw(base_agent.BaseAgent):
   """An agent specifically for solving DefeatRoaches using raw actions."""
 
   def setup(self, obs_spec, action_spec):
-    super(DefeatRoachesRaw, self).setup(obs_spec, action_spec)
+    # super(DefeatRoachesRaw, self).setup(obs_spec, action_spec)
+    super().setup(obs_spec, action_spec)
     if "raw_units" not in obs_spec:
       raise Exception("This agent requires the raw_units observation.")
 
   def step(self, obs):
-    super(DefeatRoachesRaw, self).step(obs)
+    # super(DefeatRoachesRaw, self).step(obs)
+    super().step(obs)
     marines = [unit.tag for unit in obs.observation.raw_units
                if unit.alliance == _PLAYER_SELF]
     roaches = [unit for unit in obs.observation.raw_units

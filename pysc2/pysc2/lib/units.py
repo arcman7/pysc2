@@ -17,11 +17,11 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import enum
+import enum as Enum
 
 
 # pylint: disable=invalid-name
-class Neutral(enum.IntEnum):
+class Neutral(Enum.IntEnum):
   """Neutral units."""
   BattleStationMineralField = 886
   BattleStationMineralField750 = 887
@@ -103,7 +103,7 @@ class Neutral(enum.IntEnum):
   XelNagaTower = 149
 
 
-class Protoss(enum.IntEnum):
+class Protoss(Enum.IntEnum):
   """Protoss units."""
   Adept = 311
   AdeptPhaseShift = 801
@@ -152,7 +152,7 @@ class Protoss(enum.IntEnum):
   Zealot = 73
 
 
-class Terran(enum.IntEnum):
+class Terran(Enum.IntEnum):
   """Terran units."""
   Armory = 29
   AutoTurret = 31
@@ -216,7 +216,7 @@ class Terran(enum.IntEnum):
   WidowMineBurrowed = 500
 
 
-class Zerg(enum.IntEnum):
+class Zerg(Enum.IntEnum):
   """Zerg units."""
   Baneling = 9
   BanelingBurrowed = 115

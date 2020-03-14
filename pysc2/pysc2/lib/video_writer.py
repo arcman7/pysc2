@@ -27,7 +27,9 @@ class VideoWriter(skvideo.io.FFmpegWriter):
   """
 
   def __init__(self, filename, frame_rate):
-    super(VideoWriter, self).__init__(
+    # super(VideoWriter, self).__init__(
+    #     filename, outputdict={"-r": str(frame_rate)})
+    super().__init__(
         filename, outputdict={"-r": str(frame_rate)})
 
   def add(self, frame):

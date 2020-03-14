@@ -18,12 +18,13 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import collections
+# import p_collections as collections
+import all_collections_generated_classes
 from absl import logging
 import random
 import time
 
-import enum
+import enum as Enum
 
 from pysc2 import maps
 from pysc2 import run_configs
@@ -41,6 +42,33 @@ from s2clientprotocol import sc2api_pb2 as sc_pb
 
 sw = stopwatch.sw
 
+# necessary shim(s) for eventual javascript transpiling:
+def iteritems(d, **kw):
+    return iter(d.items(**kw))
+
+class defaultdict(dict):
+  def __init__(self, *args, **kwargs):
+    if 'default' in kwargs:
+      self.default = kwargs['default']
+      del kwargs['default']
+    else:
+      self.default = None
+    dict.__init__(self, *args, **kwargs)
+  def __repr__(self):
+    return 'defaultdict(%s, %s)' % (self.default, dict.__repr__(self))
+  def __missing__(self, key):
+    if self.default:
+      self[key] = self.default(key)
+      return self[key]
+    else:
+      raise KeyError(key)
+  def __getitem__(self, key):
+    try:
+      return dict.__getitem__(self, key)
+    except KeyError:
+      return self.__missing__(key)
+
+
 possible_results = {
     sc_pb.Victory: 1,
     sc_pb.Defeat: -1,
@@ -49,14 +77,14 @@ possible_results = {
 }
 
 
-class Race(enum.IntEnum):
+class Race(Enum.IntEnum):
   random = sc_common.Random
   protoss = sc_common.Protoss
   terran = sc_common.Terran
   zerg = sc_common.Zerg
 
 
-class Difficulty(enum.IntEnum):
+class Difficulty(Enum.IntEnum):
   """Bot difficulties."""
   very_easy = sc_pb.VeryEasy
   easy = sc_pb.Easy
@@ -70,7 +98,7 @@ class Difficulty(enum.IntEnum):
   cheat_insane = sc_pb.CheatInsane
 
 
-class BotBuild(enum.IntEnum):
+class BotBuild(Enum.IntEnum):
   """Bot build strategies."""
   random = sc_pb.RandomBuild
   rush = sc_pb.Rush
@@ -95,23 +123,30 @@ def get_default(a, b):
   return b if a is None else a
 
 
-class Agent(collections.namedtuple("Agent", ["race", "name"])):
+# class Agent(collections.namedtuple("Agent", ["race", "name"])):
+class Agent(all_collections_generated_classes.Agent):
   """Define an Agent. It can have a single race or a list of races."""
 
   def __new__(cls, race, name=None):
-    return super(Agent, cls).__new__(cls, to_list(race), name or "<unknown>")
+    # return super(Agent, cls).__new__(cls, to_list(race), name or "<unknown>")
+    return super().__new__(cls, to_list(race), name or "<unknown>")
 
 
-class Bot(collections.namedtuple("Bot", ["race", "difficulty", "build"])):
+# class Bot(collections.namedtuple("Bot", ["race", "difficulty", "build"])):
+class Bot(all_collections_generated_classes.Bot):
   """Define a Bot. It can have a single or list of races or builds."""
 
   def __new__(cls, race, difficulty, build=None):
-    return super(Bot, cls).__new__(
+    # return super(Bot, cls).__new__(
+    #     cls, to_list(race), difficulty, to_list(build or BotBuild.random))
+    return super().__new__(
         cls, to_list(race), difficulty, to_list(build or BotBuild.random))
 
 
-_DelayedAction = collections.namedtuple(
-    "DelayedAction", ["game_loop", "action"])
+# _DelayedAction = collections.namedtuple(
+    # "DelayedAction", ["game_loop", "action"])
+
+_DelayedAction = all_collections_generated_classes.DelayedAction
 
 REALTIME_GAME_LOOP_SECONDS = 1 / 22.4
 MAX_STEP_COUNT = 524000  # The game fails above 2^19=524288 steps.
@@ -799,8 +834,9 @@ def crop_and_deduplicate_names(names):
 
   # De-duplicate.
   deduplicated = []
-  name_counts = collections.Counter(n for n in cropped)
-  name_index = collections.defaultdict(lambda: 1)
+  name_counts = all_collections_generated_classes.Counter(n for n in cropped)
+  # name_index = collections.defaultdict(lambda: 1)
+  name_index = defaultdict(default=lambda key: 1)
   for n in cropped:
     if name_counts[n] == 1:
       deduplicated.append(n)

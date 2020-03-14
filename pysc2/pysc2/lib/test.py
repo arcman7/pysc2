@@ -1,100 +1,177 @@
-import actions
+# from operator import itemgetter
+import operator
+itemgetter = operator.itemgetter
+# # https://stackoverflow.com/questions/4858298/python-3-class-template-function-that-returns-a-parameterized-class
 
-# def validate(param):
-#   if not isinstance(param, actions.ActionSpace):
-#     print(param == actions.ActionSpace.FEATURES)
-#     print ('type param:')
-#     print(type(param))
-#     print('value : ', param)
-#     raise ValueError("action_space must be of type ActionSpace.")
-#   else:
-#     print('LGTM')
+# # The type function has a 3-argument version which dynamically constructs a new class. Pass the name, bases and a dict containing the attributes and methods of the class.
 
+# # In your case:
 
-# validate(actions.ActionSpace.FEATURES)
-# def iteritems(d, **kw):
-#     return iter(d.items(**kw))
+# # def class_factory(x):
+# #     return type("C", (A,), {"p": x})
 
-# class meta_af(type):
-#   def __iter__(cls):
-#     return iter(cls.__name__)
+# # import all_collections_generated_classes as mc
+# classes = {}
+# # class iluvgarbage(type):
+#   # def __new__(cls, **kwargs):
+#   # def __new__(cls):
+#   # # def __new__(cls, name, dct):
+#   #   print('meta iluvgarbage new:')
+#   #   x = cls
+#   #   _fields = []
+#   #   for key in kwargs:
+#   #     _fields.append(key)
 
-# class Rect(metaclass=meta_af):
-class Rect(object):
-  _fields = ["t", "l", "b", "r"]
-  __slots__ = ("t", "l", "b", "r")
-
-  # def __new__(cls, fields):
-  #   print('cls:')
-  #   print(cls._fields)
-  #   print('fields:')
-  #   print(fields)
-  #   return cls
-  # def __init__(self, *kwargs): 
-  #   print('kwargs: ', kwargs)
-  #   print('type: ', type(kwargs)) # prints out tuple
-  # def __init__(self, t, l, b, r):
-  def __init__(self):
-  # def __init__(self, **kwargs):
-    # print('Rect init: ', kwargs)
-    print('Rect init: ')
-    # for name,val in kwargs:
-    #   self[name] = val
-    # self.t = t
-    # self.l = l
-    # self.b = b
-    # self.r = r
-
-  def __len__(self):
-    return len(self._fields)
-
-#   def _replace(self, **kwds):
-#     # result = self._make(map(kwds.pop, self._fields, self))
-#     print(kwds)
-#     result = Rect(self.t, self.l, self.b, self.r)
-#     for field in kwds:
-#       setattr(result, field, kwds[field])
-#     return result
-
-#   def __reduce__(self):
-#     # return self.__class__, tuple(self)
-#     return self.__class__, (self.t, self.l, self.b, self.r)
-
-  # def __len__(self):
-  #   return len(self._fields)
-
-# a = Rect(1,2,3,4)
-def __new__(cls, **kwargs):
-  print('inside redefined new')
-  print(kwargs)
-
-# Rect.__new__ = __new__
-# a = Rect(t = 1, l = 2, b = 3, r = 4)
-a = Rect()
-
-# a._replace(t=0)
-
-
-
-# class defaultdict(dict):
-#   def __init__(self, *args, **kwargs):
-#     if 'default' in kwargs:
-#       self.default = kwargs['default']
-#       del kwargs['default']
+#   #   _fields.append('_index')
+#   #   slots = _fields   
+#   #   # bases = (object,)
+#   #   # x = super().__new__(cls, name, bases, dct)
+#   #   x._fields = _fields
+#   #   x.__slots__ = slots
+#   #   x._index = 0
+#   #   return x
+# class iluvgarbage(type):
+#   def __init__(self, **kwargs):
+#     pass
+#   def __next__(self):
+#     if self._index < len(self._fields) - 1:
+#       result = self[self._fields[self._index]]
+#       self._index += 1
+#       return result
 #     else:
-#       self.default = None
-#     dict.__init__(self, *args, **kwargs)
-#   def __repr__(self):
-#     return 'defaultdict(%s, %s)' % (self.default, dict.__repr__(self))
-#   def __missing__(self, key):
-#     if self.default:
-#       return self.default(key)
-#     else:
-#       raise KeyError(key)
+#       self._index = 0
+#       raise StopIteration
+
+#   def __iter__(self):
+#     return self
+
+#   def __len__(self):
+#     return len(self._fields)
+
 #   def __getitem__(self, key):
-#     try:
-#       return dict.__getitem__(self, key)
-#     except KeyError:
-#       return self.__missing__(key)
+#     print('meta inside getitem, key: ', key)
+#     return getattr(self, key)
+
+# def namedtuple(class_name, fields):
+#   defs = {}
+#   defs['_index'] = 0
+#   for name in fields:
+#     defs[name] = None
+#   # iluvgarbage(class_name, defs)
+#   return type(class_name, (object,), defs)
+  
+#   # classes[class_name] = type(class_name, (object,), defs)
+# # pointproto = namedtuple("Point",["x", "y"])
+# # class Point(namedtuple("Point",["x", "y"])):
+# # class Point(protopoint):
+# class Point(object, metaclass=iluvgarbage):
+#     def __init__(self, **kwargs):
+#       print('init: ')
+#       print(**kwargs)
+#       # print(x, y)
+#       # self.x = x
+#       # self.y = y
+a = itemgetter(1)
 
 
+def sett(self, key, val):
+  self[key] = val
+
+class Foo:
+  def getid(self):
+    return self._id 
+  def setid(self, id):
+    self._id = id
+  id = property(getid, setid)
+  # id = itemgetter(0) is a function that returns thing[0] => id(Foo) = Foo[0]
+  # id = 1 #property(itemgetter(0), doc='Alias for field number 0')
+  # name = property(itemgetter(1), sett)
+  # sizes = property(itemgetter(2), sett)
+  # fn = property(itemgetter(3), sett)
+  # values = property(itemgetter(4), sett)
+  # count = property(itemgetter(5), sett)
+
+
+# def function28():
+#     """Don't emit for classes with the right implementation."""
+#     class Meta(type):
+#         def __getitem__(cls, arg):
+#             return 24
+#     @six.add_metaclass(Meta)
+#     class Works(object):
+#         pass
+#     @six.add_metaclass(Meta)
+#     class Error(list):
+#         pass
+#     return Works['hello'] + Error['hello'] 
+
+    
+# def next(self): 
+#   if self._index < len(self._fields):
+#     result = self[self._fields[self._index]]
+#     self._index += 1
+#     return result
+#   else:
+#     self._index = 0
+#     raise StopIteration
+
+# def sett(self, key, val):
+#   self._store[key] = val
+
+# def init(self, kwargs):
+#   print('init: ', kwargs)
+#   self._store = {}
+#   for key in kwargs:
+#     self._store[key] = kwargs[key]
+#     exec('self.{} = {}'.format(key, kwargs[key]))
+#     print('key: ', key, 'val: ', kwargs[key])
+
+
+
+# classes = {}
+# def namedtuple(name, fields):
+#   defs = {
+#     '_index': 0,
+#     # '__slots__': fields,
+#     '_fields': fields,
+#     '__init__': init,
+#     '_store': {},
+
+#     '__next__': lambda self: next(self),
+
+#     '__iter__': lambda self: self,
+
+#     '__len__': lambda self: len(self._fields),
+
+#     '__getitem__': lambda self, key: self._store[key],
+#     # '__getitem__': lambda self, key: getattr(self._store, key),
+
+#     # '__setitem__': lambda self, key, val: setattr(self._store, key, val)
+#     '__setitem__': lambda self, key, val: sett(self, key, val)
+#   }
+#   for name in fields:
+#     defs[name] = None
+
+#   thing = type(name, (object,), defs)
+#   classes[name] = thing
+#   return lambda **kwargs: classes[name](kwargs)
+
+# Point = namedtuple('Point', ['x', 'y'])
+# Point.__init__ 
+# p1 = Point(x= 1, y= 2 )
+
+
+# print('p1: ')
+# print(p1)
+# print(p1.x, p1.y)
+
+# # print(p1.x == 1)
+
+# p2 = Point(x=2, y=3)
+# print('p2:')
+# print(p2)
+
+# for i in p1:
+#   print(i)
+
+# import all_collections_generated_classes as mc

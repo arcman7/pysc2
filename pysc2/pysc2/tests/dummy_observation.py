@@ -24,13 +24,15 @@ from __future__ import print_function
 import math
 
 import numpy as np
-import six
 from pysc2.lib import features
 
 from s2clientprotocol import raw_pb2
 from s2clientprotocol import sc2api_pb2 as sc_pb
 from s2clientprotocol import score_pb2
 
+# necessary shim(s) for eventual javascript transpiling:
+def iteritems(d, **kw):
+    return iter(d.items(**kw))
 
 class Unit(object):
   """Class to hold unit data for the builder."""
@@ -205,7 +207,8 @@ class Builder(object):
     """Update some or all of the fields in the PlayerCommon data."""
 
     args = dict(locals())
-    for key, value in six.iteritems(args):
+    # for key, value in six.iteritems(args):
+    for key, value in iteritems(args):
       if value is not None and key != 'self':
         setattr(self._player_common, key, value)
     return self
@@ -231,7 +234,8 @@ class Builder(object):
     """Update some or all of the fields in the ScoreDetails data."""
 
     args = dict(locals())
-    for key, value in six.iteritems(args):
+    # for key, value in six.iteritems(args):
+    for key, value in iteritems(args):
       if value is not None and key != 'self':
         setattr(self._score_details, key, value)
     return self

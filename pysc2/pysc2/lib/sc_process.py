@@ -26,11 +26,10 @@ import tempfile
 import time
 
 from absl import flags
-from future.builtins import range  # pylint: disable=redefined-builtin
 
 import portpicker
-from pysc2.lib import remote_controller
-from pysc2.lib import stopwatch
+import remote_controller
+import stopwatch
 
 flags.DEFINE_bool(
     "sc2_verbose", False, "Enable SC2 verbose logging.", allow_hide_cpp=True)

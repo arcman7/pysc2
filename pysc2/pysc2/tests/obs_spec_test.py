@@ -19,13 +19,14 @@ from __future__ import division
 from __future__ import print_function
 
 from absl.testing import absltest
-from future.builtins import range  # pylint: disable=redefined-builtin
-import six
 
 from pysc2.agents import random_agent
 from pysc2.env import sc2_env
 from pysc2.tests import utils
 
+# necessary shim(s) for eventual javascript transpiling:
+def iteritems(d, **kw):
+    return iter(d.items(**kw))
 
 class TestObservationSpec(utils.TestCase):
 
@@ -118,7 +119,8 @@ class TestObservationSpec(utils.TestCase):
 
   def check_observation_matches_spec(self, obs, obs_spec):
     self.assertItemsEqual(obs_spec.keys(), obs.keys())
-    for k, o in six.iteritems(obs):
+    # for k, o in six.iteritems(obs):
+    for k, o in iteritems(obs):
       if k == "map_name":
         self.assertIsInstance(o, str)
         continue

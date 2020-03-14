@@ -18,14 +18,17 @@ from __future__ import division
 from __future__ import print_function
 
 import abc
-import collections
+# import p_collections as collections
+import all_collections_generated_classes
 
-import enum
-import six
+import enum as Enum
 
+abstractmethod = all_collections_generated_classes.abstractmethod
+ABCMeta = all_collections_generated_classes.ABCMeta
 
-class TimeStep(collections.namedtuple(
-    'TimeStep', ['step_type', 'reward', 'discount', 'observation'])):
+# class TimeStep(collections.namedtuple(
+#     'TimeStep', ['step_type', 'reward', 'discount', 'observation'])):
+class TimeStep(all_collections_generated_classes.TimeStep):
   """Returned with every call to `step` and `reset` on an environment.
 
   A `TimeStep` contains the data emitted by an environment at each step of
@@ -56,7 +59,7 @@ class TimeStep(collections.namedtuple(
     return self.step_type is StepType.LAST
 
 
-class StepType(enum.IntEnum):
+class StepType(Enum.IntEnum):
   """Defines the status of a `TimeStep` within a sequence."""
   # Denotes the first `TimeStep` in a sequence.
   FIRST = 0
@@ -66,11 +69,11 @@ class StepType(enum.IntEnum):
   LAST = 2
 
 
-@six.add_metaclass(abc.ABCMeta)
-class Base(object):  # pytype: disable=ignored-abstractmethod
+# @six.add_metaclass(abc.ABCMeta)
+class Base(object, metaclass=ABCMeta):  # pytype: disable=ignored-abstractmethod
   """Abstract base class for Python RL environments."""
 
-  @abc.abstractmethod
+  @abstractmethod
   def reset(self):
     """Starts a new sequence and returns the first `TimeStep` of this sequence.
 
@@ -83,7 +86,7 @@ class Base(object):  # pytype: disable=ignored-abstractmethod
           corresponding to `observation_spec()`.
     """
 
-  @abc.abstractmethod
+  @abstractmethod
   def step(self, action):
     """Updates the environment according to the action and returns a `TimeStep`.
 
@@ -108,7 +111,7 @@ class Base(object):  # pytype: disable=ignored-abstractmethod
           corresponding to `observation_spec()`.
     """
 
-  @abc.abstractmethod
+  @abstractmethod
   def observation_spec(self):
     """Defines the observations provided by the environment.
 
@@ -117,7 +120,7 @@ class Base(object):  # pytype: disable=ignored-abstractmethod
         tuples.
     """
 
-  @abc.abstractmethod
+  @abstractmethod
   def action_spec(self):
     """Defines the actions that should be provided to `step`.
 

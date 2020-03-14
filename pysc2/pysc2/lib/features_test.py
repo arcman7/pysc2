@@ -24,12 +24,8 @@ import pickle
 from absl.testing import absltest
 from absl.testing import parameterized
 import numpy
-# import six
-# from pysc2.lib import actions
 import actions
-# from pysc2.lib import features
 import features
-# from pysc2.lib import point
 import point
 
 from google.protobuf import text_format
