@@ -33,8 +33,8 @@ sw = stopwatch.sw
 
 import transform
 
-# import all_collections_generated_classes_orig as all_collections_generated_classes
-import all_collections_generated_classes
+import all_collections_generated_classes_orig as all_collections_generated_classes
+# import all_collections_generated_classes
 
 from s2clientprotocol import raw_pb2 as sc_raw
 from s2clientprotocol import sc2api_pb2 as sc_pb

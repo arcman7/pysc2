@@ -26,8 +26,8 @@ from s2clientprotocol import ui_pb2 as sc_ui
 from absl import logging
 
 
-# import all_collections_generated_classes_orig as all_collections_generated_classes
-import all_collections_generated_classes
+import all_collections_generated_classes_orig as all_collections_generated_classes
+# import all_collections_generated_classes
 
 # necessary shim(s) for eventual javascript transpiling:
 def iteritems(d, **kw):
@@ -269,8 +269,12 @@ class ArgumentType(all_collections_generated_classes.ArgumentType):
 
   @classmethod
   def enum(cls, options, values):
+    print('options: ', options)
+    print('values: ', values)
     """Create an ArgumentType where you choose one of a set of known values."""
     names, real = zip(*options)
+    print('names: ', names)
+    print('real: ', real)
     del names  # unused
 
     def factory(i, name):
