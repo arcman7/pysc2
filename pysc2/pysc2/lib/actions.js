@@ -7,6 +7,9 @@ const numpy = {
   array: tf.tensor2d,
 }
 const bool = Boolean;
+function len(container) {
+  return Object.keys(container).length;
+}
 Array.prototype.extend = function(array) {
   for (let i = 0; i < array.length; i++) {
     this.push(array[i])
@@ -248,29 +251,157 @@ class ArgumentType extends all_collections_generated_classes.ArgumentType {
   toString() {
     return `${this.id} / ${this.name} ${JSON.stringify(this.sizes)}`
   }
-  @classmethod
-  def enum(cls, options, values):
-    """Create an ArgumentType where you choose one of a set of known values."""
-    names, real = zip(*options)
-    del names  # unused
-
-    def factory(i, name):
-      return cls(i, name, (len(real),), lambda a: real[a[0]], values, None)
-    return factory
   static enum(options, values) {
     // Create an ArgumentType where you choose one of a set of known values.//
-    
+    const real = []
+    options.forEach((tuple) => {
+      const thing = tuple[1]
+      real.push(thing)
+    })
+    function factor(i, name) {
+      return new this.prototype.constructor({
+        id: i,
+        name,
+        sizes: [len(real),],
+        fn: (a) => real[a[0]],
+        values,
+        count: null,
+      })
+    }
+    return factory
   }
   static scalar(value) {
     // Create an ArgumentType with a single scalar in range(value).//
+    return (i, name) => this.prototype.constructor({
+      id: i,
+      name,
+      sizes: [value,],
+      fn: (a) => a[0],
+      values: null,
+      count: null,
+    })
   }
   static point() {
     // Create an ArgumentType that is represented by a point.Point.//
+    const self = this;
+    function factory(i, name) {
+      return self.prototype.constructor({
+        id: i,
+        name,
+        sizes: [0, 0],
+        fn: (a) => point.Point(...a).floor(),
+        values: null,
+        count: null,
+      })
+    }
+    return factory
   }
   static spec(id_, name, sizes) {
     // Create an ArgumentType to be used in ValidActions.//
+    return this.prototype.constructor({
+      id: id_,
+      name,
+      sizes,
+      fn: null,
+      values: null,
+      count: null,
+    })
   }
   static unit_tags(count, size) {
     // Create an ArgumentType with a list of unbounded ints.//
+    function clean(arg) {
+      arg = numpy_to_python(arg)
+      if (isinstance(arg, Array) && len(arg) === 1 && isinstance(arg[0], Array)) {
+        arg = arg[0] // Support [[list, of, tags]].
+      }
+      return args.slice(0, count)
+    }
+    return (i, name) => this.prototype.constructor({
+      id: i,
+      name,
+      sizes: [size,],
+      fn: clean,
+      values: null,
+      count,
+    })
   }
 }
+
+class Arguments extends all_collections_generated_classes.Arguments {
+  /*The full list of argument types.
+
+   Take a look at TYPES and FUNCTION_TYPES for more details.
+
+   Attributes:
+   screen: A point on the screen.
+   minimap: A point on the minimap.
+   screen2: The second point for a rectangle. This is needed so that no
+      function takes the same type twice.
+   queued: Whether the action should be done immediately or after all other
+      actions queued for this unit.
+   control_group_act: What to do with the control group.
+   control_group_id: Which control group to do it with.
+   select_point_act: What to do with the unit at the point.
+   select_add: Whether to add the unit to the selection or replace it.
+   select_unit_act: What to do when selecting a unit by id.
+   select_unit_id: Which unit to select by id.
+   select_worker: What to do when selecting a worker.
+   build_queue_id: Which build queue index to target.
+   unload_id: Which unit to target in a transport/nydus/command center.
+  */
+    constructor(kwargs) {
+      super(kwargs);
+    }
+    static types(kwargs) {
+      const named = {}
+      Object.keys(kwargs).forEach((name) => {
+        const factory = kwargs[key]
+        named[name] = factory(Arugments._fields.indexOf(name), name)
+      })
+      return this.prototype.constructor(named)
+    }
+}
+class RawArguments extends all_collections_generated_classes.RawArguments {
+  /*The full list of argument types.
+
+  Take a look at TYPES and FUNCTION_TYPES for more details.
+
+  Attributes:
+  world: A point in world coordinates
+  queued: Whether the action should be done immediately or after all other actions queued for this unit.
+  unit_tags: Which units should execute this action.
+  target_unit_tag: The target unit of this action.
+  */
+  constructor(kwargs) {
+    super(kwargs);
+  }
+  static types(kwargs) {
+    const named = {}
+    Object.keys(kwargs).forEach((name) => {
+      const factory = kwargs[key]
+      named[name] = factory(RawArguments._fields.indexOf(name), name)
+    })
+    return this.prototype.constructor(named)
+  }
+}
+
+function _define_position_based_enum(name, options) {
+  const dict = {}
+  options.forEach((tuple, index) => {
+    const funcName = tuple[0]
+    dict[funcName] = index
+  })
+  return Enum(dict)
+}
+
+const QUEUED_OPTIONS = [
+  ["now", false],
+  ["queued", true],
+]
+
+Queued = _define_position_based_enum("Queued", QUEUED_OPTIONS)
+
+CONTROL_GROUP_ACT_OPTIONS = [
+]
+
+
