@@ -26,9 +26,6 @@ function getClass(name, fields) {
     }`;
     console.log(classStr);
 }
-function eq(a, b) {
-    return a === b;
-}
 class ArgumentType {
     static classname = 'ArgumentType';
     static _fields = ['id', 'name', 'sizes', 'fn', 'values', 'count'];

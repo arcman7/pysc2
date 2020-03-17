@@ -270,12 +270,9 @@ class ArgumentType(all_collections_generated_classes.ArgumentType):
   @classmethod
   def enum(cls, options, values):
     """Create an ArgumentType where you choose one of a set of known values."""
-    # print('options: ', options)
-    # print('values: ', values)
     names, real = zip(*options)
-    # print('names: ', names)
-    # print('real: ', real)
     del names  # unused
+
     def factory(i, name):
       return cls(i, name, (len(real),), lambda a: real[a[0]], values, None)
     return factory
@@ -375,7 +372,7 @@ class RawArguments(all_collections_generated_classes.RawArguments):
 
 def _define_position_based_enum(name, options):
   return Enum.IntEnum(
-      name, { opt_name: i for i, (opt_name, _) in enumerate(options) })
+      name, {opt_name: i for i, (opt_name, _) in enumerate(options)})
 
 
 QUEUED_OPTIONS = [
@@ -1197,7 +1194,7 @@ _FUNCTIONS = [
 ]
 # pylint: enable=line-too-long
 
-
+test = _FUNCTIONS
 # Create an IntEnum of the function names/ids so that printing the id will
 # show something useful.
 _Functions = Enum.IntEnum(  # pylint: disable=invalid-name
