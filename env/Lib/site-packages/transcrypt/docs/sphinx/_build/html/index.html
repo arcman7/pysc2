@@ -1,0 +1,267 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>Welcome to Transcrypt’s documentation! &#8212; Transcrypt 3.7.15 documentation</title>
+    <link rel="stylesheet" href="_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="1. Transcrypt: what and why" href="what_why.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="what_why.html" title="1. Transcrypt: what and why"
+             accesskey="N">next</a> |</li>
+        <li class="nav-item nav-item-0"><a href="#">Transcrypt 3.7.15 documentation</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="welcome-to-transcrypt-s-documentation">
+<h1>Welcome to Transcrypt’s documentation!<a class="headerlink" href="#welcome-to-transcrypt-s-documentation" title="Permalink to this headline">¶</a></h1>
+<p>Can’t find what you’re looking for?
+The <a class="reference external" href="http://sterlicht.alwaysdata.net/transcrypt.org/docs/html/">on-line version of this documentation</a> is frequently updated, reflecting the newest features and troubleshooting procedures.</p>
+<div class="section" id="table-of-contents">
+<h2>Table of Contents:<a class="headerlink" href="#table-of-contents" title="Permalink to this headline">¶</a></h2>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="what_why.html">1. Transcrypt: what and why</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="what_why.html#what-is-transcrypt">1.1. What is Transcrypt</a></li>
+<li class="toctree-l2"><a class="reference internal" href="what_why.html#language-preferences-a-subjective-account">1.2. Language preferences, a subjective account</a></li>
+<li class="toctree-l2"><a class="reference internal" href="what_why.html#the-ecosystem-different-batteries">1.3. The ecosystem: different batteries</a></li>
+<li class="toctree-l2"><a class="reference internal" href="what_why.html#code-structure">1.4. Code structure</a></li>
+<li class="toctree-l2"><a class="reference internal" href="what_why.html#debuggability">1.5. Debuggability</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="installation_use.html">2. Getting started</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="installation_use.html#installation">2.1. Installation</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="installation_use.html#installation-troubleshooting-checklist">2.1.1. Installation troubleshooting checklist</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="installation_use.html#your-first-transcrypt-program">2.2. Your first Transcrypt program</a></li>
+<li class="toctree-l2"><a class="reference internal" href="installation_use.html#available-command-line-switches">2.3. Available command line switches</a></li>
+<li class="toctree-l2"><a class="reference internal" href="installation_use.html#compiling-to-javascript-6">2.4. Compiling to JavaScript 6</a></li>
+<li class="toctree-l2"><a class="reference internal" href="installation_use.html#compiling-for-node-js">2.5. Compiling for node.js</a></li>
+<li class="toctree-l2"><a class="reference internal" href="installation_use.html#using-sourcemaps-and-annotated-target-code">2.6. Using sourcemaps and annotated target code</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="installation_use.html#sourcemaps">2.6.1. Sourcemaps</a></li>
+<li class="toctree-l3"><a class="reference internal" href="installation_use.html#annotated-target-code">2.6.2. Annotated target code</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="installation_use.html#static-type-validation">2.7. Static type validation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="installation_use.html#getting-help-and-giving-feedback">2.8. Getting help and giving feedback</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="special_facilities.html">3. Special facilities</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="special_facilities.html#transcrypt-s-module-mechanism">3.1. Transcrypt’s module mechanism</a></li>
+<li class="toctree-l2"><a class="reference internal" href="special_facilities.html#using-browser-stubs-to-test-non-gui-code-that-uses-console-log-and-window-alert">3.2. Using browser stubs to test non-GUI code that uses console.log and window.alert</a></li>
+<li class="toctree-l2"><a class="reference internal" href="special_facilities.html#creating-javascript-objects-with-new-constructor-call">3.3. Creating JavaScript objects with __new__ (&lt;constructor call&gt;)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="special_facilities.html#the-pragma-mechanism">3.4. The __pragma__ mechanism</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="special_facilities.html#the-function-like-variety">3.4.1. The function-like variety</a></li>
+<li class="toctree-l3"><a class="reference internal" href="special_facilities.html#the-comment-like-variety">3.4.2. The comment-like variety</a></li>
+<li class="toctree-l3"><a class="reference internal" href="special_facilities.html#the-single-line-activation-variety">3.4.3. The single-line activation variety</a></li>
+<li class="toctree-l3"><a class="reference internal" href="special_facilities.html#the-single-line-deactivation-variety">3.4.4. The single-line deactivation variety</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="special_facilities.html#pragma-alias">3.5. Identifier aliasing: __pragma__ (‘alias’, …) and __pragma__ (‘noalias’, …)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="special_facilities.html#generating-doc-attributes-from-docstrings-pragma-docat-and-pragma-nodocat">3.6. Generating __doc__ attributes from docstrings: __pragma__ (‘docat’) and __pragma__ (‘nodocat’)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="special_facilities.html#skipping-transcrypt-code-fragments-when-running-with-cpython-pragma-ecom-and-pragma-noecom">3.7. Skipping Transcrypt code fragments when running with CPython: __pragma__ (‘ecom’) and __pragma__ (‘noecom’)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="special_facilities.html#surpassing-the-speed-of-native-javascript-pragma-fcall-and-pragma-nofcall">3.8. Surpassing the speed of native JavaScript: __pragma__ (‘fcall’) and __pragma (‘nofcall’)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="special_facilities.html#enabling-pythons-send-syntax-pragma-gsend-and-pragma-nogsend">3.9. Enabling Pythons <em>send</em> syntax: __pragma__ (‘gsend’) and __pragma (‘nogsend’)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="special_facilities.html#automatic-conversion-to-iterable-pragma-iconv-and-pragma-noiconv">3.10. Automatic conversion to iterable: __pragma__ (‘iconv’) and __pragma__ (‘noiconv’)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="special_facilities.html#conditional-compilation-pragma-ifdef-symbol-pragma-ifndef-symbol-pragma-else-and-pragma-endif">3.11. Conditional compilation: __pragma__ (‘ifdef’, &lt;symbol&gt;), __pragma__ (‘ifndef’, &lt;symbol&gt;), __pragma__ (‘else’) and __pragma__ (‘endif’)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="special_facilities.html#inserting-literal-javascript-pragma-js-and-include">3.12. Inserting literal JavaScript: __pragma__ (‘js’, …) and __include__ (…)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="special_facilities.html#pragma-jskeys-and-pragma-nojskeys">3.13. __pragma__ (‘jskeys’) and __pragma__ (‘nojskeys’)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="special_facilities.html#keeping-your-code-lean-pragma-jsmod-and-pragma-nojsmod">3.14. Keeping your code lean: __pragma__ (‘jsmod’) and __pragma__ (‘nojsmod’)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="special_facilities.html#pragma-keycheck-and-pragma-nokeycheck">3.15. __pragma__ (‘keycheck’) and __pragma__ (‘nokeycheck’)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="special_facilities.html#keeping-your-code-lean-pragma-kwargs-and-pragma-nokwargs">3.16. Keeping your code lean: __pragma__ (‘kwargs’) and __pragma__ (‘nokwargs’)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="special_facilities.html#preventing-target-annotation-pragma-noanno">3.17. Preventing target annotation: __pragma__ (‘noanno’)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="special_facilities.html#operator-overloading-pragma-opov-and-pragma-noopov">3.18. Operator overloading: __pragma__ (‘opov’) and __pragma__ (‘noopov’)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="special_facilities.html#skipping-fragments-while-generating-code-pragma-skip-and-pragma-noskip">3.19. Skipping fragments while generating code: __pragma__ (‘skip’) and __pragma__ (‘noskip’)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="special_facilities.html#automatic-conversion-to-truth-value-pragma-tconv-and-pragma-notconv">3.20. Automatic conversion to truth value: __pragma__ (‘tconv’) and __pragma__ (‘notconv’)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="special_facilities.html#adding-directories-to-the-module-search-path-pragma-xpath-directory-list">3.21. Adding directories to the module search path: __pragma__ (‘xpath’, &lt;directory list&gt;)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="special_facilities.html#using-an-external-transpiler-pragma-xtrans-translator-cwd-workingdirectory">3.22. Using an external transpiler: __pragma__ (‘xtrans’, &lt;translator&gt;, …, cwd = &lt;workingdirectory&gt;)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="special_facilities.html#create-bare-javascript-objects-and-iterate-over-their-attributes-from-python-pragma-jsiter-and-pragma-nojsiter">3.23. Create bare JavaScript objects and iterate over their attributes from Python: __pragma__ (‘jsiter’) and __pragma__ (‘nojsiter’)</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="supported_constructs.html">4. Systematic code examples: a guided tour of Transcrypt</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="supported_constructs.html#arguments-kwargs-args-defaults-at-call-and-def-time-also-for-lambda-s">4.1. Arguments: **kwargs, *args, defaults, at call and def time, also for lambda’s</a></li>
+<li class="toctree-l2"><a class="reference internal" href="supported_constructs.html#attribute-access-by-name-getattr-setattr-hasattr">4.2. Attribute access by name: getattr, setattr, hasattr</a></li>
+<li class="toctree-l2"><a class="reference internal" href="supported_constructs.html#attribute-proxies-by-name-getattr-setattr">4.3. Attribute proxies by name: __getattr__, __setattr__</a></li>
+<li class="toctree-l2"><a class="reference internal" href="supported_constructs.html#bytes-and-bytearrays-initial-support">4.4. Bytes and bytearrays: initial support</a></li>
+<li class="toctree-l2"><a class="reference internal" href="supported_constructs.html#callable-or-not-using-the-callable-built-in-function">4.5. Callable or not: using the callable () built-in function</a></li>
+<li class="toctree-l2"><a class="reference internal" href="supported_constructs.html#classes-multiple-inheritance-and-assignment-of-bound-functions">4.6. Classes: multiple inheritance and assignment of bound functions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="supported_constructs.html#complex-numbers-python-s-builtin-complex-datatype">4.7. Complex numbers: Python’s builtin complex datatype</a></li>
+<li class="toctree-l2"><a class="reference internal" href="supported_constructs.html#conditional-expressions-simple-and-nested">4.8. Conditional expressions: simple and nested</a></li>
+<li class="toctree-l2"><a class="reference internal" href="supported_constructs.html#control-structures-for-else-while-else-if-elif-else-break-continue">4.9. Control structures: for…else, while…else, if…elif…else, break, continue</a></li>
+<li class="toctree-l2"><a class="reference internal" href="supported_constructs.html#data-classes-avoiding-boilerplate-code">4.10. Data classes: Avoiding boilerplate code</a></li>
+<li class="toctree-l2"><a class="reference internal" href="supported_constructs.html#data-structures-tuple-list-dict-set">4.11. Data structures: tuple, list, dict, set</a></li>
+<li class="toctree-l2"><a class="reference internal" href="supported_constructs.html#decorators-function-and-class-with-and-without-parameters">4.12. Decorators: function and class, with and without parameters</a></li>
+<li class="toctree-l2"><a class="reference internal" href="supported_constructs.html#dict-comprehensions">4.13. Dict comprehensions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="supported_constructs.html#dictionaries-dict-revisited">4.14. Dictionaries: dict revisited</a></li>
+<li class="toctree-l2"><a class="reference internal" href="supported_constructs.html#diverse-issues">4.15. Diverse issues</a></li>
+<li class="toctree-l2"><a class="reference internal" href="supported_constructs.html#diverse-pulls">4.16. Diverse pulls</a></li>
+<li class="toctree-l2"><a class="reference internal" href="supported_constructs.html#docstrings-doc-attribute-generated-optionally">4.17. Docstrings: __doc__ attribute generated optionally</a></li>
+<li class="toctree-l2"><a class="reference internal" href="supported_constructs.html#exceptions-exception-class-hierarchy-finally">4.18. Exceptions: exception class hierarchy, finally</a></li>
+<li class="toctree-l2"><a class="reference internal" href="supported_constructs.html#extended-slices-facilitating-numscrypt-and-such">4.19. Extended slices: facilitating NumScrypt and such</a></li>
+<li class="toctree-l2"><a class="reference internal" href="supported_constructs.html#general-functions-sort-and-sorted">4.20. General functions: sort and sorted</a></li>
+<li class="toctree-l2"><a class="reference internal" href="supported_constructs.html#global-variable-access-by-using-globals-variable-name">4.21. Global variable access by using globals () [&lt;variable_name&gt;]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="supported_constructs.html#indices-and-slices-lhs-rhs-basic-and-extended">4.22. Indices and slices: LHS, RHS, basic and extended</a></li>
+<li class="toctree-l2"><a class="reference internal" href="supported_constructs.html#iterators-and-generators">4.23. Iterators and generators</a></li>
+<li class="toctree-l2"><a class="reference internal" href="supported_constructs.html#lambda-functions-with-all-types-of-args">4.24. Lambda functions with all types of args</a></li>
+<li class="toctree-l2"><a class="reference internal" href="supported_constructs.html#list-comprehensions-multi-loop-and-nested-with-multiple-if-s">4.25. List comprehensions: multi-loop and nested with multiple if’s</a></li>
+<li class="toctree-l2"><a class="reference internal" href="supported_constructs.html#local-classes-inside-other-classes-and-functions">4.26. Local classes: inside other classes and functions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="supported_constructs.html#metaclasses-overriding-type-new-in-a-descendant-metaclass">4.27. Metaclasses: overriding type.__new__ in a descendant metaclass</a></li>
+<li class="toctree-l2"><a class="reference internal" href="supported_constructs.html#method-and-class-decorators">4.28. Method and class decorators</a></li>
+<li class="toctree-l2"><a class="reference internal" href="supported_constructs.html#module-builtin-a-small-part-of-it-demo-ed">4.29. Module builtin: a small part of it demo’ed</a></li>
+<li class="toctree-l2"><a class="reference internal" href="supported_constructs.html#module-cmath-allmost-all-of-python-s-cmath-module">4.30. Module cmath: allmost all of Python’s cmath module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="supported_constructs.html#module-datetime-transcryption-of-python-s-datetime-module">4.31. Module datetime: transcryption of Python’s datetime module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="supported_constructs.html#module-itertools-allmost-all-of-python-s-itertools-module">4.32. Module itertools: allmost all of Python’s itertools module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="supported_constructs.html#module-math-allmost-all-of-python-s-math-module">4.33. Module math: allmost all of Python’s math module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="supported_constructs.html#module-random-most-important-functions-of-python-s-random-module">4.34. Module random: most important functions of Python’s random module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="supported_constructs.html#module-re-transcryption-of-python-s-re-module">4.35. Module re: transcryption of Python’s re module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="supported_constructs.html#module-time-transcryption-of-python-s-time-module">4.36. Module time: transcryption of Python’s time module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="supported_constructs.html#modules-hierarchical-both-local-to-the-project-and-global-url-based">4.37. Modules: hierarchical, both local to the project and global url-based</a></li>
+<li class="toctree-l2"><a class="reference internal" href="supported_constructs.html#nonlocals">4.38. Nonlocals</a></li>
+<li class="toctree-l2"><a class="reference internal" href="supported_constructs.html#operator-overloading">4.39. Operator overloading</a></li>
+<li class="toctree-l2"><a class="reference internal" href="supported_constructs.html#properties">4.40. Properties</a></li>
+<li class="toctree-l2"><a class="reference internal" href="supported_constructs.html#representation-as-text-the-repr-and-str-built-in-functions">4.41. Representation as text: the repr and str built-in functions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="supported_constructs.html#set-comprehensions">4.42. Set comprehensions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="supported_constructs.html#super">4.43. Super</a></li>
+<li class="toctree-l2"><a class="reference internal" href="supported_constructs.html#simple-and-augmented-assignment">4.44. Simple and augmented assignment</a></li>
+<li class="toctree-l2"><a class="reference internal" href="supported_constructs.html#truthyness-optional-python-style-evaluation-of-truthyness-falsyness-and-non-empty-container-selection">4.45. Truthyness: optional Python-style evaluation of truthyness, falsyness and non-empty container selection</a></li>
+<li class="toctree-l2"><a class="reference internal" href="supported_constructs.html#tuple-assignment-recursive-and-in-for-headers-using-enumerate">4.46. Tuple assignment: recursive and in for-headers using enumerate</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="integration_javascript.html">5. Seamless interoperation with the DOM</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="integration_javascript.html#practical-example-a-simple-responsive-website-using-no-html-or-css-at-all">5.1. Practical example: a simple, responsive website using no HTML or CSS at all</a></li>
+<li class="toctree-l2"><a class="reference internal" href="integration_javascript.html#svg-example-turtle-graphics">5.2. SVG example: Turtle graphics</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="integration_javascript.html#mixed-examples">6. Mixed examples</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="integration_javascript.html#example-pong">6.1. Example: Pong</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="integration_javascript.html#three-ways-of-integration-with-javascript-libraries">6.1.1. Three ways of integration with JavaScript libraries</a></li>
+<li class="toctree-l3"><a class="reference internal" href="integration_javascript.html#minification">6.1.2. Minification</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="integration_javascript.html#example-jquery">6.2. Example: jQuery</a></li>
+<li class="toctree-l2"><a class="reference internal" href="integration_javascript.html#example-ios-web-app-with-native-look-and-feel">6.3. Example: iOS web app with native look and feel</a></li>
+<li class="toctree-l2"><a class="reference internal" href="integration_javascript.html#example-d3-js">6.4. Example: D3.js</a></li>
+<li class="toctree-l2"><a class="reference internal" href="integration_javascript.html#example-react">6.5. Example: React</a></li>
+<li class="toctree-l2"><a class="reference internal" href="integration_javascript.html#example-riot">6.6. Example: Riot</a></li>
+<li class="toctree-l2"><a class="reference internal" href="integration_javascript.html#example-using-input-and-print-in-a-dom-terminal-element-in-your-browser">6.7. Example: Using input and print in a DOM __terminal__ element in your browser</a></li>
+<li class="toctree-l2"><a class="reference internal" href="integration_javascript.html#example-using-the-parcel-js-bundler-to-package-a-set-of-modules-written-in-diverse-programming-languages">6.8. Example: Using the Parcel.js bundler to package a set of modules written in diverse programming languages</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="autotesting_transcrypt.html">7. Autotesting Transcrypt code</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="autotesting_transcrypt.html#why-it-s-needed">7.1. Why it’s needed</a></li>
+<li class="toctree-l2"><a class="reference internal" href="autotesting_transcrypt.html#how-it-works">7.2. How it works</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="philosophy_directions.html">8. The philosophy behind Transcrypt and its impact on design decisions</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="philosophy_directions.html#transcrypt-s-primary-target-audience">8.1. Transcrypt’s primary target audience</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="philosophy_directions.html#seasoned-python-developers">8.1.1. Seasoned Python developers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="philosophy_directions.html#seasoned-javascript-developers">8.1.2. Seasoned JavaScript developers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="philosophy_directions.html#other-developers">8.1.3. Other developers</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="philosophy_directions.html#how-to-best-serve-this-target-audience">8.2. How to best serve this target audience</a></li>
+<li class="toctree-l2"><a class="reference internal" href="philosophy_directions.html#specific-design-choices-made-for-transcrypt-and-their-underlying-motivation">8.3. Specific design choices made for Transcrypt and their underlying motivation</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="philosophy_directions.html#why-is-transcrypt-written-in-python-and-not-in-javascript">8.3.1. Why is Transcrypt written in Python and not in JavaScript</a></li>
+<li class="toctree-l3"><a class="reference internal" href="philosophy_directions.html#why-does-transcrypt-blend-python-datatypes-with-javascript-datatypes">8.3.2. Why does Transcrypt blend Python datatypes with JavaScript datatypes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="philosophy_directions.html#why-are-certain-python-constructions-supported-as-a-local-or-global-option-rather-than-by-default">8.3.3. Why are certain Python constructions supported as a local (or global) option rather than by default</a></li>
+<li class="toctree-l3"><a class="reference internal" href="philosophy_directions.html#why-were-the-pragma-s-added">8.3.4. Why were the __pragma__’s added</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="differences_cpython.html">9. The main differences with CPython</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="differences_cpython.html#differences-due-to-the-compiled-rather-than-interpreted-nature-of-transcrypt">9.1. Differences due to the compiled, rather than interpreted nature of Transcrypt</a></li>
+<li class="toctree-l2"><a class="reference internal" href="differences_cpython.html#differences-due-to-the-lean-and-mean-design-goal">9.2. Differences due to the ‘lean and mean’ design goal</a></li>
+<li class="toctree-l2"><a class="reference internal" href="differences_cpython.html#differences-due-to-interoperability-with-javascript-and-javascript-libraries">9.3. Differences due to interoperability with JavaScript and JavaScript libraries</a></li>
+<li class="toctree-l2"><a class="reference internal" href="differences_cpython.html#differences-due-to-running-transcrypt-applications-in-the-browser-rather-than-on-the-desktop">9.4. Differences due to running Transcrypt applications in the browser, rather than on the desktop</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+            <p class="logo"><a href="#">
+              <img class="logo" src="_static/logo_sphinx.png" alt="Logo"/>
+            </a></p>
+  <h3><a href="#">Subjects</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Welcome to Transcrypt’s documentation!</a><ul>
+<li><a class="reference internal" href="#table-of-contents">Table of Contents:</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Next topic</h4>
+  <p class="topless"><a href="what_why.html"
+                        title="next chapter">1. Transcrypt: what and why</a></p>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/index.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="what_why.html" title="1. Transcrypt: what and why"
+             >next</a> |</li>
+        <li class="nav-item nav-item-0"><a href="#">Transcrypt 3.7.15 documentation</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2016, Jacques de Hooge.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.8.
+    </div>
+  </body>
+</html>

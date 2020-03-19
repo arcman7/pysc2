@@ -1,0 +1,39 @@
+// Transcrypt'ed from Python, 2019-01-22 11:22:52
+import {AssertionError, AttributeError, BaseException, DeprecationWarning, Exception, IndexError, IterableError, KeyError, NotImplementedError, RuntimeWarning, StopIteration, UserWarning, ValueError, Warning, __JsIterator__, __PyIterator__, __Terminal__, __add__, __and__, __call__, __class__, __conj__, __envir__, __eq__, __floordiv__, __ge__, __get__, __getcm__, __getitem__, __getslice__, __getsm__, __gt__, __i__, __iadd__, __iand__, __idiv__, __ijsmod__, __ilshift__, __imatmul__, __imod__, __imul__, __in__, __init__, __ior__, __ipow__, __irshift__, __isub__, __ixor__, __jsUsePyNext__, __jsmod__, __k__, __kwargtrans__, __le__, __lshift__, __lt__, __matmul__, __mergefields__, __mergekwargtrans__, __mod__, __mul__, __ne__, __neg__, __nest__, __or__, __pow__, __pragma__, __proxy__, __pyUseJsNext__, __rshift__, __setitem__, __setproperty__, __setslice__, __sort__, __specialattrib__, __sub__, __super__, __t__, __terminal__, __truediv__, __withblock__, __xor__, abs, all, any, assert, bool, bytearray, bytes, callable, chr, complex, copy, deepcopy, delattr, dict, dir, divmod, enumerate, filter, float, format, getattr, hasattr, input, int, isinstance, issubclass, len, list, map, max, min, object, ord, pow, print, property, py_TypeError, py_iter, py_metatype, py_next, py_reversed, py_typeof, range, repr, round, set, setattr, sorted, str, sum, tuple, zip} from './org.transcrypt.__runtime__.js';
+import {ClassVar} from './typing.js';
+var __name__ = 'functions';
+export var f = function (l) {
+	return 3.5;
+};
+export var a = 3;
+var a = f ([[1, 2.2, 3], [4.4, 5.5, 6.6]]);
+export var g = function* (n) {
+	for (var i = 0; i < n; i++) {
+		yield i * i;
+	}
+	};
+for (var b of g (10)) {
+	var c = b;
+}
+var c = 5.5;
+export var h = function (i, f, c) {
+	if (typeof i == 'undefined' || (i != null && i.hasOwnProperty ("__kwargtrans__"))) {;
+		var i = 0;
+	};
+	if (typeof f == 'undefined' || (f != null && f.hasOwnProperty ("__kwargtrans__"))) {;
+		var f = 0;
+	};
+	if (typeof c == 'undefined' || (c != null && c.hasOwnProperty ("__kwargtrans__"))) {;
+		var c = 0;
+	};
+	return tuple ([i, f, c]);
+};
+export var d = h (1, 1.0);
+var d = h (__kwargtrans__ ({c: 'something'}));
+export var ff = function (anF) {
+	return anF ('nonsense');
+};
+export var e = 1;
+var e = ff (f);
+
+//# sourceMappingURL=functions.map

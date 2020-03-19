@@ -2,6 +2,7 @@ import * as tf from '@tensorflow/tfjs-node'
 import all_collections_generated_classes from 'all_collections_generated_classes'
 import point from 'point'
 import Tuple from 'tuple'
+import Enum from 'enum'
 
 const numpy = {
   array: tf.tensor2d,
@@ -54,56 +55,62 @@ function isinstance(a, compare) {
   return a instanceof compare;
 }
 
+// test = enum('test', { 'a': 1, 'b': 'test' })
 
+// var IntEnum  = function(name, dict) {
+//   let str = `const ${name} = {};`
+//   keys = Object.keys(dict)
+  
+//   for (let i = 0; i < dict.length; i++) {
+//     str += `const ${key} = (class ${key} extends Number {
+//       constructor(val) {
+//         super(val)
+//       }
+//     })(dict[key]);
+//     enums.${key} = ${key};
+//     Object.setPrototypeOf(${key}, ${name});
+//     `
+//   }
+//   str += `return ${name};`
+//   console.log(str)
+//   return new Function(`${str}`)
+//   // return new Function(`
+//   //   return class ${name} {
+//   //     ${str}
+//   //     constructor(val) {
+//   //       if (!classDict.hasOwnProperty(val)) {
+//   //         throw new Error('ValueError: ', val, ' is not a valid ', name)
+//   //       }
+//   //       return static[]
+//   //     }
+//   //   }`
+//   // )
+// }
+// var test = IntEnum('test', { test: 1, foo: 2 })
 
-var Enum  = function(name, dict) {
-  let str = ''
-  keys = Object.keys(dict)
-  for (let i = 0; i < dict.length; i++) {
-    str += `static ${key} = (class ${key} extends Number {
-      constructor(val) {
-        super(val)
-      }
-    })(dict[key]);`
-    str += ``
-  }
-  return new Function(`
-    return class ${name} {
-      ${str}
-      constructor(val) {
-        if (!classDict.hasOwnProperty(val)) {
-          throw new Error('ValueError: ', val, ' is not a valid ', name)
-        }
-        return static[]
-      }
-    }`
-  )
-}
-var test = Enum('test', { test: 1, foo: 2 })
-
-class Enumeration extends Map {
-  constructor(dict) {
-    for (const key in dict) {
-      const val = dict[key]
-      this[key] = dict[key]
-      this[val] = key
-    }
-    return Object.freeze(this)
-  }
-  has(key) {
-    return this.hasOwnProperty(key)
-  }
-}
+// class Enumeration extends Map {
+//   constructor(dict) {
+//     for (const key in dict) {
+//       const val = dict[key]
+//       this[key] = dict[key]
+//       this[val] = key
+//     }
+//     return Object.freeze(this)
+//   }
+//   has(key) {
+//     return this.hasOwnProperty(key)
+//   }
+// }
 
 // Enum = Enumeration;
-function Enum(name, dict) {
-  class Enum {
-    constructor(val) {
-      this.val = val
-    }
-  }
-}
-const ActionSpace = Enum({
+// function Enum(name, dict) {
+//   class Enum {
+//     constructor(val) {
+//       this.val = val
+//     }
+//   }
+// }
+const ActionSpace = Enum.IntEnum({
   FEATURES: 1, // Act in feature layer pixel space with FUNCTIONS below.
   RGB: 2,      // Act in RGB pixel space with FUNCTIONS below.
   RAW: 3,      // Act with unit tags with RAW_FUNCTIONS below.

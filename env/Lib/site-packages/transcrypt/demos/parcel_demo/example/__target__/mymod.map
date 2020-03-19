@@ -1,0 +1,8 @@
+{
+	"version": 3,
+	"file": "mymod.js",
+	"sources": [
+		"mymod.py"
+	],
+	"mappings": "AAAA;AAAA;AAAA;AAAA;AAAA;AAGA;AACA;AAAA;AAJA"
+}

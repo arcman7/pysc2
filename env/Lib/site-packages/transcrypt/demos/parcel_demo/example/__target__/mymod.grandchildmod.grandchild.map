@@ -1,0 +1,8 @@
+{
+	"version": 3,
+	"file": "mymod.grandchildmod.grandchild.js",
+	"sources": [
+		"mymod.grandchildmod.grandchild.py"
+	],
+	"mappings": "AAAA;AAAA;AAAA;AAAA;AAGA;AACA;AAAA;AAJA"
+}

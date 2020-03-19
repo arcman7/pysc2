@@ -1,0 +1,268 @@
+// Transcrypt'ed from Python, 2019-01-21 18:56:41
+var mymod = {};
+var sibling = {};
+var siblingjs = {};
+import {AssertionError, AttributeError, BaseException, DeprecationWarning, Exception, IndexError, IterableError, KeyError, NotImplementedError, RuntimeWarning, StopIteration, UserWarning, ValueError, Warning, __JsIterator__, __PyIterator__, __Terminal__, __add__, __and__, __call__, __class__, __envir__, __eq__, __floordiv__, __ge__, __get__, __getcm__, __getitem__, __getslice__, __getsm__, __gt__, __i__, __iadd__, __iand__, __idiv__, __ijsmod__, __ilshift__, __imatmul__, __imod__, __imul__, __in__, __init__, __ior__, __ipow__, __irshift__, __isub__, __ixor__, __jsUsePyNext__, __jsmod__, __k__, __kwargtrans__, __le__, __lshift__, __lt__, __matmul__, __mergefields__, __mergekwargtrans__, __mod__, __mul__, __ne__, __neg__, __nest__, __or__, __pow__, __pragma__, __proxy__, __pyUseJsNext__, __rshift__, __setitem__, __setproperty__, __setslice__, __sort__, __specialattrib__, __sub__, __super__, __t__, __terminal__, __truediv__, __withblock__, __xor__, abs, all, any, assert, bool, bytearray, bytes, callable, chr, copy, deepcopy, delattr, dict, dir, divmod, enumerate, filter, float, getattr, hasattr, input, int, isinstance, issubclass, len, list, map, max, min, object, ord, pow, print, property, py_TypeError, py_iter, py_metatype, py_next, py_reversed, py_typeof, range, repr, round, set, setattr, sorted, str, sum, tuple, zip} from './org.transcrypt.__runtime__.js';
+import {grandchild_func as alias_grandchild_func} from './mymod.grandchildmod.grandchild.js';
+import {grandchild_func} from './mymod.grandchildmod.grandchild.js';
+import * as alias_grandchildmod from './mymod.grandchildmod.js';
+import * as __module_mymod_grandchildmod__ from './mymod.grandchildmod.js';
+__nest__ (mymod, 'grandchildmod', __module_mymod_grandchildmod__);
+import {child_func as alias_child_func} from './mymod.child.js';
+import {child_func} from './mymod.child.js';
+import * as alias_child from './mymod.child.js';
+import * as __module_mymod_child__ from './mymod.child.js';
+__nest__ (mymod, 'child', __module_mymod_child__);
+import {mymod_func as alias_mymod_func} from './mymod.js';
+import {mymod_func} from './mymod.js';
+import * as alias_mymod from './mymod.js';
+import * as __module_mymod__ from './mymod.js';
+__nest__ (mymod, '', __module_mymod__);
+import {siblingjs_func as alias_siblingjs_func} from './siblingjs.js';
+import {siblingjs_func} from './siblingjs.js';
+import * as alias_siblingjs from './siblingjs.js';
+import * as __module_siblingjs__ from './siblingjs.js';
+__nest__ (siblingjs, '', __module_siblingjs__);
+import {sibling2_func} from './sibling2.js';
+import {sibling_func as alias_sibling_func} from './sibling.js';
+import {sibling_func} from './sibling.js';
+import * as alias_sibling from './sibling.js';
+import * as __module_sibling__ from './sibling.js';
+__nest__ (sibling, '', __module_sibling__);
+import {Test} from './testcontext.js';
+var __name__ = '__main__';
+export var main = function () {
+	var test = Test ('import sibling');
+	try {
+		test.__enter__ ();
+		test.result = sibling.sibling_func (test.random_num);
+		test.__exit__ ();
+	}
+	catch (__except0__) {
+		if (! (test.__exit__ (__except0__.name, __except0__, __except0__.stack))) {
+			throw __except0__;
+		}
+	}
+	var test = Test ('import sibling as alias_sibling');
+	try {
+		test.__enter__ ();
+		test.result = alias_sibling.sibling_func (test.random_num);
+		test.__exit__ ();
+	}
+	catch (__except0__) {
+		if (! (test.__exit__ (__except0__.name, __except0__, __except0__.stack))) {
+			throw __except0__;
+		}
+	}
+	var test = Test ('from sibling import sibling_func');
+	try {
+		test.__enter__ ();
+		test.result = sibling_func (test.random_num);
+		test.__exit__ ();
+	}
+	catch (__except0__) {
+		if (! (test.__exit__ (__except0__.name, __except0__, __except0__.stack))) {
+			throw __except0__;
+		}
+	}
+	var test = Test ('from sibling import sibling_func as alias_sibling_func');
+	try {
+		test.__enter__ ();
+		test.result = alias_sibling_func (test.random_num);
+		test.__exit__ ();
+	}
+	catch (__except0__) {
+		if (! (test.__exit__ (__except0__.name, __except0__, __except0__.stack))) {
+			throw __except0__;
+		}
+	}
+	var test = Test ('from sibling2 import *');
+	try {
+		test.__enter__ ();
+		test.result = sibling2_func (test.random_num);
+		test.__exit__ ();
+	}
+	catch (__except0__) {
+		if (! (test.__exit__ (__except0__.name, __except0__, __except0__.stack))) {
+			throw __except0__;
+		}
+	}
+	var test = Test ('import siblingjs');
+	try {
+		test.__enter__ ();
+		test.result = siblingjs.siblingjs_func (test.random_num);
+		test.__exit__ ();
+	}
+	catch (__except0__) {
+		if (! (test.__exit__ (__except0__.name, __except0__, __except0__.stack))) {
+			throw __except0__;
+		}
+	}
+	var test = Test ('import siblingjs as alias_siblingjs');
+	try {
+		test.__enter__ ();
+		test.result = alias_siblingjs.siblingjs_func (test.random_num);
+		test.__exit__ ();
+	}
+	catch (__except0__) {
+		if (! (test.__exit__ (__except0__.name, __except0__, __except0__.stack))) {
+			throw __except0__;
+		}
+	}
+	var test = Test ('from siblingjs import siblingjs_func');
+	try {
+		test.__enter__ ();
+		test.result = siblingjs_func (test.random_num);
+		test.__exit__ ();
+	}
+	catch (__except0__) {
+		if (! (test.__exit__ (__except0__.name, __except0__, __except0__.stack))) {
+			throw __except0__;
+		}
+	}
+	var test = Test ('from siblingjs import siblingjs_func as alias_siblingjs_func');
+	try {
+		test.__enter__ ();
+		test.result = alias_siblingjs_func (test.random_num);
+		test.__exit__ ();
+	}
+	catch (__except0__) {
+		if (! (test.__exit__ (__except0__.name, __except0__, __except0__.stack))) {
+			throw __except0__;
+		}
+	}
+	var test = Test ('import mymod');
+	try {
+		test.__enter__ ();
+		test.result = mymod.mymod_func (test.random_num);
+		test.__exit__ ();
+	}
+	catch (__except0__) {
+		if (! (test.__exit__ (__except0__.name, __except0__, __except0__.stack))) {
+			throw __except0__;
+		}
+	}
+	var test = Test ('import mymod as alias_mymod');
+	try {
+		test.__enter__ ();
+		test.result = alias_mymod.mymod_func (test.random_num);
+		test.__exit__ ();
+	}
+	catch (__except0__) {
+		if (! (test.__exit__ (__except0__.name, __except0__, __except0__.stack))) {
+			throw __except0__;
+		}
+	}
+	var test = Test ('from mymod import mymod_func');
+	try {
+		test.__enter__ ();
+		test.result = mymod_func (test.random_num);
+		test.__exit__ ();
+	}
+	catch (__except0__) {
+		if (! (test.__exit__ (__except0__.name, __except0__, __except0__.stack))) {
+			throw __except0__;
+		}
+	}
+	var test = Test ('from mymod import mymod_func as alias_mymod_func');
+	try {
+		test.__enter__ ();
+		test.result = alias_mymod_func (test.random_num);
+		test.__exit__ ();
+	}
+	catch (__except0__) {
+		if (! (test.__exit__ (__except0__.name, __except0__, __except0__.stack))) {
+			throw __except0__;
+		}
+	}
+	var test = Test ('import mymod.child');
+	try {
+		test.__enter__ ();
+		test.result = mymod.child.child_func (test.random_num);
+		test.__exit__ ();
+	}
+	catch (__except0__) {
+		if (! (test.__exit__ (__except0__.name, __except0__, __except0__.stack))) {
+			throw __except0__;
+		}
+	}
+	var test = Test ('alias_child.child_func');
+	try {
+		test.__enter__ ();
+		test.result = alias_child.child_func (test.random_num);
+		test.__exit__ ();
+	}
+	catch (__except0__) {
+		if (! (test.__exit__ (__except0__.name, __except0__, __except0__.stack))) {
+			throw __except0__;
+		}
+	}
+	var test = Test ('from mymod.child import child_func');
+	try {
+		test.__enter__ ();
+		test.result = child_func (test.random_num);
+		test.__exit__ ();
+	}
+	catch (__except0__) {
+		if (! (test.__exit__ (__except0__.name, __except0__, __except0__.stack))) {
+			throw __except0__;
+		}
+	}
+	var test = Test ('from mymod.child import child_func as alias_child_func');
+	try {
+		test.__enter__ ();
+		test.result = alias_child_func (test.random_num);
+		test.__exit__ ();
+	}
+	catch (__except0__) {
+		if (! (test.__exit__ (__except0__.name, __except0__, __except0__.stack))) {
+			throw __except0__;
+		}
+	}
+	var test = Test ('import mymod.grandchildmod');
+	try {
+		test.__enter__ ();
+		test.result = mymod.grandchildmod.grandchildmod_func (test.random_num);
+		test.__exit__ ();
+	}
+	catch (__except0__) {
+		if (! (test.__exit__ (__except0__.name, __except0__, __except0__.stack))) {
+			throw __except0__;
+		}
+	}
+	var test = Test ('import mymod.grandchildmod as alias_grandchildmod');
+	try {
+		test.__enter__ ();
+		test.result = alias_grandchildmod.grandchildmod_func (test.random_num);
+		test.__exit__ ();
+	}
+	catch (__except0__) {
+		if (! (test.__exit__ (__except0__.name, __except0__, __except0__.stack))) {
+			throw __except0__;
+		}
+	}
+	var test = Test ('from mymod.grandchildmod.grandchild import grandchild_func');
+	try {
+		test.__enter__ ();
+		test.result = grandchild_func (test.random_num);
+		test.__exit__ ();
+	}
+	catch (__except0__) {
+		if (! (test.__exit__ (__except0__.name, __except0__, __except0__.stack))) {
+			throw __except0__;
+		}
+	}
+	var test = Test ('from mymod.grandchildmod.grandchild import grandchild_func as alias_grandchild_func');
+	try {
+		test.__enter__ ();
+		test.result = alias_grandchild_func (test.random_num);
+		test.__exit__ ();
+	}
+	catch (__except0__) {
+		if (! (test.__exit__ (__except0__.name, __except0__, __except0__.stack))) {
+			throw __except0__;
+		}
+	}
+};
+
+//# sourceMappingURL=main.map

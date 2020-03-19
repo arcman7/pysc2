@@ -1,0 +1,41 @@
+// Transcrypt'ed from Python, 2019-01-22 11:22:52
+import {AssertionError, AttributeError, BaseException, DeprecationWarning, Exception, IndexError, IterableError, KeyError, NotImplementedError, RuntimeWarning, StopIteration, UserWarning, ValueError, Warning, __JsIterator__, __PyIterator__, __Terminal__, __add__, __and__, __call__, __class__, __conj__, __envir__, __eq__, __floordiv__, __ge__, __get__, __getcm__, __getitem__, __getslice__, __getsm__, __gt__, __i__, __iadd__, __iand__, __idiv__, __ijsmod__, __ilshift__, __imatmul__, __imod__, __imul__, __in__, __init__, __ior__, __ipow__, __irshift__, __isub__, __ixor__, __jsUsePyNext__, __jsmod__, __k__, __kwargtrans__, __le__, __lshift__, __lt__, __matmul__, __mergefields__, __mergekwargtrans__, __mod__, __mul__, __ne__, __neg__, __nest__, __or__, __pow__, __pragma__, __proxy__, __pyUseJsNext__, __rshift__, __setitem__, __setproperty__, __setslice__, __sort__, __specialattrib__, __sub__, __super__, __t__, __terminal__, __truediv__, __withblock__, __xor__, abs, all, any, assert, bool, bytearray, bytes, callable, chr, complex, copy, deepcopy, delattr, dict, dir, divmod, enumerate, filter, float, format, getattr, hasattr, input, int, isinstance, issubclass, len, list, map, max, min, object, ord, print, property, py_TypeError, py_iter, py_metatype, py_next, py_reversed, py_typeof, range, repr, round, set, setattr, sorted, str, tuple, zip} from './org.transcrypt.__runtime__.js';
+import {acos, acosh, asin, asinh, atan, atan2, atanh, ceil, cos, cosh, degrees, e, exp, expm1, floor, hypot, inf, isnan, log, log10, log1p, log2, modf, nan, pi, pow, radians, sin, sinh, sqrt, tan, tanh, trunc} from './math.js';
+import {ClassVar} from './typing.js';
+var __name__ = 'simple_variables';
+export var nrOfPersons = 100;
+nrOfPersons *= 0.5;
+var nrOfPersons = 10.5;
+export var weight = 65.5;
+weight *= 0.5;
+var weight = 65;
+var weight = 64.5;
+export var sum = '3' + 4;
+export var diff = 2 - 3.5;
+var diff = '5';
+export var quot = 5 / 2;
+export var quot2 = Math.floor (5 / 2);
+export var count = 10;
+var count = quot;
+var count = quot2;
+export var aMax = max (3.5, 4);
+var aMax = 3.5;
+export var aMax2 = max (3, 4);
+var aMax2 = 3.5;
+export var aSin = 0;
+var aSin = sin (0);
+export var aRound = round (3.5, 0);
+export var anInt = int (aRound);
+var aRound = 4.5;
+var anInt = 4.5;
+export var aComplex = complex (0, 3.3);
+var aComplex = 2.2;
+export var aFloat = 2.2;
+var aFloat = complex (0, 3.3);
+export var anInt2 = 3;
+var anInt2 = 3.5;
+var aFloat2 = 4;
+var aFloat2 = 4.5;
+var anInt3 = 5.5;
+
+//# sourceMappingURL=simple_variables.map

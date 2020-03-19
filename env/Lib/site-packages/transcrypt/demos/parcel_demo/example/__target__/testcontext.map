@@ -1,0 +1,8 @@
+{
+	"version": 3,
+	"file": "testcontext.js",
+	"sources": [
+		"testcontext.py"
+	],
+	"mappings": "AAAA;AACA;AAAA;AACA;AADA;AAAA;AADA;AASA;AAAA;AACA;AACA;AACA;AACA;AAAA;AAEA;AACA;AAAA;AAEA;AAEA;AACA;AACA;AAAA;AAGA;AACA;AACA;AAAA;AACA;AACA;AACA;AAAA;AAAA;AAAA;AA7BA"
+}
