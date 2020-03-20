@@ -15,6 +15,8 @@
 
 import os from 'os'
 import { PerformanceObserver, performance } from 'perf_hooks'
+import pythonUtils from './pythonUtils'
+const { len, iter, isinstance, isObject, DefaultDict } = pythonUtils
 
 class Stat {
   static get _fields() { return ["num", "min", "max", "sum", "sum_sq"] }
@@ -97,7 +99,6 @@ class Stat {
 
 class StopWatchContext {
   //Time an individual call.//
-
   static get _fields() { return ['_sw', '_start'] }
 
   constructor(stopwatch, name) {
@@ -132,3 +133,48 @@ class TracingStopWatchContext extends StopWatchContext {
     process.stderr.write(s)
   }
 }
+
+class FakeStopWatchContext {
+  constructor() {}
+
+  __enter__() {
+    return
+  }
+
+  __exit__() {
+    return
+  }
+}
+
+fake_context = FakeStopWatchContext()
+
+class StopWatch {
+  /*A context manager that tracks call count and latency, and other stats.
+
+  Usage:
+      sw = stopwatch.Stopwatch()
+      with sw("foo"):
+        foo()
+      with sw("bar"):
+        bar()
+      @sw.decorate
+      def func():
+        pass
+      func()
+      print(sw)
+  */
+  static get _fields() { return ['_times', '_local','_factory'] }
+  constructor(enabled = true, trace = false) {
+    this.times = new DefaultDict(Stat)
+    this._local = threading.local()
+  }
+}
+
+
+
+
+
+
+
+
+

@@ -59,6 +59,18 @@ function zip() { //eslint-diable-next-line
   });
 }
 
+class DefaultDict {
+  constructor(defaultInit) {
+    return new Proxy({}, {
+      get: (target, name) => name in target ?
+        target[name] :
+        (target[name] = typeof defaultInit === 'function' ?
+          new defaultInit().valueOf() :
+          defaultInit)
+    })
+  }
+}
+
 export default {
-  len, eq, iter, isinstance, isObject, zip
+  DefaultDict, eq, iter, isinstance, isObject, len, zip
 }
