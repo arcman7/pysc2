@@ -89,8 +89,8 @@ class Arguments {
     }
 }
 class RawArguments {
-    static classname = 'RawArguments';
-    static _fields = ["world","queued","unit_tags","target_unit_tag"];
+    static get classname() { 'RawArguments' }
+    static get _fields() { return ["world","queued","unit_tags","target_unit_tag"] };
     constructor(kwargs, world, queued, unit_tags, target_unit_tag) {
         if (kwargs) {
             var { world, queued, unit_tags, target_unit_tag } = kwargs
@@ -114,8 +114,8 @@ class RawArguments {
     }
 }
 class Function {
-    static classname = 'Function';
-    static _fields = ["id","name","ability_id","general_id","function_type","args","avail_fn","raw"];
+    static get classname() { 'Function' }
+    static get _fields() { return ["id","name","ability_id","general_id","function_type","args","avail_fn","raw"] }
     constructor({id, name, ability_id, general_id, function_type, args, avail_fn, raw}) {
         this.id = id;
         this.name = name;
@@ -140,8 +140,8 @@ class Function {
     }
 }
 class FunctionCall {
-    static classname = 'FunctionCall';
-    static _fields = ['function', 'arguments']
+    static get classname() { 'FunctionCall' }
+    static get _fields() { return ['function', 'arguments'] }
     constructor(kwargs) {
         this.function = kwargs.function;
         this.arguments = kwargs.arguments;
@@ -157,8 +157,8 @@ class FunctionCall {
     }
 }
 class ValidActions {
-    static classname = 'ValidActions';
-    static _fields = ["types","functions"];
+    static get classname() { 'ValidActions' }
+    static get _fields() { return ["types","functions"] }
     constructor({types, functions}) {
         this.types = types;
         this.functions = functions;
@@ -177,8 +177,8 @@ class ValidActions {
     }
 }
 class Color {
-    static classname = 'Color';
-    static _fields = ["r","g","b"];
+    static get classname() { 'Color' }
+    static get _fields() { return ["r","g","b"] }
     constructor({r, g, b}) {
         this.r = r;
         this.g = g;
@@ -198,8 +198,8 @@ class Color {
     }
 }
 class Point {
-    static classname = 'Point';
-    static _fields = ["x","y"];
+    static get classname() { 'Point' }
+    static get _fields() { return ["x","y"] }
     constructor({x, y}) {
         this.x = x;
         this.y = y;
@@ -218,8 +218,8 @@ class Point {
     }
 }
 class Rect {
-    static classname = 'Rect';
-    static _fields = ["t","l","b","r"];
+    static get classname() { 'Rect' }
+    static get _fields() { return ["t","l","b","r"] }
     constructor({t, l, b,  r}) {
         this.t = t;
         this.l = l;
@@ -240,8 +240,8 @@ class Rect {
     }
 }
 class Feature {
-    static classname = 'Feature';
-    static _fields = ["index","name","layer_set","full_name","scale","type","palette","clip"];
+    static get classname() { 'Feature' }
+    static get _fields() { return ["index","name","layer_set","full_name","scale","type","palette","clip"] }
     constructor({index, name, layer_set, full_name, scale, type, palette, clip}) {
         this.index = index;
         this.name = name;
@@ -266,8 +266,8 @@ class Feature {
     }
 }
 class ScreenFeatures {
-    static classname = 'ScreenFeatures';
-    static _fields = ["height_map","visibility_map","creep","power","player_id","player_relative","unit_type","selected","unit_hit_points","unit_hit_points_ratio","unit_energy","unit_energy_ratio","unit_shields","unit_shields_ratio","unit_density","unit_density_aa","effects","hallucinations","cloaked","blip","buffs","buff_duration","active","build_progress","pathable","buildable","placeholder"];
+    static get classname() { 'ScreenFeatures' }
+    static get _fields() { return ["height_map","visibility_map","creep","power","player_id","player_relative","unit_type","selected","unit_hit_points","unit_hit_points_ratio","unit_energy","unit_energy_ratio","unit_shields","unit_shields_ratio","unit_density","unit_density_aa","effects","hallucinations","cloaked","blip","buffs","buff_duration","active","build_progress","pathable","buildable","placeholder"] }
     constructor({height_map, visibility_map, creep, power, player_id, player_relative, unit_type, selected, unit_hit_points, unit_hit_points_ratio, unit_energy, unit_energy_ratio, unit_shields, unit_shields_ratio, unit_density, unit_density_aa, effects, hallucinations, cloaked, blip, buffs, buff_duration, active, build_progress, pathable, buildable, placeholder}) {
         this.height_map = height_map;
         this.visibility_map = visibility_map;
@@ -311,8 +311,8 @@ class ScreenFeatures {
     }
 }
 class MinimapFeatures {
-    static classname = 'MinimapFeatures';
-    static _fields = ["height_map","visibility_map","creep","camera","player_id","player_relative","selected","unit_type","alerts","pathable","buildable"];
+    static get classname() { 'MinimapFeatures' }
+    static get _fields() { ["height_map","visibility_map","creep","camera","player_id","player_relative","selected","unit_type","alerts","pathable","buildable"];
     constructor({height_map, visibility_map, creep, camera, player_id, player_relative, selected, unit_type, alerts, pathable, buildable}) {
         this.height_map = height_map;
         this.visibility_map = visibility_map;

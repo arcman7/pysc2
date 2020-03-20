@@ -129,6 +129,6 @@ class TracingStopWatchContext extends StopWatchContext {
 
   //eslint-disable-next-line
   _log(s) {
-    console.log(s)
+    process.stderr.write(s)
   }
 }
