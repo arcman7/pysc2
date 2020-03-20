@@ -27,8 +27,8 @@ function getClass(name, fields) {
     console.log(classStr);
 }
 class ArgumentType {
-    static classname = 'ArgumentType';
-    static _fields = ['id', 'name', 'sizes', 'fn', 'values', 'count'];
+    static get classname() { 'ArgumentType' }
+    static get _fields() { return ['id', 'name', 'sizes', 'fn', 'values', 'count'] }
     constructor(kwargs, id, name, sizes, fn, values, count) {
         if (kwargs) {
             var { id, name, sizes, fn, values, count } = kwargs;
@@ -55,9 +55,9 @@ class ArgumentType {
 // a = new ArgumentType({ id: 1, name: 'foo' });
 // b = a.constructor._make({ name: 'roo' });
 class Arguments {
-    static classname = 'Arguments';
-    static _fields = ['screen', 'minimap', 'screen2', 'queued', 'control_group_act', 'control_group_id', 'select_point_act', 'select_add', 'select_unit_act', 'select_unit_id', 'select_worker', 'build_queue_id', 'unload_id'];
-    constructor(screen, minimap, screen2, queued, control_group_act, control_group_id, select_point_act, select_add, select_unit_act, select_unit_id, select_worker, build_queue_id, unload_id) {
+    static get classname() { return 'Arguments' }
+    static get _fields() { return ['screen', 'minimap', 'screen2', 'queued', 'control_group_act', 'control_group_id', 'select_point_act', 'select_add', 'select_unit_act', 'select_unit_id', 'select_worker', 'build_queue_id', 'unload_id'] }
+    constructor(kwargs, screen, minimap, screen2, queued, control_group_act, control_group_id, select_point_act, select_add, select_unit_act, select_unit_id, select_worker, build_queue_id, unload_id) {
         if (kwargs) {
             var { screen, minimap, screen2, queued, control_group_act, control_group_id, select_point_act, select_add, select_unit_act, select_unit_id, select_worker, build_queue_id, unload_id } = kwargs;
         }
@@ -91,7 +91,10 @@ class Arguments {
 class RawArguments {
     static classname = 'RawArguments';
     static _fields = ["world","queued","unit_tags","target_unit_tag"];
-    constructor({world, queued, unit_tags, target_unit_tag}) {
+    constructor(kwargs, world, queued, unit_tags, target_unit_tag) {
+        if (kwargs) {
+            var { world, queued, unit_tags, target_unit_tag } = kwargs
+        }
         this.world = world;
         this.queued = queued;
         this.unit_tags = unit_tags;

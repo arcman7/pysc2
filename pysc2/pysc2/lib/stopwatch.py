@@ -136,6 +136,8 @@ class TracingStopWatchContext(StopWatchContext):
 
   def __enter__(self):
     super(TracingStopWatchContext, self).__enter__()
+    print('************* cur_stack():')
+    print(self._sw.cur_stack())
     self._log(">>> %s" % self._sw.cur_stack())
 
   def __exit__(self, *args, **kwargs):

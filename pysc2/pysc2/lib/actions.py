@@ -1194,7 +1194,7 @@ _FUNCTIONS = [
 ]
 # pylint: enable=line-too-long
 
-test = _FUNCTIONS
+# test = _FUNCTIONS
 # Create an IntEnum of the function names/ids so that printing the id will
 # show something useful.
 _Functions = Enum.IntEnum(  # pylint: disable=invalid-name
@@ -1796,8 +1796,8 @@ RAW_ABILITY_IDS = {k: frozenset(v) for k, v in iteritems(RAW_ABILITY_IDS)}
 RAW_FUNCTIONS_AVAILABLE = {f.id: f for f in RAW_FUNCTIONS if f.avail_fn}
 RAW_ABILITY_ID_TO_FUNC_ID = {k: min(f.id for f in v)  # pylint: disable=g-complex-comprehension
                              for k, v in iteritems(RAW_ABILITY_IDS)}
-
-
+# print('stuff: ********************')
+# print(RAW_ABILITY_ID_TO_FUNC_ID)
 
 # class FunctionCall(collections.namedtuple(
 #     "FunctionCall", ["function", "arguments"])):
@@ -1830,7 +1830,10 @@ class FunctionCall(all_collections_generated_classes.FunctionCall):
     """
     func = RAW_FUNCTIONS[function] if raw else FUNCTIONS[function]
     args = []
+    print('arguments: ', arguments)
+    print('func.args: ', func.args)
     for arg, arg_type in zip(arguments, func.args):
+      print('arg: ', arg, ' arg_type: ', arg_type)
       arg = numpy_to_python(arg)
       if arg_type.values:  # Allow enum values by name or int.
         if isinstance(arg, str):

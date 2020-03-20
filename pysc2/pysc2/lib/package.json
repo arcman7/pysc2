@@ -1,6 +1,0 @@
-{
-    "type": "module",
-    "dependencies": {
-        "python-enum": "^1.0.0"
-    }
-}

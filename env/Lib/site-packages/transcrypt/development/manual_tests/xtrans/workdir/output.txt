@@ -1,7 +1,0 @@
-/*
-<div id="studentcontainer">
-    {self.props.students.map((s) => (
-        <studenttile student={s}  key={s.searchval}  />
-    ))}
-</div>
-*/
