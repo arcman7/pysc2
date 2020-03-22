@@ -6,6 +6,7 @@ module.exports = {
         "import"
     ],
     "rules": {
+        "max-classes-per-file": 0,
         "no-param-reassign": 0,
         "no-underscore-dangle": 0,
         "quotes": 0,

@@ -136,8 +136,6 @@ class TracingStopWatchContext(StopWatchContext):
 
   def __enter__(self):
     super(TracingStopWatchContext, self).__enter__()
-    print('************* cur_stack():')
-    print(self._sw.cur_stack())
     self._log(">>> %s" % self._sw.cur_stack())
 
   def __exit__(self, *args, **kwargs):
@@ -309,7 +307,6 @@ class StopWatch(object):
         ])
     col_widths = [max(len(row[i]) for row in table)
                   for i in range(len(table[0]))]
-
     out = ""
     for row in table:
       out += "  " + row[0].ljust(col_widths[0]) + "  "

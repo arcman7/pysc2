@@ -17,7 +17,7 @@ function eq(a, b) {
 
 function iter(container) {
   if (container.__iter__) {
-    return container.__iter__
+    return container.__iter__()
   }
   if (len(container)) {
     return Object.keys(container).map(key => container[key])
@@ -30,6 +30,26 @@ Array.prototype.extend = function(array) {
   for (let i = 0; i < array.length; i++) {
     this.push(array[i])
   }
+}
+//eslint-disable-next-line
+String.prototype.splitlines = function() {
+  return this.split(/\r?\n/)
+}
+//eslint-disable-next-line
+String.prototype.ljust = function(length, char = ' ') {
+  const fill = [];
+  while (fill.length + this.length < length) {
+    fill[fill.length] = char;
+  }
+  return fill.join('') + this;
+}
+//eslint-disable-next-line
+String.prototype.rjust = function(length, char = ' ') {
+  const fill = [];
+  while (fill.length + this.length < length) {
+    fill[fill.length] = char;
+  }
+  return this + fill.join('');
 }
 
 function isinstance(a, compare) {
@@ -48,8 +68,8 @@ function isObject(a) {
   return a === Object(a)
 }
 
-function zip() { //eslint-diable-next-line
-  var args = [].slice.call(arguments);
+function zip() {
+  var args = [].slice.call(arguments); //eslint-disable-line
   var shortest = args.length === 0 ? [] : args.reduce(function(a, b) {
     return a.length < b.length ? a : b
   });
@@ -60,17 +80,27 @@ function zip() { //eslint-diable-next-line
 }
 
 class DefaultDict {
-  constructor(defaultInit) {
+  constructor(DefaultInit) {
     return new Proxy({}, {
+      //eslint-disable-next-line
       get: (target, name) => name in target ?
         target[name] :
         (target[name] = typeof defaultInit === 'function' ?
-          new defaultInit().valueOf() :
-          defaultInit)
+          new DefaultInit().valueOf() :
+          DefaultInit)
     })
   }
 }
 
+function withPython(withInterface, callback) {
+  if (!withInterface.__enter__ || !withInterface.__exit__) {
+    throw new Error('ValueError: withInterface must define a __enter__ and __exit__ method')
+  }
+  const tempResult = withInterface.__enter__()
+  callback(tempResult)
+  withInterface.__exit__()
+}
+
 export default {
-  DefaultDict, eq, iter, isinstance, isObject, len, zip
+  DefaultDict, eq, iter, isinstance, isObject, len, withPython, zip, Array, String,
 }

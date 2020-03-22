@@ -3,7 +3,6 @@ import s2clientprotocol from 's2clientprotocol'
 import Enum from 'enum'
 import all_collections_generated_classes from './all_collections_generated_classes'
 import point from './point'
-import Tuple from './tuple'
 import pythonUtils from './pythonUtils'
 
 const { spatial_pb2, ui_pb2 } = s2clientprotocol
@@ -148,7 +147,7 @@ function raw_cmd(action, ability_id, queued, unit_tags) {
   const action_cmd = action.action_raw.unit_command
   action_cmd.ability_id = ability_id
   action_cmd.queue_command = queued
-  if (!isinstance(unit_tags, [Tuple, Array])) {
+  if (!isinstance(unit_tags, [Array])) {
     unit_tags = [unit_tags]
   }
   action_cmd.unit_tags.extend(unit_tags)
@@ -159,7 +158,7 @@ function raw_cmd_pt(action, ability_id, queued, unit_tags, world) {
   const action_cmd = action.action_raw.unit_command
   action_cmd.ability_id = ability_id
   action_cmd.queue_command = queued
-  if (!isinstance(unit_tags, [Tuple, Array])) {
+  if (!isinstance(unit_tags, [Array])) {
     unit_tags = [unit_tags]
   }
   action_cmd.unit_tags.extend(unit_tags)
@@ -172,7 +171,7 @@ function raw_cmd_unit(action, ability_id, queued, unit_tags,
   const action_cmd = action.action_raw.unit_command
   action_cmd.ability_id = ability_id
   action_cmd.queue_command = queued
-  if (!isinstance(unit_tags, [Tuple, Array])) {
+  if (!isinstance(unit_tags, [Array])) {
     unit_tags = [unit_tags]
   }
   action_cmd.unit_tags.extend(unit_tags)
@@ -183,7 +182,7 @@ function raw_autocast(action, ability_id, unit_tags) {
   // Toggle autocast.//
   const action_cmd = action.action_raw.toggle_autocast
   action_cmd.ability_id = ability_id
-  if (!isinstance(unit_tags, [Tuple, Array])) {
+  if (!isinstance(unit_tags, [Array])) {
     unit_tags = [unit_tags]
   }
   action_cmd.unit_tags.extend(unit_tags)
@@ -200,7 +199,7 @@ function numpy_to_python(val) {
   if (isinstance(val, numpy.number) || isinstance(val, numpy.ndarray) && !(val.shape)) { // numpy.array(1)
     return val.item()
   }
-  if (isinstance(val, [Array, Tuple, numpy.ndarray])) {
+  if (isinstance(val, [Array, , numpy.ndarray])) {
     const result = [];
     Object.keys(val).forEach((key) => {
       result.push(numpy_to_python(val[key]))
@@ -232,8 +231,8 @@ class ArgumentType extends all_collections_generated_classes.ArgumentType {
   static enum(options, values) {
     // Create an ArgumentType where you choose one of a set of known values.//
     const real = []
-    options.forEach((tuple) => {
-      const thing = tuple[1]
+    options.forEach(() => {
+      const thing = [1]
       real.push(thing)
     })
     function factory(i, name) {
@@ -375,7 +374,7 @@ class RawArguments extends all_collections_generated_classes.RawArguments {
 function _define_position_based_enum(name, options) {
   const dict = {}
   options.forEach((tuple, index) => {
-    const funcName = tuple[0]
+    const funcName = [0]
     dict[funcName] = index
   })
   return Enum(dict)

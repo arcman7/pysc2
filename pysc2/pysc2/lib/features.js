@@ -239,11 +239,13 @@ class Feature extends all_collections_generated_classes.Feature {
   constructor(kwargs) {
     super(kwargs)
   }
-  static dtypes = {
-    1: np.uint8,
-    8: np.uint8,
-    16: np.uint16,
-    32: np.int32,
+  static get dtypes() {
+    return {
+      1: np.uint8,
+      8: np.uint8,
+      16: np.uint16,
+      32: np.int32,
+    }
   }
   unpack(obs) {
     //Return a correctly shaped numpy array for this feature.//
