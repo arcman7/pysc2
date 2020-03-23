@@ -346,7 +346,11 @@ class ScreenFeatures(all_collections_generated_classes.ScreenFeatures):
 
   def __new__(cls, **kwargs):
     feats = {}
+    # print('***************** kwargs ***********************')
+    # print(kwargs)
     for name, (scale, type_, palette, clip) in iteritems(kwargs):
+      # print('name: ', name)
+      # print(scale, type_, palette, clip)
       feats[name] = Feature(
           index=ScreenFeatures._fields.index(name),
           name=name,

@@ -6,8 +6,8 @@ function getClass(name, fields) {
         consLogic+= i < fields.length - 1 ? `this.${field} = ${field};\n\t\t\t` : `this.${field} = ${field};`;
     });
     const classStr = `class ${name} {
-        static classname = '${name}';
-        static _fields = ${JSON.stringify(fields)};
+        static get classname { return '${name}' };
+        static get _fields() { return ${JSON.stringify(fields)} };
         constructor(${consArgs}) {
             ${consLogic}
         }
@@ -21,13 +21,13 @@ function getClass(name, fields) {
             return this.constructor._make(kwargs);
         }
         __reduce__() {
-            return [this.constructor, this._fields.map((field) => this[field])];
+            return [this.constructor, this.constructor._fields.map((field) => this[field])];
         }
     }`;
     console.log(classStr);
 }
 class ArgumentType {
-    static get classname() { 'ArgumentType' }
+    static get classname() { return 'ArgumentType' }
     static get _fields() { return ['id', 'name', 'sizes', 'fn', 'values', 'count'] }
     constructor(kwargs, id, name, sizes, fn, values, count) {
         if (kwargs) {
@@ -49,7 +49,7 @@ class ArgumentType {
         return this.constructor._make(kwargs);
     }
     __reduce__() {
-        return [this.constructor, this._fields.map((field) => this[field])];
+        return [this.constructor, this.constructor._fields.map((field) => this[field])];
     }
 }
 // a = new ArgumentType({ id: 1, name: 'foo' });
@@ -85,11 +85,11 @@ class Arguments {
         return this.constructor._make(kwargs);
     }
     __reduce__() {
-        return [this.constructor, this._fields.map((field) => this[field])];
+        return [this.constructor, this.constructor._fields.map((field) => this[field])];
     }
 }
 class RawArguments {
-    static get classname() { 'RawArguments' }
+    static get classname() { return 'RawArguments' }
     static get _fields() { return ["world","queued","unit_tags","target_unit_tag"] };
     constructor(kwargs, world, queued, unit_tags, target_unit_tag) {
         if (kwargs) {
@@ -110,11 +110,11 @@ class RawArguments {
         return this.constructor._make(kwargs);
     }
     __reduce__() {
-        return [this.constructor, this._fields.map((field) => this[field])];
+        return [this.constructor, this.constructor._fields.map((field) => this[field])];
     }
 }
 class Function {
-    static get classname() { 'Function' }
+    static get classname() { return 'Function' }
     static get _fields() { return ["id","name","ability_id","general_id","function_type","args","avail_fn","raw"] }
     constructor({id, name, ability_id, general_id, function_type, args, avail_fn, raw}) {
         this.id = id;
@@ -136,11 +136,11 @@ class Function {
         return this.constructor._make(kwargs);
     }
     __reduce__() {
-        return [this.constructor, this._fields.map((field) => this[field])];
+        return [this.constructor, this.constructor._fields.map((field) => this[field])];
     }
 }
 class FunctionCall {
-    static get classname() { 'FunctionCall' }
+    static get classname() { return 'FunctionCall' }
     static get _fields() { return ['function', 'arguments'] }
     constructor(kwargs) {
         this.function = kwargs.function;
@@ -153,11 +153,11 @@ class FunctionCall {
         return _replace.call(this, kwargs);
     }
     __reduce__() {
-        return [this.constructor, this._fields.map((field) => this[field])];
+        return [this.constructor, this.constructor._fields.map((field) => this[field])];
     }
 }
 class ValidActions {
-    static get classname() { 'ValidActions' }
+    static get classname() { return 'ValidActions' }
     static get _fields() { return ["types","functions"] }
     constructor({types, functions}) {
         this.types = types;
@@ -173,11 +173,11 @@ class ValidActions {
         return this.constructor._make(kwargs);
     }
     __reduce__() {
-        return [this.constructor, this._fields.map((field) => this[field])];
+        return [this.constructor, this.constructor._fields.map((field) => this[field])];
     }
 }
 class Color {
-    static get classname() { 'Color' }
+    static get classname() { return 'Color' }
     static get _fields() { return ["r","g","b"] }
     constructor({r, g, b}) {
         this.r = r;
@@ -194,11 +194,11 @@ class Color {
         return this.constructor._make(kwargs);
     }
     __reduce__() {
-        return [this.constructor, this._fields.map((field) => this[field])];
+        return [this.constructor, this.constructor._fields.map((field) => this[field])];
     }
 }
 class Point {
-    static get classname() { 'Point' }
+    static get classname() { return 'Point' }
     static get _fields() { return ["x","y"] }
     constructor({x, y}) {
         this.x = x;
@@ -214,11 +214,11 @@ class Point {
         return this.constructor._make(kwargs);
     }
     __reduce__() {
-        return [this.constructor, this._fields.map((field) => this[field])];
+        return [this.constructor, this.constructor._fields.map((field) => this[field])];
     }
 }
 class Rect {
-    static get classname() { 'Rect' }
+    static get classname() { return 'Rect' }
     static get _fields() { return ["t","l","b","r"] }
     constructor({t, l, b,  r}) {
         this.t = t;
@@ -236,11 +236,11 @@ class Rect {
         return this.constructor._make(kwargs);
     }
     __reduce__() {
-        return [this.constructor, this._fields.map((field) => this[field])];
+        return [this.constructor, this.constructor._fields.map((field) => this[field])];
     }
 }
 class Feature {
-    static get classname() { 'Feature' }
+    static get classname() { return 'Feature' }
     static get _fields() { return ["index","name","layer_set","full_name","scale","type","palette","clip"] }
     constructor({index, name, layer_set, full_name, scale, type, palette, clip}) {
         this.index = index;
@@ -262,11 +262,11 @@ class Feature {
         return this.constructor._make(kwargs);
     }
     __reduce__() {
-        return [this.constructor, this._fields.map((field) => this[field])];
+        return [this.constructor, this.constructor._fields.map((field) => this[field])];
     }
 }
 class ScreenFeatures {
-    static get classname() { 'ScreenFeatures' }
+    static get classname() { return 'ScreenFeatures' }
     static get _fields() { return ["height_map","visibility_map","creep","power","player_id","player_relative","unit_type","selected","unit_hit_points","unit_hit_points_ratio","unit_energy","unit_energy_ratio","unit_shields","unit_shields_ratio","unit_density","unit_density_aa","effects","hallucinations","cloaked","blip","buffs","buff_duration","active","build_progress","pathable","buildable","placeholder"] }
     constructor({height_map, visibility_map, creep, power, player_id, player_relative, unit_type, selected, unit_hit_points, unit_hit_points_ratio, unit_energy, unit_energy_ratio, unit_shields, unit_shields_ratio, unit_density, unit_density_aa, effects, hallucinations, cloaked, blip, buffs, buff_duration, active, build_progress, pathable, buildable, placeholder}) {
         this.height_map = height_map;
@@ -307,12 +307,12 @@ class ScreenFeatures {
         return this.constructor._make(kwargs);
     }
     __reduce__() {
-        return [this.constructor, this._fields.map((field) => this[field])];
+        return [this.constructor, this.constructor._fields.map((field) => this[field])];
     }
 }
 class MinimapFeatures {
-    static get classname() { 'MinimapFeatures' }
-    static get _fields() { ["height_map","visibility_map","creep","camera","player_id","player_relative","selected","unit_type","alerts","pathable","buildable"];
+    static get classname() { return 'MinimapFeatures' }
+    static get _fields() {  return ["height_map","visibility_map","creep","camera","player_id","player_relative","selected","unit_type","alerts","pathable","buildable"];
     constructor({height_map, visibility_map, creep, camera, player_id, player_relative, selected, unit_type, alerts, pathable, buildable}) {
         this.height_map = height_map;
         this.visibility_map = visibility_map;
@@ -336,6 +336,6 @@ class MinimapFeatures {
         return this.constructor._make(kwargs);
     }
     __reduce__() {
-        return [this.constructor, this._fields.map((field) => this[field])];
+        return [this.constructor, this.constructor._fields.map((field) => this[field])];
     }
 }

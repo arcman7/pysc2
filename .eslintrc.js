@@ -6,6 +6,10 @@ module.exports = {
         "import"
     ],
     "rules": {
+        'object-curly-newline': 0,
+        'prefer-template': 0,
+        "no-param-reassign": 0,
+        "prefer-destructuring": 0,
         "max-classes-per-file": 0,
         "no-param-reassign": 0,
         "no-underscore-dangle": 0,
@@ -25,7 +29,6 @@ module.exports = {
         "no-bitwise": 0,
         "object-shorthand": 0,
         "no-console": 0,
-        "no-param-reassign": [2, { "props": false }],
         "quote-props": 0,
         "consistent-return": 0,
         "guard-for-in": 0,

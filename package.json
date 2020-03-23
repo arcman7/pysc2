@@ -36,31 +36,5 @@
     "eslint-plugin-import": "^2.20.1",
     "jest": "^25.1.0",
     "node-pre-gyp": "^0.14.0"
-  },
-  "jest": {
-    "moduleFileExtensions": [
-      "js"
-    ],
-    "modulePaths": [
-      "<rootDir>/pysc2"
-    ],
-    "transform": {
-      "^.+\\.js$": "<rootDir>/node_modules/babel-jest"
-    },
-    "moduleNameMapper": {
-      "^@/(.*)$": "<rootDir>/src/$1"
-    },
-    "transformIgnorePatterns": [
-      "<rootDir>/node_modules/"
-    ],
-    "collectCoverage": true,
-    "collectCoverageFrom": [
-      "pysc2/*.{js,vue}"
-    ],
-    "coverageReporters": [
-      "html",
-      "text-summary"
-    ],
-    "testPathIgnorePatterns": []
   }
 }

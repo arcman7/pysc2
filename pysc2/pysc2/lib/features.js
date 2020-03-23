@@ -1,26 +1,24 @@
-import * as tf from '@tensorflow/tfjs-node'
-import s2clientprotocol from 's2clientprotocol'
-import Enum from 'enum'
-import actions from './actions'
-import colors from './colors'
-import named_array from './named_array'
-import point from './point'
-import static_data from './static_data'
-import stopwatch from './stopwatch'
-import transform from './transform'
-
-import pythonUtils from './pythonUtils'
-import all_collections_generated_classes from './all_collections_generated_classes'
+const tf = require('@tensorflow/tfjs-node')
+const s2clientprotocol = require('s2clientprotocol')
+const Enum = require('enum')
+const actions = require('./actions.js')
+const colors = require('./colors.js')
+const named_array = require('./named_array.js')
+const point = require('./point.js')
+const static_data = require('./static_data.js')
+const stopwatch = require('./stopwatch.js')
+const transform = require('./transform.js')
+const pythonUtils = require('./pythonUtils.js')
+const all_collections_generated_classes = require('./all_collections_generated_classes.js')
 
 const sw = stopwatch.sw
 const { spatial_pb2, ui_pb2 } = s2clientprotocol
 const sc_spatial = spatial_pb2
 const sc_ui = ui_pb2
-const np = {
-  array: tf.tensor2d,
-}
+const np = tf.tensor
+np.array = tf.tensor
 
-const { len, iter, isinstance, isObject } = pythonUtils
+const { int, isinstance } = pythonUtils
 
 const EPSILON = 1e-5
 
@@ -238,7 +236,9 @@ class Feature extends all_collections_generated_classes.Feature {
 
   constructor(kwargs) {
     super(kwargs)
+    this.color = sw.decorate(this.color)
   }
+
   static get dtypes() {
     return {
       1: np.uint8,
@@ -247,18 +247,165 @@ class Feature extends all_collections_generated_classes.Feature {
       32: np.int32,
     }
   }
+
   unpack(obs) {
     //Return a correctly shaped numpy array for this feature.//
     const planes = obs.feature_layer_data[this.layer_set]
     const plane = planes[this.name]
     return this.unpack_layer(plane)
   }
-  unpack_layer(plane) {
+
+  static unpack_layer(plane) {
     //Return a correctly shaped numpy array given the feature layer bytes.//
     const size = point.Point.build(plane.size)
     if (size[0] === 0 && size[1] === 0) {
       // New layer that isn't implemented in this SC2 version.
       return null
+    }
+    let data = np.frombuffer(plane.data, Feature.dtypes[plane.bits_per_pixel])
+    if (plane.bits_per_pixel === 1) {
+      data = np.unpackbits(data)
+      if (data.shape[0] != (size.x * size.y)) {
+        // This could happen if the correct length isn't a multiple of 8, leading
+        // to some padding bits at the end of the string which are incorrectly
+        // interpreted as data.
+        data = data.slice(0, size.x * size.y)
+      }
+    }
+    return data.reshape(size.y, size.x)
+  }
+
+  static unpack_rgb_image(plane) {
+    //Return a correctly shaped numpy array given the image bytes.//
+    if (plane.bits_per_pixel !== 24) {
+      throw new Error(`ValueError: plane.bits_per_pixel ${plane.bits_per_pixel} !== 24`)
+    }
+    const size = point.Point.build(plane.size)
+    const data = np.frombuffer(plane.data, np.uint8)
+    return data.reshape(size.y, size.x, 3)
+  }
+
+  color(plane) {
+    if (this.clip) {
+      plane = np.clip(plane, 0, this.scale - 1)
+    }
+    return this.palette[plane]
+  }
+}
+
+Feature.unpack_layer = sw.decorate(Feature.unpack_layer)
+Feature.unpack_rgb_image = sw.decorate(Feature.unpack_rgb_image)
+class ScreenFeatures extends all_collections_generated_classes.ScreenFeatures {
+  constructor(kwargs) {
+    //The set of screen feature layers.//
+    const feats = {}
+    let val
+    Object.keys(kwargs).forEach((name) => {
+      val = kwargs[name]
+      const { scale, type_, palette, clip } = val
+      feats[name] = new Feature({
+        index: this.constructor._fields.indexOf(name),
+        name,
+        layer_set: 'renders',
+        full_name: 'screen ' + name,
+        scale,
+        type: type_,
+        palette: typeof (palette) === 'function' ? palette(scale) : palette,
+        clip,
+      })
+    })
+    super(feats)
+  }
+}
+
+class MinimapFeatures extends all_collections_generated_classes.MinimapFeatures {
+  //The set of minimap feature layers.//
+  constructor(kwargs) {
+    const feats = {}
+    let val
+    Object.keys(kwargs).forEach((name) => {
+      val = kwargs[name]
+      const { scale, type_, palette } = val
+      feats[name] = new Feature({
+        index: this.constructor._fields.indexOf(name),
+        name,
+        layer_set: 'minimap_renders',
+        full_name: 'minimap ' + name,
+        scale,
+        type: type_,
+        palette: typeof (palette) === 'function' ? palette(scale) : palette,
+        clip: false,
+      })
+    })
+    super(feats)
+  }
+}
+
+const SCREEN_FEATURES = new ScreenFeatures({
+  height_map: [256, FeatureType.SCALAR, colors.height_map, false],
+  visibility_map: [4, FeatureType.CATEGORICAL, colors.VISIBILITY_PALETTE, false],
+  creep: [2, FeatureType.CATEGORICAL, colors.CREEP_PALETTE, false],
+  power: [2, FeatureType.CATEGORICAL, colors.POWER_PALETTE, false],
+  player_id: [17, FeatureType.CATEGORICAL,
+             colors.PLAYER_ABSOLUTE_PALETTE, false],
+  player_relative: [5, FeatureType.CATEGORICAL,
+                   colors.PLAYER_RELATIVE_PALETTE, false],
+  unit_type: [Math.max(static_data.UNIT_TYPES) + 1, FeatureType.CATEGORICAL,
+             colors.unit_type, false],
+  selected: [2, FeatureType.CATEGORICAL, colors.SELECTED_PALETTE, false],
+  unit_hit_points: [1600, FeatureType.SCALAR, colors.hot, true],
+  unit_hit_points_ratio: [256, FeatureType.SCALAR, colors.hot, false],
+  unit_energy: [1000, FeatureType.SCALAR, colors.hot, true],
+  unit_energy_ratio: [256, FeatureType.SCALAR, colors.hot, false],
+  unit_shields: [1000, FeatureType.SCALAR, colors.hot, true],
+  unit_shields_ratio: [256, FeatureType.SCALAR, colors.hot, false],
+  unit_density: [16, FeatureType.SCALAR, colors.hot, true],
+  unit_density_aa: [256, FeatureType.SCALAR, colors.hot, false],
+  effects: [16, FeatureType.CATEGORICAL, colors.effects, false],
+  hallucinations: [2, FeatureType.CATEGORICAL, colors.POWER_PALETTE, false],
+  cloaked: [2, FeatureType.CATEGORICAL, colors.POWER_PALETTE, false],
+  blip: [2, FeatureType.CATEGORICAL, colors.POWER_PALETTE, false],
+  buffs: [Math.max(static_data.BUFFS) + 1, FeatureType.CATEGORICAL,
+         colors.buffs, false],
+  buff_duration: [256, FeatureType.SCALAR, colors.hot, false],
+  active: [2, FeatureType.CATEGORICAL, colors.POWER_PALETTE, false],
+  build_progress: [256, FeatureType.SCALAR, colors.hot, false],
+  pathable: [2, FeatureType.CATEGORICAL, colors.winter, false],
+  buildable: [2, FeatureType.CATEGORICAL, colors.winter, false],
+  placeholder: [2, FeatureType.CATEGORICAL, colors.winter, false],
+})
+
+const MINIMAP_FEATURES = MinimapFeatures({
+  height_map: [256, FeatureType.SCALAR, colors.height_map],
+  visibility_map: [4, FeatureType.CATEGORICAL, colors.VISIBILITY_PALETTE],
+  creep: [2, FeatureType.CATEGORICAL, colors.CREEP_PALETTE],
+  camera: [2, FeatureType.CATEGORICAL, colors.CAMERA_PALETTE],
+  player_id: [17, FeatureType.CATEGORICAL, colors.PLAYER_ABSOLUTE_PALETTE],
+  player_relative: [5, FeatureType.CATEGORICAL,
+                   colors.PLAYER_RELATIVE_PALETTE],
+  selected: [2, FeatureType.CATEGORICAL, colors.winter],
+  unit_type: [Math.max(static_data.UNIT_TYPES) + 1, FeatureType.CATEGORICAL,
+             colors.unit_type],
+  alerts: [2, FeatureType.CATEGORICAL, colors.winter],
+  pathable: [2, FeatureType.CATEGORICAL, colors.winter],
+  buildable: [2, FeatureType.CATEGORICAL, colors.winter],
+})
+
+function _to_point(dims) {
+  //Convert (width, height) or size -> point.Point.//
+  if (!dims) {
+    throw new Error(`ValueError: ${dims}`)
+  }
+  if (isinstance(dims, [Array])) {
+    if (dims.length !== 2) {
+      throw new Error(`ValueError: A two element array is expected here, got ${dims}.`)
+    } else {
+      const width = int(dims[0])
+      const height = int(dims[1])
+      if (width <= 0 || height <= 0) {
+        throw new Error(`ValueError: Must specify +ve dims, got ${dims}`)
+      }
+      return new point.Point(width, height)
     }
   }
 }

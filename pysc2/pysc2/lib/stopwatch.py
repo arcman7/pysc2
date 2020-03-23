@@ -313,6 +313,7 @@ class StopWatch(object):
       out += "  ".join(
           val.rjust(width) for val, width in zip(row[1:], col_widths[1:]))
       out += "\n"
+
     return out
 
   def __str__(self):

@@ -83,11 +83,17 @@ class DefaultDict {
   constructor(DefaultInit) {
     return new Proxy({}, {
       //eslint-disable-next-line
-      get: (target, name) => name in target ?
-        target[name] :
-        (target[name] = typeof defaultInit === 'function' ?
-          new DefaultInit().valueOf() :
-          DefaultInit)
+      get: (target, name) => {
+        if (name in target) {
+          return target[name]
+        }
+        if (typeof DefaultInit === 'function') {
+          target[name] = new DefaultInit().valueOf()
+        } else {
+          target[name] = DefaultInit
+        }
+        return target[name]
+      },
     })
   }
 }
@@ -101,6 +107,20 @@ function withPython(withInterface, callback) {
   withInterface.__exit__()
 }
 
-export default {
-  DefaultDict, eq, iter, isinstance, isObject, len, withPython, zip, Array, String,
+function int(numOrStr) {
+  return Math.floor(numOrStr)
+}
+
+module.exports = {
+  DefaultDict,
+  eq,
+  len,
+  int,
+  iter,
+  isinstance,
+  isObject,
+  withPython,
+  zip,
+  Array,
+  String,
 }

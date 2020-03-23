@@ -1,26 +1,12 @@
 
-// Copyright 2017 Google Inc. All Rights Reserved.
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//      http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS-IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 /*A stopwatch to check how much time is used by bits of code.*/
 
-import os from 'os'
-// import Thread from 'threading-js' //'.../node_modules/threading-js/Thread.js'
-import { performance } from 'perf_hooks'
-import pythonUtils from './pythonUtils'
+const { performance } = require('perf_hooks')
+const pythonUtils = require('./pythonUtils.js')
 
 const { DefaultDict, withPython, zip } = pythonUtils
 String = pythonUtils.String //eslint-disable-line
+Array = pythonUtils.Array //eslint-disable-line
 
 class Stat {
   static get _fields() { return ["num", "min", "max", "sum", "sum_sq"] }
@@ -46,7 +32,7 @@ class Stat {
       this.max = val
     }
     this.sum += val
-    this.sum_eq += val ** 2
+    this.sum_sq += (val ** 2)
   }
 
   get avg() {
@@ -84,8 +70,7 @@ class Stat {
     return stat
   }
 
-  static parse() {
-    const s = this.toString()
+  static parse(s) {
     if (s === 'num=0') {
       return new this.prototype.constructor()
     } //eslint-disable-next-line
@@ -111,12 +96,13 @@ class StopWatchContext {
     this._sw = stopwatch
     this._sw.push(name)
   }
+
   // performance.now() => measured in milliseconds.
   __enter__() {
     this._start = performance.now() * 1000
   }
 
-  __exit() {
+  __exit__() {
     this._sw.add(this._sw.pop(), (performance.now() * 1000) - this._start)
   }
 }
@@ -131,12 +117,12 @@ class TracingStopWatchContext extends StopWatchContext {
 
   __exit__() {
     this._log(`<<< ${this._sw.cur_stack()} ${(performance.now() - this._start).toFixed(6)} secs`)
-    super.__exit()
+    super.__exit__()
   }
 
   //eslint-disable-next-line
   _log(s) {
-    process.stderr.write(s)
+    process.stderr.write(s + '\n')
   }
 }
 
@@ -149,7 +135,7 @@ class FakeStopWatchContext {
   __exit__() {} //eslint-disable-line
 }
 
-const fake_context = FakeStopWatchContext()
+const fake_context = new FakeStopWatchContext()
 
 let StopWatchRef
 
@@ -169,9 +155,11 @@ class StopWatch {
       print(sw)
   */
   static get _fields() { return ['_times', '_local', '_factory'] }
+
   static _make(kwargs) {
     return new this.prototype.constructor(kwargs);
   }
+
   constructor(enabled = true, trace = false) {
     this._times = new DefaultDict(Stat)
     // we dont need to declare anything as being local to the context
@@ -188,10 +176,11 @@ class StopWatch {
     function stopwatchProxy(name) {
       return self.__call__(name)
     }
-    ['disable', 'enable', 'trace', 'custom', 'decorate', 'push', 'pop', 'curr_stack', 'clear', 'add', 'merge', 'str', 'toString'].forEach((methodName) => {
+    ['disable', 'enable', 'trace', 'custom', 'decorate', 'push', 'pop', 'cur_stack', 'clear', 'add', 'merge', 'str', 'toString'].forEach((methodName) => {
       stopwatchProxy[methodName] = this[methodName].bind(this)
     })
     stopwatchProxy.times = this.times
+    stopwatchProxy._times = this._times
     stopwatchProxy.parse = this.constructor.parse
     stopwatchProxy.instanceRef = this
     return stopwatchProxy
@@ -254,6 +243,7 @@ class StopWatch {
     }
     return func => decorator(name_or_func, func)
   }
+
   push(name) {
     try {
       this._local.stack.push(name)
@@ -261,24 +251,30 @@ class StopWatch {
       this._local.stack = [name]
     }
   }
+
   pop() {
     const stack = this._local.stack
     const ret = stack.join('.')
     stack.pop()
     return ret
   }
-  curr_stack() {
+
+  cur_stack() {
     return this._local.stack.join('.')
   }
+
   clear() {
     this._times = new DefaultDict(Stat)// this._times.clear()
   }
+
   add(name, duration) {
     this._times[name].add(duration)
   }
+
   get times() {
     return this._times
   }
+
   merge(other) {
     let value
     Object.keys(other.times).forEach((key) => {
@@ -286,12 +282,13 @@ class StopWatch {
       this._times[key].merge(value)
     })
   }
+
   static parse(s) {
     //Parse the output below to create a new StopWatch.//
     const stopwatch = new StopWatchRef()
     s.splitlines().forEach((line) => {
       if (line.trim()) {
-        const parts = line.split('')
+        const parts = line.match(/\S+/g)
         const name = parts[0]
         if (name !== '%') { // ie not the header line
           const rest = parts.slice(2, parts.length).map(v => Number(v))
@@ -310,7 +307,7 @@ class StopWatch {
     let cur
     const total = Object.keys(this._times).reduce((acc, key) => {
       cur = this._times[key]
-      return !(key.includes('.')) ? cur.sum + acc : 0
+      return !(key.includes('.')) ? cur.sum + acc : acc
     }, 0)
     const table = [["", "% total", "sum", "avg", "dev", "min", "max", "num"]]
     let percent
@@ -331,14 +328,28 @@ class StopWatch {
         ])
       }
     })
-    const col_widths = table.map((row) => {//eslint-disable-line
-      return Math.max(...row.map((colStr => colStr.length)))
-    })
+    let col
+    const col_widths = []
+    const nCol = table[0].length
+    for (let colIndex = 0; colIndex < nCol; colIndex++) {
+      col = []
+      table.forEach((row) => {//eslint-disable-line
+        col.push(row[colIndex].length)
+      })
+      col_widths[colIndex] = Math.max(...col)
+    }
     let out = ''
-    table.forEach((row) => { //eslint-disable-next-line
+    let val
+    let width
+    table.forEach((row) => {
+      //eslint-disable-next-line
       out += ' ' + row[0].ljust(col_widths[0]) + ' '
       out += zip(row.slice(1, row.length), col_widths.slice(1, col_widths.length))
-        .join(' ')
+        .map((zipPair) => {
+          val = zipPair[0]
+          width = zipPair[1]
+          return val.rjust(width)
+        }).join(' ')
       out += '\n'
     })
     return out
@@ -352,9 +363,9 @@ StopWatchRef = StopWatch
 
 // Global stopwatch is disabled by default to not incur the performance hit if
 // it's not wanted.
-const sw = StopWatch(false)
+const sw = new StopWatch(false)
 
-export default {
+module.exports = {
   Stat,
   StopWatchContext,
   TracingStopWatchContext,

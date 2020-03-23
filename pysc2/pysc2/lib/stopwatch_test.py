@@ -81,7 +81,6 @@ class StopwatchTest(absltest.TestCase):
     foo()
 
     out = str(sw)
-
     # The names should be in sorted order.
     names = [l.split(None)[0] for l in out.splitlines()[1:]]
     self.assertEqual(names, ["five", "four", "one", "two", "two.three"])
