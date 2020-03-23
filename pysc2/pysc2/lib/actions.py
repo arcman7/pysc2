@@ -17,7 +17,6 @@ import numbers
 
 import enum as Enum
 import numpy
-# import numscrypt as numpy
 import point
 
 from s2clientprotocol import spatial_pb2 as sc_spatial
