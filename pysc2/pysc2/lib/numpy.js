@@ -37,7 +37,9 @@ var a = Object.keys(delays).map((key) => {
 */
 
 const tf = require('@tensorflow/tfjs')
-
-module.export = {
-	cumsum: tf.cumsum,
+require('@tensorflow/tfjs-node'); //eslint-disable-line
+module.exports = {
+  cumsum() {
+    return tf.cumsum(...arguments).dataSync() //eslint-disable-line
+  },
 }

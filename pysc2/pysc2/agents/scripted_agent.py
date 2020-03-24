@@ -19,7 +19,7 @@ from __future__ import print_function
 
 import numpy
 
-import base_agent
+from pysc2.lib import base_agent
 from pysc2.lib import actions
 from pysc2.lib import features
 

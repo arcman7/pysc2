@@ -20,8 +20,8 @@ from __future__ import print_function
 
 from absl.testing import absltest
 
-import mock_sc2_env
-import sc2_env
+from pysc2.env import mock_sc2_env
+from pysc2.env import sc2_env
 
 
 class TestCompareEnvironments(absltest.TestCase):

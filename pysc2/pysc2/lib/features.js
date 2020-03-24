@@ -560,7 +560,7 @@ class AgentInterfaceFormat {
     }
     if (action_space) {
       if (!isinstance(action_space, actions.ActionSpace)) {
-
+        
       }
     }
   }

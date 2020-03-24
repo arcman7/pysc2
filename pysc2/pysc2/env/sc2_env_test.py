@@ -21,7 +21,7 @@ from __future__ import print_function
 from absl.testing import absltest
 from absl.testing import parameterized
 
-import sc2_env
+from pysc2.env import sc2_env
 
 
 class TestNameCroppingAndDeduplication(parameterized.TestCase):

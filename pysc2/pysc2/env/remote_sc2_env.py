@@ -23,7 +23,7 @@ from absl import logging
 
 from pysc2 import maps
 from pysc2 import run_configs
-import sc2_env
+from pysc2.env import sc2_env
 from pysc2.lib import features
 from pysc2.lib import remote_controller
 from pysc2.lib import run_parallel

@@ -28,8 +28,7 @@ from absl import flags
 
 from pysc2.lib import sc_process
 
-# from pysc2.run_configs import lib
-import lib
+from pysc2.run_configs import lib
 
 # if not flags.sc2_version:
 flags.DEFINE_enum("sc2_version", None, sorted(lib.VERSIONS.keys()),

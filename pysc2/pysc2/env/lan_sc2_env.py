@@ -34,7 +34,7 @@ import threading
 import time
 
 from pysc2 import run_configs
-import sc2_env
+from pysc2.env import sc2_env
 from pysc2.lib import features
 from pysc2.lib import run_parallel
 import whichcraft
