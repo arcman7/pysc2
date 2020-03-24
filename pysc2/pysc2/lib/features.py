@@ -23,17 +23,17 @@ import random
 
 import enum as Enum
 import numpy as np
-import actions
-import colors
-import named_array
-import point
-import static_data
-import stopwatch
+from pysc2.lib import actions
+from pysc2.lib import colors
+from pysc2.lib import named_array
+from pysc2.lib import point
+from pysc2.lib import static_data
+from pysc2.lib import stopwatch
 sw = stopwatch.sw
 
-import transform
+from pysc2.lib import transform
 
-import all_collections_generated_classes_orig as all_collections_generated_classes
+from pysc2.lib import all_collections_generated_classes_orig as all_collections_generated_classes
 # import all_collections_generated_classes
 
 from s2clientprotocol import raw_pb2 as sc_raw
@@ -596,10 +596,10 @@ class AgentInterfaceFormat(object):
 
     if action_space:
       if not isinstance(action_space, actions.ActionSpace):
-        print(action_space == actions.ActionSpace.FEATURES)
-        print ('type action_space:')
-        print(type(action_space))
-        print('value : ', action_space)
+        # print(action_space == actions.ActionSpace.FEATURES)
+        # print ('type action_space:')
+        # print(type(action_space))
+        # print('value : ', action_space)
         raise ValueError("action_space must be of type ActionSpace.")
 
       if action_space == actions.ActionSpace.RAW:

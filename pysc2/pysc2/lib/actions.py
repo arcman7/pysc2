@@ -17,7 +17,7 @@ import numbers
 
 import enum as Enum
 import numpy
-import point
+from pysc2.lib import point
 
 from s2clientprotocol import spatial_pb2 as sc_spatial
 from s2clientprotocol import ui_pb2 as sc_ui
