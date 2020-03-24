@@ -22,7 +22,7 @@ import random
 
 import numpy
 
-import static_data
+from pysc2.lib import static_data
 
 import all_collections_generated_classes_orig as all_collections_generated_classes
 # import all_collections_generated_classes

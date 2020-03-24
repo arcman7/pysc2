@@ -20,8 +20,8 @@ from __future__ import print_function
 
 from absl.testing import absltest
 import numpy as np
-import image_differencer
-import proto_diff
+from pysc2.lib import image_differencer
+from pysc2.lib import proto_diff
 
 from s2clientprotocol import common_pb2
 from s2clientprotocol import sc2api_pb2 as sc_pb

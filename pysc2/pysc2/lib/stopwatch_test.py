@@ -23,7 +23,7 @@ import os
 from absl.testing import absltest
 
 import mock
-import stopwatch
+from pysc2.lib import stopwatch
 
 
 def ham_dist(str1, str2):

@@ -23,10 +23,9 @@ import pickle
 
 from absl.testing import absltest
 from absl.testing import parameterized
-import numpy
-import actions
-import features
-import point
+from pysc2.lib import actions
+from pysc2.lib import features
+from pysc2.lib import point
 
 from google.protobuf import text_format
 from s2clientprotocol import sc2api_pb2 as sc_pb

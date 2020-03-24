@@ -29,7 +29,7 @@ from __future__ import print_function
 
 import numbers
 
-import point
+from pysc2.lib import 
 
 
 class Transform(object):

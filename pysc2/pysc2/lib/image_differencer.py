@@ -18,9 +18,9 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import features
-import np_util
-import proto_diff
+from pysc2.lib import features
+from pysc2.lib import np_util
+from pysc2.lib import proto_diff
 
 from s2clientprotocol import common_pb2
 

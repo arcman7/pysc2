@@ -29,9 +29,10 @@ from pysc2.lib import named_array
 from pysc2.lib import point
 from pysc2.lib import static_data
 from pysc2.lib import stopwatch
+from pysc2.lib import transform
+
 sw = stopwatch.sw
 
-from pysc2.lib import transform
 
 from pysc2.lib import all_collections_generated_classes_orig as all_collections_generated_classes
 # import all_collections_generated_classes

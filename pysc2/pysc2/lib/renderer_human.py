@@ -33,16 +33,16 @@ import enum as Enum
 import numpy as np
 import pygame
 import queue
-import buffs
-import colors
-import features
-import memoize
-import point
-import remote_controller
-import stopwatch
-import transform
+from pysc2.lib import buffs
+from pysc2.lib import colors
+from pysc2.lib import features
+from pysc2.lib import memoize
+from pysc2.lib import point
+from pysc2.lib import remote_controller
+from pysc2.lib import stopwatch
+from pysc2.lib import transform
 
-import video_writer
+from pysc2.lib import video_writer
 from s2clientprotocol import error_pb2 as sc_err
 from s2clientprotocol import raw_pb2 as sc_raw
 from s2clientprotocol import sc2api_pb2 as sc_pb

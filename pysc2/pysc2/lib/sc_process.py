@@ -28,8 +28,8 @@ import time
 from absl import flags
 
 import portpicker
-import remote_controller
-import stopwatch
+from pysc2.lib import remote_controller
+from pysc2.lib import stopwatch
 
 flags.DEFINE_bool(
     "sc2_verbose", False, "Enable SC2 verbose logging.", allow_hide_cpp=True)

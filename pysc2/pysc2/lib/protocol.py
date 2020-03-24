@@ -27,7 +27,7 @@ import time
 
 from absl import flags
 import enum as Enum
-import stopwatch
+from pysc2.lib import stopwatch
 import websocket
 
 from s2clientprotocol import sc2api_pb2 as sc_pb
