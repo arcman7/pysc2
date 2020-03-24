@@ -822,6 +822,8 @@ def parse_agent_interface_format(
     else:
       total = sum(delays)
       cumulative_sum = np.cumsum([delay / total for delay in delays])
+      print('******************** cumulative_sum : ')
+      print(cumulative_sum)
       def fn():
         sample = random.uniform(0, 1) - EPSILON
         for i, cumulative in enumerate(cumulative_sum):

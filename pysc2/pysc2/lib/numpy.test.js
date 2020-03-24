@@ -21,7 +21,7 @@ np.cumsum(Object.keys(delays).map((key) => {
 }))
 
 
-**** Simplified ****
+ Simplified 
 
 Python:
 
@@ -36,8 +36,10 @@ var a = Object.keys(delays).map((key) => {
 
 */
 
-const tf = require('@tensorflow/tfjs')
+var np = require('./numpy.js')
 
-module.export = {
-	cumsum: tf.cumsum,
-}
+describe('numpy:', () => {
+	test('cumsum', () => {
+
+	})
+})

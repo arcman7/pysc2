@@ -1829,10 +1829,10 @@ class FunctionCall(all_collections_generated_classes.FunctionCall):
     """
     func = RAW_FUNCTIONS[function] if raw else FUNCTIONS[function]
     args = []
-    print('arguments: ', arguments)
-    print('func.args: ', func.args)
+    #print('arguments: ', arguments)
+    #print('func.args: ', func.args)
     for arg, arg_type in zip(arguments, func.args):
-      print('arg: ', arg, ' arg_type: ', arg_type)
+      #print('arg: ', arg, ' arg_type: ', arg_type)
       arg = numpy_to_python(arg)
       if arg_type.values:  # Allow enum values by name or int.
         if isinstance(arg, str):
