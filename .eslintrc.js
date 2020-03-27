@@ -6,6 +6,8 @@ module.exports = {
         "import"
     ],
     "rules": {
+        "import/no-dynamic-require": 0,
+        "no-prototype-builtins": 0,
         'object-curly-newline': 0,
         'prefer-template': 0,
         "no-param-reassign": 0,

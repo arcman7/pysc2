@@ -806,6 +806,7 @@ def parse_agent_interface_format(
   Raises:
     ValueError: If an invalid parameter is specified.
   """
+
   if feature_screen or feature_minimap:
     feature_dimensions = Dimensions(feature_screen, feature_minimap)
   else:

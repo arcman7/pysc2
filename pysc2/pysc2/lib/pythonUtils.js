@@ -51,7 +51,6 @@ String.prototype.rjust = function(length, char = ' ') {
   }
   return this + fill.join('');
 }
-
 function isinstance(a, compare) {
   const keys = Object.keys(compare);
   if (keys.length) {
@@ -67,7 +66,31 @@ function isinstance(a, compare) {
 function isObject(a) {
   return a === Object(a)
 }
-
+function map(func, collection) {
+  function clone(obj) {
+    if (obj === null || typeof obj !== 'object') {
+      return obj;
+    }
+    const copy = obj.constructor();
+    for (let attr in obj) {
+      if (obj.hasOwnProperty(attr)) {
+        copy[attr] = obj[attr];
+      }
+    }
+    return copy;
+  }
+  const copy = clone(collection)
+  Object.keys(copy).forEach((key) => {
+    collection[key] = func(collection[key])
+  })
+}
+function sum(collection) {
+  let total = 0
+  Object.keys(collection).forEach((key) => {
+    total += collection[key]
+  })
+  return total
+}
 function zip() {
   var args = [].slice.call(arguments); //eslint-disable-line
   var shortest = args.length === 0 ? [] : args.reduce(function(a, b) {
@@ -112,6 +135,7 @@ function int(numOrStr) {
 }
 
 module.exports = {
+  Array,
   DefaultDict,
   eq,
   len,
@@ -119,8 +143,9 @@ module.exports = {
   iter,
   isinstance,
   isObject,
+  map,
+  String,
+  sum,
   withPython,
   zip,
-  Array,
-  String,
 }

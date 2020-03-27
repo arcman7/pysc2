@@ -1,17 +1,14 @@
-import * as tf from '@tensorflow/tfjs-node'
-import s2clientprotocol from 's2clientprotocol'
-import Enum from 'enum'
-import all_collections_generated_classes from './all_collections_generated_classes'
-import point from './point'
-import pythonUtils from './pythonUtils'
+const path = require('path');
+const s2clientprotocol = require('s2clientprotocol')
+const Enum = require('enum')
+const point = require(path.resolve(__dirname, './point.js'))
+const pythonUtils = require(path.resolve(__dirname, './pythonUtils.js'))
+const all_collections_generated_classes = require(path.resolve(__dirname, './all_collections_generated_classes.js'))
+const numpy = require(path.resolve(__dirname, './numpy.js'))
 
 const { spatial_pb2, ui_pb2 } = s2clientprotocol
 const sc_spatial = spatial_pb2
 const sc_ui = ui_pb2
-const numpy = {
-  array: tf.tensor2d,
-}
-
 const { len, iter, isinstance, isObject } = pythonUtils
 
 const ActionSpace = Enum.IntEnum('ActionSpace', {
@@ -24,7 +21,8 @@ function spatial(action, action_space) {
   // Choose the action space for the action proto.//
   if (action_space === ActionSpace.FEATURES) {
     return action.action_feature_layer;
-  } else if (action_space === ActionSpace.RGB) {
+  }
+  if (action_space === ActionSpace.RGB) {
     return action.action_render;
   }
   throw new Error(`ValueError: Unexpected value for action_space: ${action_space}`);
@@ -166,7 +164,7 @@ function raw_cmd_pt(action, ability_id, queued, unit_tags, world) {
 }
 
 function raw_cmd_unit(action, ability_id, queued, unit_tags,
-                 target_unit_tag) {
+  target_unit_tag) {
   // Do a raw command to another unit towards a unit.//
   const action_cmd = action.action_raw.unit_command
   action_cmd.ability_id = ability_id
@@ -199,7 +197,7 @@ function numpy_to_python(val) {
   if (isinstance(val, numpy.number) || isinstance(val, numpy.ndarray) && !(val.shape)) { // numpy.array(1)
     return val.item()
   }
-  if (isinstance(val, [Array, , numpy.ndarray])) {
+  if (isinstance(val, [Array, numpy.ndarray])) {
     const result = [];
     Object.keys(val).forEach((key) => {
       result.push(numpy_to_python(val[key]))
@@ -222,12 +220,14 @@ class ArgumentType extends all_collections_generated_classes.ArgumentType {
         if this isn't an enum argument type.
     count: Number of valid values. Only useful for unit_tags.
   */
-  constructor(kwargs) {
-    super(kwargs);
-  }
+  // constructor(kwargs) {
+  //   super(kwargs);
+  // }
+
   toString() {
     return `${this.id} / ${this.name} ${JSON.stringify(this.sizes)}`
   }
+
   static enum(options, values) {
     // Create an ArgumentType where you choose one of a set of known values.//
     const real = []
@@ -239,7 +239,7 @@ class ArgumentType extends all_collections_generated_classes.ArgumentType {
       return new this.prototype.constructor({
         id: i,
         name,
-        sizes: [len(real), ],
+        sizes: [len(real)],
         fn: a => real[a[0]],
         values,
         count: null,
@@ -247,17 +247,19 @@ class ArgumentType extends all_collections_generated_classes.ArgumentType {
     }
     return factory
   }
+
   static scalar(value) {
     // Create an ArgumentType with a single scalar in range(value).//
     return (i, name) => this.prototype.constructor({
       id: i,
       name,
-      sizes: [value, ],
+      sizes: [value],
       fn: a => a[0],
       values: null,
       count: null,
     })
   }
+
   static point() {
     // Create an ArgumentType that is represented by a point.Point.//
     const self = this;
@@ -273,6 +275,7 @@ class ArgumentType extends all_collections_generated_classes.ArgumentType {
     }
     return factory
   }
+
   static spec(id_, name, sizes) {
     // Create an ArgumentType to be used in ValidActions.//
     return this.prototype.constructor({
@@ -284,6 +287,7 @@ class ArgumentType extends all_collections_generated_classes.ArgumentType {
       count: null,
     })
   }
+
   static unit_tags(count, size) {
     // Create an ArgumentType with a list of unbounded ints.//
     function clean(arg) {
@@ -293,10 +297,11 @@ class ArgumentType extends all_collections_generated_classes.ArgumentType {
       }
       return arg.slice(0, count)
     }
+
     return (i, name) => this.prototype.constructor({
       id: i,
       name,
-      sizes: [size, ],
+      sizes: [size],
       fn: clean,
       values: null,
       count,
@@ -333,6 +338,7 @@ class Arguments extends all_collections_generated_classes.Arguments {
     }
     super(kwargs)
   }
+
   static types(kwargs) {
     const named = {}
     Object.keys(kwargs).forEach((name) => {
@@ -361,6 +367,7 @@ class RawArguments extends all_collections_generated_classes.RawArguments {
     }
     super(kwargs)
   }
+
   static types(kwargs) {
     const named = {}
     Object.keys(kwargs).forEach((name) => {
@@ -438,10 +445,10 @@ const TYPES = Arguments.types({
   screen2: ArgumentType.point(),
   queued: ArgumentType.enum(QUEUED_OPTIONS, Queued),
   control_group_act: ArgumentType.enum(
-      CONTROL_GROUP_ACT_OPTIONS, ControlGroupAct),
+    CONTROL_GROUP_ACT_OPTIONS, ControlGroupAct),
   control_group_id: ArgumentType.scalar(10),
   select_point_act: ArgumentType.enum(
-      SELECT_POINT_ACT_OPTIONS, SelectPointAct),
+    SELECT_POINT_ACT_OPTIONS, SelectPointAct),
   select_add: ArgumentType.enum(SELECT_ADD_OPTIONS, SelectAdd),
   select_unit_act: ArgumentType.enum(SELECT_UNIT_ACT_OPTIONS, SelectUnitAct),
   select_unit_id: ArgumentType.scalar(500), // Depends on current selection.
@@ -479,7 +486,7 @@ const FUNCTION_TYPES = {
   raw_cmd: [RAW_TYPES.queued, RAW_TYPES.unit_tags],
   raw_cmd_pt: [RAW_TYPES.queued, RAW_TYPES.unit_tags, RAW_TYPES.world],
   raw_cmd_unit: [RAW_TYPES.queued, RAW_TYPES.unit_tags,
-                 RAW_TYPES.target_unit_tag],
+    RAW_TYPES.target_unit_tag],
   raw_move_camera: [RAW_TYPES.world],
   raw_autocast: [RAW_TYPES.unit_tags],
 }
@@ -511,9 +518,9 @@ class Function extends all_collections_generated_classes.Function {
         valid.
     raw: Whether the function is raw or not.
   */
-  constructor(kwargs) {
-    super(kwargs)
-  }
+  // constructor(kwargs) {
+  //   super(kwargs)
+  // }
 
   static ui_func(id_, name, function_type, avail_fn = always) {
     //Define a function representing a ui action.//
@@ -546,6 +553,7 @@ class Function extends all_collections_generated_classes.Function {
       raw: false,
     })
   }
+
   static raw_ability(id_, name, function_type, ability_id, general_id = 0,
                   avail_fn = always) {
     //Define a function represented as a game ability.//
@@ -563,6 +571,7 @@ class Function extends all_collections_generated_classes.Function {
       raw: true,
     })
   }
+
   static raw_ui_func(id_, name, function_type, avail_fn = always) {
     //Define a function representing a ui action.//
     return this.prototype.constructor({
@@ -576,6 +585,7 @@ class Function extends all_collections_generated_classes.Function {
       raw: true,
     })
   }
+
   static spec(id_, name, args) {
     //Create a Function to be used in ValidActions.//
     return this.prototype.constructor({
@@ -589,6 +599,7 @@ class Function extends all_collections_generated_classes.Function {
       raw: false,
     })
   }
+
   __hash__() { // So it can go in a set().
     return this.id
   }
@@ -622,6 +633,8 @@ class Functions {
   constructor(functions) {
     this.__init__(functions)
   }
+
+  /* @param functions Array */
   __init__(functions) {
     functions = functions.sort(f => f.id)
     this._func_list = functions
@@ -633,18 +646,23 @@ class Functions {
       throw new Error('ValueError: Function names must be unique')
     }
   }
+
   __getstate__() {
     return this._func_list
   }
+
   __setstate__(functions) {
     this.__init__(functions)
   }
+
   __iter__() {
     return this._func_list
   }
+
   __len__() {
     return len(this._func_list)
   }
+
   __eq__(other) {
     for (let i = 0; i < this._func_list.length; i++) {
       if (this._func_list[i] !== other._func_list[i]) {
@@ -664,19 +682,19 @@ let _FUNCTIONS = [
   Function.ui_func(3, "select_rect", select_rect),
   Function.ui_func(4, "select_control_group", control_group),
   Function.ui_func(5, "select_unit", select_unit,
-                   obs => obs.ui_data.HasField("multi")),
+    (obs) => obs.ui_data.HasField("multi")),
   Function.ui_func(6, "select_idle_worker", select_idle_worker,
-                   obs => obs.player_common.idle_worker_count > 0),
+    (obs) => obs.player_common.idle_worker_count > 0),
   Function.ui_func(7, "select_army", select_army,
-                   obs => obs.player_common.army_count > 0),
+    (obs) => obs.player_common.army_count > 0),
   Function.ui_func(8, "select_warp_gates", select_warp_gates,
-                   obs => obs.player_common.warp_gate_count > 0),
+    (obs) => obs.player_common.warp_gate_count > 0),
   Function.ui_func(9, "select_larva", select_larva,
-                   obs => obs.player_common.larva_count > 0),
+    (obs) => obs.player_common.larva_count > 0),
   Function.ui_func(10, "unload", unload,
-                   obs => obs.ui_data.HasField("cargo")),
+    (obs) => obs.ui_data.HasField("cargo")),
   Function.ui_func(11, "build_queue", build_queue,
-                   obs => obs.ui_data.HasField("production")),
+    (obs) => obs.ui_data.HasField("production")),
   // Everything below here is generated with gen_actions.py
   Function.ability(12, "Attack_screen", cmd_screen, 3674),
   Function.ability(13, "Attack_minimap", cmd_minimap, 3674),
@@ -1247,19 +1265,19 @@ let tempDict = {}
 _FUNCTIONS.forEach((f) => {
   tempDict[f.name] = f.id
 })
-let _Functions = Enum.IntEnum('_Functions', tempDict)
-_FUNCTIONS = _FUNCTIONS.map((f) => {
-  return f._replace({ id: _Functions(f.id) })
-})
+const _Functions = Enum.IntEnum('_Functions', tempDict)
+_FUNCTIONS = _FUNCTIONS.map((f) => f._replace({ id: _Functions(f.id) }))
 const FUNCTIONS = new Functions(_FUNCTIONS)
 
 // Some indexes to support features.py and action conversion.
-const ABILITY_IDS = {} //p_collections.defaultdict(set)  // {ability_id: {funcs}}
+const ABILITY_IDS = {}
+const ABILITY_IDS_seen = new Map()
 for (let i = 0; i < iter(FUNCTIONS).length; i++) {
   const _func = iter(FUNCTIONS)[i];
   ABILITY_IDS[_func.ability_id] = ABILITY_IDS[_func.ability_id] || []
-  if (_func.ability_id >= 0) {
+  if (_func.ability_id >= 0 && !ABILITY_IDS_seen.has(_func)) {
     ABILITY_IDS[_func.ability_id].push(_func)
+    ABILITY_IDS_seen.set(_func, true)
   }
 }
 
@@ -1286,8 +1304,8 @@ let _RAW_FUNCTIONS = [
   Function.raw_ability(540, "Attack_Battlecruiser_unit", raw_cmd_unit, 3771, 3674),
   Function.raw_ability(8, "Attack_Redirect_pt", raw_cmd_pt, 1682, 3674),
   Function.raw_ability(9, "Attack_Redirect_unit", raw_cmd_unit, 1682, 3674),
-  Function.raw_ability(88, "Behavior_BuildingAttackOff_quick", raw_cmd, 2082),  // wrong / baneling
-  Function.raw_ability(87, "Behavior_BuildingAttackOn_quick", raw_cmd, 2081),  // wrong / baneling
+  Function.raw_ability(88, "Behavior_BuildingAttackOff_quick", raw_cmd, 2082), // wrong / baneling
+  Function.raw_ability(87, "Behavior_BuildingAttackOn_quick", raw_cmd, 2081), // wrong / baneling
   Function.raw_ability(169, "Behavior_CloakOff_quick", raw_cmd, 3677),
   Function.raw_ability(170, "Behavior_CloakOff_Banshee_quick", raw_cmd, 393, 3677),
   Function.raw_ability(171, "Behavior_CloakOff_Ghost_quick", raw_cmd, 383, 3677),
@@ -1451,15 +1469,15 @@ let _RAW_FUNCTIONS = [
   Function.raw_ability(296, "Effect_BlindingCloud_pt", raw_cmd_pt, 2063),
   Function.raw_ability(111, "Effect_Blink_pt", raw_cmd_pt, 3687),
   Function.raw_ability(135, "Effect_Blink_Stalker_pt", raw_cmd_pt, 1442, 3687),
-  Function.raw_ability(112, "Effect_Blink_unit", raw_cmd_unit, 3687),  // wrong/unit
+  Function.raw_ability(112, "Effect_Blink_unit", raw_cmd_unit, 3687), // wrong/unit
   Function.raw_ability(297, "Effect_CalldownMULE_pt", raw_cmd_pt, 171),
   Function.raw_ability(298, "Effect_CalldownMULE_unit", raw_cmd_unit, 171),
   Function.raw_ability(299, "Effect_CausticSpray_unit", raw_cmd_unit, 2324),
   Function.raw_ability(302, "Effect_Charge_autocast", raw_autocast, 1819),
   Function.raw_ability(300, "Effect_Charge_pt", raw_cmd_pt, 1819),
   Function.raw_ability(301, "Effect_Charge_unit", raw_cmd_unit, 1819),
-  Function.raw_ability(122, "Effect_ChronoBoostEnergyCost_unit", raw_cmd_unit, 3755),  // new 4.0?
-  Function.raw_ability(33, "Effect_ChronoBoost_unit", raw_cmd_unit, 261),  // wrong / old?
+  Function.raw_ability(122, "Effect_ChronoBoostEnergyCost_unit", raw_cmd_unit, 3755), // new 4.0?
+  Function.raw_ability(33, "Effect_ChronoBoost_unit", raw_cmd_unit, 261), // wrong / old?
   Function.raw_ability(303, "Effect_Contaminate_unit", raw_cmd_unit, 1825),
   Function.raw_ability(304, "Effect_CorrosiveBile_pt", raw_cmd_pt, 2338),
   Function.raw_ability(305, "Effect_EMP_pt", raw_cmd_pt, 1628),
@@ -1847,22 +1865,24 @@ _RAW_FUNCTIONS.forEach((f) => {
   tempDict[f.name] = f.id
 })
 const _Raw_Functions = Enum.IntEnum("_Raw_Functions", tempDict)
-_RAW_FUNCTIONS = _RAW_FUNCTIONS.map((f) => {
-  return f._replace({ id: _Raw_Functions(f.id) })
-})
+_RAW_FUNCTIONS = _RAW_FUNCTIONS
+  .map((f) => f._replace({ id: _Raw_Functions(f.id) }))
+
 const RAW_FUNCTIONS = Functions(_RAW_FUNCTIONS)
 
 // Some indexes to support features.py and action conversion.
-const RAW_ABILITY_IDS = {} //p_collections.defaultdict(set)  // {ability_id: {funcs}}
+const RAW_ABILITY_IDS = {}
+const RAW_ABILITY_IDS_seen = new Map()
 for (let i = 0; i < iter(RAW_FUNCTIONS).length; i++) {
   const _func = iter(RAW_FUNCTIONS)[i];
   RAW_ABILITY_IDS[_func.ability_id] = RAW_ABILITY_IDS[_func.ability_id] || []
-  if (_func.ability_id >= 0) {
+  if (_func.ability_id >= 0 && !RAW_ABILITY_IDS_seen.has(_func)) {
     RAW_ABILITY_IDS[_func.ability_id].push(_func)
+    RAW_ABILITY_IDS_seen.set(_func, true)
   }
 }
 
-Object.keys(RAW_ABILITY_IDS).forEach((key, index) => {
+Object.keys(RAW_ABILITY_IDS).forEach((key) => {
   Object.freeze(RAW_ABILITY_IDS[key])
 })
 const RAW_FUNCTIONS_AVAILABLE = {}
@@ -1874,7 +1894,7 @@ iter(RAW_FUNCTIONS).forEach((f) => {
 const RAW_ABILITY_ID_TO_FUNC_ID = {}
 Object.keys(RAW_ABILITY_IDS).forEach((key) => {
   const set = RAW_ABILITY_IDS[key]
-  const minIndex = Math.min(...set.map(f => f.id))
+  const minIndex = Math.min(...(set.map((f) => f.id)))
   const minF = set[minIndex]
   RAW_ABILITY_ID_TO_FUNC_ID[key] = minF
 })
@@ -1887,9 +1907,9 @@ class FunctionCall extends all_collections_generated_classes.FunctionCall {
     arguments: The list of arguments for that function, each being a list of
         ints. For select_point this could be: [[0], [23, 38]].
   */
-  constructor(kwargs) {
-    super(kwargs)
-  }
+  // constructor(kwargs) {
+  //   super(kwargs)
+  // }
 
   static init_with_validation(_function, _arguments, raw = false) {
     /*Return a `FunctionCall` given some validation for the function and args.
@@ -1918,7 +1938,7 @@ class FunctionCall extends all_collections_generated_classes.FunctionCall {
           try {
             args.push([arg_type.values[arg]])
           } catch (err) {
-            throw new Error(`KeyError: Unknown argument value: ${arg}, valid values: ${JSON.stringify(arg_type.values.map(v => v.name))}`)
+            throw new Error(`KeyError: Unknown argument value: ${arg}, valid values: ${JSON.stringify(arg_type.values.map((v) => v.name))}`)
           }
         } else {
           if (isinstance(arg, Array)) {
@@ -1968,7 +1988,42 @@ class FunctionCall extends all_collections_generated_classes.FunctionCall {
 }
 
 class ValidActions extends all_collections_generated_classes.ValidActions {
-  constructor(kwargs) {
-    super(kwargs)
-  }
+  // constructor(kwargs) {
+  //   super(kwargs)
+  // }
+}
+
+module.exports = {
+  ActionSpace,
+  ABILITY_FUNCTIONS,
+  ABILITY_IDS,
+  always,
+  ArgumentType,
+  Arguments,
+  ControlGroupAct,
+  CONTROL_GROUP_ACT_OPTIONS,
+  Function,
+  FunctionCall,
+  Functions,
+  FUNCTIONS,
+  FUNCTIONS_AVAILABLE,
+  FUNCTION_TYPES,
+  Queued,
+  QUEUED_OPTIONS,
+  POINT_REQUIRED_FUNCS,
+  RawArguments,
+  RAW_ABILITY_FUNCTIONS,
+  RAW_ABILITY_IDS,
+  RAW_ABILITY_ID_TO_FUNC_ID,
+  RAW_FUNCTIONS,
+  RAW_FUNCTIONS_AVAILABLE,
+  RAW_TYPES,
+  SelectUnitAct,
+  SELECT_ADD_OPTIONS,
+  SELECT_POINT_ACT_OPTIONS,
+  SELECT_UNIT_ACT_OPTIONS,
+  SELECT_WORKER_OPTIONS,
+  SelectWorker,
+  TYPES,
+  ValidActions,
 }

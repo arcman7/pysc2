@@ -35,11 +35,20 @@ var a = Object.keys(delays).map((key) => {
 })
 
 */
-
+/*eslint-disable prefer-rest-params*/
 const tf = require('@tensorflow/tfjs')
 require('@tensorflow/tfjs-node'); //eslint-disable-line
 module.exports = {
   cumsum() {
     return tf.cumsum(...arguments).dataSync() //eslint-disable-line
   },
+  arange() {
+    if (arguments.length === 1) {
+      return tf.range(0, arguments[0])
+    }
+    return tf.range(...arguments)
+  },
+  zeros() {
+    return tf.zeros(...arguments)
+  }
 }

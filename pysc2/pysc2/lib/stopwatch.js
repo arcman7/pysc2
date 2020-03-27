@@ -1,8 +1,9 @@
+const path = require('path');
 
 /*A stopwatch to check how much time is used by bits of code.*/
 
 const { performance } = require('perf_hooks')
-const pythonUtils = require('./pythonUtils.js')
+const pythonUtils = require(path.resolve(__dirname, './pythonUtils.js'))
 
 const { DefaultDict, withPython, zip } = pythonUtils
 String = pythonUtils.String //eslint-disable-line

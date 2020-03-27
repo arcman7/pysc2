@@ -26,7 +26,6 @@ from pysc2.lib import static_data
 
 import all_collections_generated_classes_orig as all_collections_generated_classes
 # import all_collections_generated_classes
-
 # class Color(collections.namedtuple("Color", ["r", "g", "b"])):
 class Color(all_collections_generated_classes.Color):
   """A basic Color class."""
@@ -94,6 +93,17 @@ def smooth_hue_palette(scale):
   r = out[..., 0]
   g = out[..., 1]
   b = out[..., 2]
+  print('scale: ', scale)
+  print('h.shape: \n', h.shape)
+  print('h: \n', h)
+  print('out.shape: \n', out.shape)
+  print('out: \n', out)
+  print('r.shape: \n', r.shape)
+  print('r: \n', r)
+  print('b.shape: \n', b.shape)
+  print('b: \n', b)
+  print('g.shape: \n', g.shape)
+  print('g: \n', g)
 
   mask = (0 < h) & (h < 1)
   r[mask] = c

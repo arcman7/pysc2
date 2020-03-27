@@ -1,0 +1,20 @@
+absl-py>=0.1.0
+deepdiff
+enum34
+future
+mock
+mpyq
+numpy>=1.10
+portpicker>=1.2.0
+protobuf>=2.6
+pygame
+requests
+s2clientprotocol>=4.10.1.75800.0
+s2protocol
+six
+sk-video
+websocket-client
+whichcraft
+
+[:python_version == "2.7"]
+futures
