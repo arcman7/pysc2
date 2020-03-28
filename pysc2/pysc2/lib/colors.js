@@ -1,5 +1,5 @@
 const path = require('path');
-const numpy = require(path.resolve(__dirname, './numpy.js'))
+const np = require(path.resolve(__dirname, './np.js'))
 const all_collections_generated_classes = require(path.resolve(__dirname, './all_collections_generated_classes.js'))
 const pythonUtils = require(path.resolve(__dirname, './pythonUtils.js'))
 const { int } = pythonUtils
@@ -59,6 +59,14 @@ const cyan = new Color(0, 255, 255)
 const yellow = new Color(255, 255, 0)
 const purple = new Color(255, 0, 255)
 
+function getMask(s) {
+  const v = tf.range(0, s).mul()
+  const ones = tf.ones([s])
+  const zeros = tf.zeros([s])
+  v.print()
+  return v.greater(zeros).logicalAnd(v.less(ones))
+}
+
 function smooth_hue_palette(scale) {
   //Takes an array of ints and returns a corresponding colored rgb array.//
   // http://en.wikipedia.org/wiki/HSL_and_HSV//From_HSL
@@ -67,21 +75,31 @@ function smooth_hue_palette(scale) {
   // 0 stays black, everything else moves into a hue.
 
   // Some initial values and scaling. Check wikipedia for variable meanings.
-  const array = numpy.arange(scale)
-  const h = array * (6 / scale) // range of [0,6)
-  const x = 255 * (1 - numpy.absolute(numpy.mod(h, 2) - 1))
+  const array = np.arange(scale)
+  const hScale = 1 / scale
+  const sScale = hScale * 6 // 1 / 6
+
+  const h = array.mul(sScale) // range of [0,6)
+  //x = 255 * (1 - np.absolute(np.mod(h, 2) - 1))
+  const x = ((np.abs(np.mod(h, 2).add(-1))).add(-1)).mul(255)
   const c = 255
 
   // Initialize outputs to zero/black
-  let out = numpy.zeros(h.shape + [3], Number)
-  let r = []
-  let g = []
-  let b = []
+  // const out = np.zeros(h.shape.concat(3), 'float32')
+  // const r = np.getCol(out, 0)
+  // const g = np.getCol(out, 1)
+  // const b = np.getCol(out, 2)
   // let r = out[..., 0]
   // let g = out[..., 1]
   // let b = out[..., 2]
-
-  let mask = (0 < h) & (h < 1)
+  // let mask = (0 < h) & (h < 1)
+  let mask = np.ceil(h).add(-1)
+  mask = np.abs(mask)
+  mask = mask.mul(hScale)
+  mask = np.ceil(mask)
+  mask = mask.add(-1)
+  mask = np.abs(mask)
+  // return mask
   r[mask] = c
   g[mask] = x[mask]
 

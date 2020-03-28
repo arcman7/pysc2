@@ -20,7 +20,7 @@ from __future__ import print_function
 import math
 import random
 
-import numpy
+import np
 
 from pysc2.lib import static_data
 
@@ -83,27 +83,28 @@ def smooth_hue_palette(scale):
   # 0 stays black, everything else moves into a hue.
 
   # Some initial values and scaling. Check wikipedia for variable meanings.
-  array = numpy.arange(scale)
-  h = array * (6 / scale)  # range of [0,6)
-  x = 255 * (1 - numpy.absolute(numpy.mod(h, 2) - 1))
-  c = 255
+array = np.arange(scale)
+h = array * (6 / scale)  # range of [0,6)
+x = 255 * (1 - np.absolute(np.mod(h, 2) - 1))
+c = 255
 
   # Initialize outputs to zero/black
-  out = numpy.zeros(h.shape + (3,), float)
+  out = np.zeros(h.shape + (3,), float)
   r = out[..., 0]
   g = out[..., 1]
   b = out[..., 2]
-  print('scale: ', scale)
-  print('h.shape: \n', h.shape)
-  print('h: \n', h)
-  print('out.shape: \n', out.shape)
-  print('out: \n', out)
-  print('r.shape: \n', r.shape)
-  print('r: \n', r)
-  print('b.shape: \n', b.shape)
-  print('b: \n', b)
-  print('g.shape: \n', g.shape)
-  print('g: \n', g)
+  
+  # print('scale: ', scale)
+  # print('h.shape: \n', h.shape)
+  # print('h: \n', h)
+  # print('out.shape: \n', out.shape)
+  # print('out: \n', out)
+  # print('r.shape: \n', r.shape)
+  # print('r: \n', r)
+  # print('b.shape: \n', b.shape)
+  # print('b: \n', b)
+  # print('g.shape: \n', g.shape)
+  # print('g: \n', g)
 
   mask = (0 < h) & (h < 1)
   r[mask] = c
@@ -135,7 +136,7 @@ def smooth_hue_palette(scale):
 def shuffled_hue(scale):
   palette = list(smooth_hue_palette(scale))
   random.shuffle(palette, lambda: 0.5)  # Return a fixed shuffle
-  return numpy.array(palette)
+  return np.array(palette)
 
 
 def piece_wise_linear(scale, points):
@@ -144,7 +145,7 @@ def piece_wise_linear(scale, points):
   assert points[0][0] == 0
   assert points[-1][0] == 1
   assert all(i < j for i, j in zip(points[:-1], points[1:]))
-  out = numpy.zeros((scale, 3))
+  out = np.zeros((scale, 3))
   p1, c1 = points[0]
   p2, c2 = points[1]
   next_pt = 2
@@ -185,7 +186,7 @@ def height_map(scale):
   ])
 
 # Palette used to color player_relative features.
-PLAYER_RELATIVE_PALETTE = numpy.array([
+PLAYER_RELATIVE_PALETTE = np.array([
     black,                 # Background.
     Color(0, 142, 0),      # Self. (Green).
     yellow,                # Ally.
@@ -193,7 +194,7 @@ PLAYER_RELATIVE_PALETTE = numpy.array([
     Color(113, 25, 34),    # Enemy. (Red).
 ])
 
-PLAYER_ABSOLUTE_PALETTE = numpy.array([
+PLAYER_ABSOLUTE_PALETTE = np.array([
     black,                 # Background
     Color(0, 142, 0),      # 1: Green
     Color(113, 25, 34),    # 2: Red
@@ -213,16 +214,16 @@ PLAYER_ABSOLUTE_PALETTE = numpy.array([
     Color(129, 166, 196),  # 16 Neutral: Cyan
 ])
 
-VISIBILITY_PALETTE = numpy.array([
+VISIBILITY_PALETTE = np.array([
     black,         # Hidden
     white * 0.25,  # Fogged
     white * 0.6,   # Visible
 ])
 
-CAMERA_PALETTE = numpy.array([black, white * 0.6])
-CREEP_PALETTE = numpy.array([black, purple * 0.4])
-POWER_PALETTE = numpy.array([black, cyan * 0.7])
-SELECTED_PALETTE = numpy.array([black, green * 0.7])
+CAMERA_PALETTE = np.array([black, white * 0.6])
+CREEP_PALETTE = np.array([black, purple * 0.4])
+POWER_PALETTE = np.array([black, cyan * 0.7])
+SELECTED_PALETTE = np.array([black, green * 0.7])
 
 
 def unit_type(scale=None):
@@ -245,7 +246,7 @@ def categorical(options, scale=None):
   return palette
 
 
-effects = numpy.array([
+effects = np.array([
     [0, 0, 0],
     [72, 173, 207],
     [203, 76, 49],
@@ -267,7 +268,7 @@ effects = numpy.array([
 
 # Generated with http://tools.medialab.sciences-po.fr/iwanthue/
 # 280 colors: H: 0-360, C: 0-100, L: 35-100; then shuffled.
-distinct_colors = numpy.array([
+distinct_colors = np.array([
     [255, 165, 150],
     [255, 255, 138],
     [0, 82, 232],

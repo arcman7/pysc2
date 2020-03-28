@@ -236,10 +236,10 @@ def numpy_to_python(val):
     return val
   if isinstance(val, str):
     return val
-  if (isinstance(val, numpy.number) or
-      isinstance(val, numpy.ndarray) and not val.shape):  # numpy.array(1)
+  if (isinstance(val, np.number) or
+      isinstance(val, np.ndarray) and not val.shape):  # np.array(1)
     return val.item()
-  if isinstance(val, (list, tuple, numpy.ndarray)):
+  if isinstance(val, (list, tuple, np.ndarray)):
     return [numpy_to_python(v) for v in val]
   raise ValueError("Unknown value. Type: %s, repr: %s" % (type(val), repr(val)))
 

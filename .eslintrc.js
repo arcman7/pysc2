@@ -6,6 +6,7 @@ module.exports = {
         "import"
     ],
     "rules": {
+        "yoda": 0,
         "import/no-dynamic-require": 0,
         "no-prototype-builtins": 0,
         'object-curly-newline': 0,

@@ -47,4 +47,37 @@ describe('numpy:', () => {
     expect(a[0][1]).toBe(0)
     expect(a[1][1]).toBe(0)
   })
+  test('absolute (abs)', () => {
+    const a = np.tensor([-1, 0.5, -0.5, 1])
+    let b = np.abs(a)
+    expect(a.size).toBe(4)
+    expect(b.size).toBe(a.size)
+    b = b.arraySync()
+    expect(b[0]).toBe(1)
+    expect(b[1]).toBe(0.5)
+    expect(b[2]).toBe(0.5)
+    expect(b[3]).toBe(1)
+  })
+  test('getCol', () => {
+    const a = np.tensor([[1, 2, 3], [1, 2, 3], [1, 2, 3]])
+    let b = np.getCol(a, 0)
+    b = b.arraySync()[0]
+
+    expect(b.length).toBe(3)
+    expect(b[0]).toBe(1)
+    expect(b[1]).toBe(1)
+    expect(b[2]).toBe(1)
+
+    b = np.getCol(a, 1)
+    b = b.arraySync()[0]
+    expect(b[0]).toBe(2)
+    expect(b[1]).toBe(2)
+    expect(b[2]).toBe(2)
+
+    b = np.getCol(a, 2)
+    b = b.arraySync()[0]
+    expect(b[0]).toBe(3)
+    expect(b[1]).toBe(3)
+    expect(b[2]).toBe(3)
+  })
 })

@@ -48,7 +48,16 @@ module.exports = {
     }
     return tf.range(...arguments)
   },
-  zeros() {
-    return tf.zeros(...arguments)
-  }
+  ndarray: tf.tensor,
+  zeros: tf.zeros,
+  absolute: tf.abs,
+  abs: tf.abs,
+  tensor: tf.tensor,
+  mod: tf.mod,
+  getCol(tensor, col) {
+    const temp = tf.transpose(tensor)
+    return temp.slice(col, 1)
+  },
+  greater: tf.greater,
+  less: tf.less
 }
