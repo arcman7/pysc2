@@ -48,8 +48,10 @@ module.exports = {
     }
     return tf.range(...arguments)
   },
+  range: tf.range,
   ndarray: tf.tensor,
   zeros: tf.zeros,
+  ones: tf.ones,
   absolute: tf.abs,
   abs: tf.abs,
   tensor: tf.tensor,
@@ -59,5 +61,7 @@ module.exports = {
     return temp.slice(col, 1)
   },
   greater: tf.greater,
-  less: tf.less
+  greaterEqual: tf.greaterEqual,
+  less: tf.less,
+  stack: tf.stack,
 }

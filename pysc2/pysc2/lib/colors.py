@@ -89,10 +89,10 @@ x = 255 * (1 - np.absolute(np.mod(h, 2) - 1))
 c = 255
 
   # Initialize outputs to zero/black
-  out = np.zeros(h.shape + (3,), float)
-  r = out[..., 0]
-  g = out[..., 1]
-  b = out[..., 2]
+out = np.zeros(h.shape + (3,), float)
+r = out[..., 0]
+g = out[..., 1]
+b = out[..., 2]
   
   # print('scale: ', scale)
   # print('h.shape: \n', h.shape)
@@ -106,29 +106,29 @@ c = 255
   # print('g.shape: \n', g.shape)
   # print('g: \n', g)
 
-  mask = (0 < h) & (h < 1)
-  r[mask] = c
-  g[mask] = x[mask]
+mask = (0 < h) & (h < 1)
+r[mask] = c
+g[mask] = x[mask]
 
-  mask = (1 <= h) & (h < 2)
-  r[mask] = x[mask]
-  g[mask] = c
+mask = (1 <= h) & (h < 2)
+r[mask] = x[mask]
+g[mask] = c
 
-  mask = (2 <= h) & (h < 3)
-  g[mask] = c
-  b[mask] = x[mask]
+mask = (2 <= h) & (h < 3)
+g[mask] = c
+b[mask] = x[mask]
 
-  mask = (3 <= h) & (h < 4)
-  g[mask] = x[mask]
-  b[mask] = c
+mask = (3 <= h) & (h < 4)
+g[mask] = x[mask]
+b[mask] = c
 
-  mask = (4 <= h) & (h < 5)
-  r[mask] = x[mask]
-  b[mask] = c
+mask = (4 <= h) & (h < 5)
+r[mask] = x[mask]
+b[mask] = c
 
-  mask = 5 <= h
-  r[mask] = c
-  b[mask] = x[mask]
+mask = 5 <= h
+r[mask] = c
+b[mask] = x[mask]
 
   return out
 
