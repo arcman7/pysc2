@@ -207,33 +207,40 @@ class Rect extends all_collections_generated_classes.Rect {
     }
     if (len(arg) === 2) {
       const [p1, p2] = arg
-      if (!isinstance(p1, Point) || !(isinstance(p2, Point) {
-        raise TypeError("Rect expected Points")
+      if ((!isinstance(p1, Point) || !(isinstance(p2, Point)))) {
+        throw new Error(`TypeError: Rect expected Points`)
       }
-      return super().new(
-          cls,
-          min(p1.y, p2.y),
-          min(p1.x, p2.x),
-          max(p1.y, p2.y),
-          max(p1.x, p2.x))
+      super({
+        t: Math.min(p1.y, p2.y),
+        l: Math.min(p1.x, p2.x),
+        b: Math.max(p1.y, p2.y),
+        r: Math.max(p1.x, p2.x),
+      })
+
     }
-    if (len(arg) === 4):
-      if (arg[0] > arg[2] or arg[1] > arg[3]) {
+    if (len(arg) === 4) {
+      if (arg[0] > arg[2] || arg[1] > arg[3]) {
         throw new Error(`TypeError:"Rect requires: t <= b and l <= r`)
       }
       // TODO(b/117657518) { Remove the disable once the pytype bug is fixed.
       // return super(Rect, cls).new(cls, *args)  // pytype: disable=missing-parameter
-      return super().new(cls, *args)
+      return super({
+        t: arg[0],
+        l: arg[1],
+        b: arg[2],
+        r: arg[3],
+      })
     }
     throw new Error(`TypeError:
         "Unexpected arguments to Rect. Takes 1 or 2 Points, or 4 coords.`)
   }
+
   str() {
     return `${this.l},${this.r},${this.t},${this.b},`
   }
 
   get center() {
-    return Point(this.l + this.r, this.t + this.b) / 2
+    return this.constructor._make(this).mul(0.5)
   }
 
   get top() {
