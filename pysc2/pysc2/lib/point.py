@@ -40,12 +40,8 @@ class Point(all_collections_generated_classes.Point):
 
   def assign_to(self, obj):
     """Assign `x` and `y` to an object that has properties `x` and `y`."""
-    if isinstance(obj.x, int):
-      obj.x = int(round(self.x))
-      obj.y = int(round(self.y))
-    else:
-      obj.x = self.x
-      obj.y = self.y
+    obj.x = self.x
+    obj.y = self.y
 
   def dist(self, other):
     """Distance to some other point."""
@@ -130,8 +126,6 @@ class Point(all_collections_generated_classes.Point):
     return Point(-self.x, -self.y)
 
   def __add__(self, pt_or_val):
-    if isinstance(pt_or_val, int) and isinstance(self.x, float):
-      pt_or_val = float(pt_or_val)
     if isinstance(pt_or_val, Point):
       return Point(self.x + pt_or_val.x, self.y + pt_or_val.y)
     else:

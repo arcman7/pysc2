@@ -61,6 +61,9 @@ function isinstance(a, compare) {
     }
     return false
   }
+  if (compare === Number) {
+    return Number(a) === a
+  }
   return a instanceof compare;
 }
 function isObject(a) {
@@ -72,7 +75,7 @@ function map(func, collection) {
       return obj;
     }
     const copy = obj.constructor();
-    for (let attr in obj) {
+    for (let attr in obj) {//eslint-disable-line
       if (obj.hasOwnProperty(attr)) {
         copy[attr] = obj[attr];
       }
@@ -83,6 +86,9 @@ function map(func, collection) {
   Object.keys(copy).forEach((key) => {
     collection[key] = func(collection[key])
   })
+}
+function randomUniform(min, max) {
+  return Math.random() * (max - min) + min;
 }
 function sum(collection) {
   let total = 0
@@ -144,6 +150,7 @@ module.exports = {
   isinstance,
   isObject,
   map,
+  randomUniform,
   String,
   sum,
   withPython,
