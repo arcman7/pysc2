@@ -287,23 +287,23 @@ class Rect extends all_collections_generated_classes.Rect {
   }
   round() {
     return Rect(this.tl.round(), this.br.round())
-
+  }
   floor() {
     return Rect(this.tl.floor(), this.br.floor())
-
+  }
   ceil() {
     return Rect(this.tl.ceil(), this.br.ceil())
-
+  }
   contains_point(pt) {
     //Is the point inside this rect?//
     return (this.l < pt.x and this.r > pt.x and
             this.t < pt.y and this.b > pt.y)
-
+  }
   contains_circle(pt, radius) {
     //Is the circle completely inside this rect?//
     return (this.l < pt.x - radius and this.r > pt.x + radius and
             this.t < pt.y - radius and this.b > pt.y + radius)
-
+  }
   intersects_circle(pt, radius) {
     //Does the circle intersect with this rect?//
     // How this works: http://stackoverflow.com/a/402010
@@ -322,6 +322,7 @@ class Rect extends all_collections_generated_classes.Rect {
 
     // Does the circle contain the corner of the rect?
     return circle_center.dist_sq(rect_corner) <= radius**2
+  }
 }
 
 module.exports = {

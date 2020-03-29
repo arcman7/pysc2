@@ -586,11 +586,13 @@ const distinct_colors = np.tensor([
 ])
 
 module.exports = {
-  effects,
+  buffs,
+  categorical,
   Color,
   CAMERA_PALETTE,
   CREEP_PALETTE,
   distinct_colors,
+  effects,
   height_map,
   hot,
   piece_wise_linear,
@@ -600,6 +602,7 @@ module.exports = {
   SELECTED_PALETTE,
   VISIBILITY_PALETTE,
   winter,
+  unit_type,
   //colors
   black,
   white,
