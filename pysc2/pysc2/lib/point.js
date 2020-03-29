@@ -1,7 +1,7 @@
 const path = require('path');
 const all_collections_generated_classes = require(path.resolve(__dirname, './all_collections_generated_classes.js'))
 const pythonUtils = require(path.resolve(__dirname, './pythonUtils.js'))
-const { isinstance, randomUniform } = pythonUtils
+const { isinstance, len, randomUniform } = pythonUtils
 
 Math.radians = function(degrees) {
   return degrees * Math.PI / 180;
@@ -13,18 +13,19 @@ Math.degrees = function(radians) {
 class Point extends all_collections_generated_classes.Point {
   //A basic Point class.//
   constructor(x, y) {
+    super({})
     if (x && x.x && x.y) {
       this.x = x.x //x is an object { x, y }
       this.y = x.y
-    } {
+    } else {
       this.x = x
-
       this.y = y
     }
   }
+
   static build(x, y) {
     //Build a Point from an object that has properties `x` and `y`.//
-    return this._make({ x, y})
+    return this._make({ x, y })
   }
 
   static unit_rand() {
@@ -69,7 +70,7 @@ class Point extends all_collections_generated_classes.Point {
 
   abs() {
     //Take the absolute value of `x` and `y`.//
-    return Point(abs(this.x), abs(this.y))
+    return Point(Math.abs(this.x), Math.abs(this.y))
   }
 
   len() {
@@ -195,11 +196,7 @@ const origin = new Point(0.0, 0.0)
 
 class Rect extends all_collections_generated_classes.Rect {
   //A basic Rect class. Assumes tl <= br.//
-    // if (arguments[0] instanceof Point) {
-    //   const p1 = arguments[0]
-    //   const p2 = arguments[1]
-    //   this.t = p1.
-    // }
+
   constructor() {
     let arg = arguments
     if (len(arg) === 1 || (len(arg) === 2 && arg[1] === null)) {
@@ -224,7 +221,7 @@ class Rect extends all_collections_generated_classes.Rect {
       }
       // TODO(b/117657518) { Remove the disable once the pytype bug is fixed.
       // return super(Rect, cls).new(cls, *args)  // pytype: disable=missing-parameter
-      return super({
+      super({
         t: arg[0],
         l: arg[1],
         b: arg[2],
@@ -254,56 +251,72 @@ class Rect extends all_collections_generated_classes.Rect {
   get bottom() {
     return this.b
   }
+
   get right() {
     return this.r
   }
+
   get width() {
     return this.r - this.l
   }
+
   get height() {
     return this.b - this.t
   }
+
   get tl() {
-    return Point(this.l, this.t)
+    return this.constructor.build(this.l, this.t)
   }
+
   get br() {
-    return Point(this.r, this.b)
+    return this.constructor.build(this.r, this.b)
   }
+
   get tr() {
-    return Point(this.r, this.t)
+    return this.constructor.build(this.r, this.t)
   }
+
   get bl() {
-    return Point(this.l, this.b)
+    return this.constructor.build(this.l, this.b)
   }
+
   get diagonal() {
-    return Point(this.width, this.height)
+    return this.constructor.build(this.width, this.height)
   }
+
   get size() {
     return this.br - this.tl
   }
+
   get area() {
     size = this.size
     return size.x * size.y
   }
+
   round() {
     return Rect(this.tl.round(), this.br.round())
   }
+
   floor() {
     return Rect(this.tl.floor(), this.br.floor())
   }
+
   ceil() {
     return Rect(this.tl.ceil(), this.br.ceil())
   }
+
   contains_point(pt) {
     //Is the point inside this rect?//
-    return (this.l < pt.x and this.r > pt.x and
-            this.t < pt.y and this.b > pt.y)
+    return (this.l < pt.x && this.r > pt.x &&
+            this.t < pt.y && this.b > pt.y)
   }
+
   contains_circle(pt, radius) {
     //Is the circle completely inside this rect?//
-    return (this.l < pt.x - radius and this.r > pt.x + radius and
-            this.t < pt.y - radius and this.b > pt.y + radius)
+    return (this.l < pt.x - radius && this.r > pt.x + radius &&
+            this.t < pt.y - radius && this.b > pt.y + radius)
   }
+
   intersects_circle(pt, radius) {
     //Does the circle intersect with this rect?//
     // How this works: http://stackoverflow.com/a/402010
@@ -311,17 +324,17 @@ class Rect extends all_collections_generated_classes.Rect {
     circle_center = (pt - this.center).abs()  // relative to the rect center
 
     // Is the circle far from the rect?
-    if (circle_center.x > rect_corner.x + radius or
-        circle_center.y > rect_corner.y + radius) {
-      return False
-
+    if (circle_center.x > rect_corner.x + radius ||
+        circle_center.y > rect_c||ner.y + radius) {
+      return false
+    }
     // Is the circle center inside the rect or near one of the edges?
-    if (circle_center.x <= rect_corner.x or
+    if (circle_center.x <= rect_corner.x ||
         circle_center.y <= rect_corner.y) {
-      return True
-
+      return true
+    }
     // Does the circle contain the corner of the rect?
-    return circle_center.dist_sq(rect_corner) <= radius**2
+    return circle_center.dist_sq(rect_corner) <= (radius ** 2)
   }
 }
 
