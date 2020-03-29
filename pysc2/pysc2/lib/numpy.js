@@ -64,4 +64,9 @@ module.exports = {
   greaterEqual: tf.greaterEqual,
   less: tf.less,
   stack: tf.stack,
+  transpose: tf.transpose,
+  util: tf.util,
+  zip(tensorA, tensorB) {
+    return tf.transpose(tf.stack([tensorA, tensorB]))
+  }
 }
