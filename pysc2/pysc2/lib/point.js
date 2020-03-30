@@ -289,7 +289,7 @@ class Rect extends all_collections_generated_classes.Rect {
   }
 
   get area() {
-    size = this.size
+    const size = this.size
     return size.x * size.y
   }
 
@@ -320,8 +320,8 @@ class Rect extends all_collections_generated_classes.Rect {
   intersects_circle(pt, radius) {
     //Does the circle intersect with this rect?//
     // How this works: http://stackoverflow.com/a/402010
-    rect_corner = this.size / 2  // relative to the rect center
-    circle_center = (pt - this.center).abs()  // relative to the rect center
+    const rect_corner = this.size / 2  // relative to the rect center
+    const circle_center = (pt - this.center).abs()  // relative to the rect center
 
     // Is the circle far from the rect?
     if (circle_center.x > rect_corner.x + radius ||
