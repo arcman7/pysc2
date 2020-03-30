@@ -56,6 +56,8 @@ module.exports = {
   abs: tf.abs,
   tensor: tf.tensor,
   mod: tf.mod,
+  where: tf.where,
+  
   getCol(tensor, col) {
     const temp = tf.transpose(tensor)
     return temp.slice(col, 1)
