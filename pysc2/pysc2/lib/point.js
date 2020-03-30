@@ -320,12 +320,12 @@ class Rect extends all_collections_generated_classes.Rect {
   intersects_circle(pt, radius) {
     //Does the circle intersect with this rect?//
     // How this works: http://stackoverflow.com/a/402010
-    const rect_corner = this.size / 2  // relative to the rect center
-    const circle_center = (pt - this.center).abs()  // relative to the rect center
+    const rect_corner = this.size / 2 // relative to the rect center
+    const circle_center = (pt - this.center).abs() // relative to the rect center
 
     // Is the circle far from the rect?
     if (circle_center.x > rect_corner.x + radius ||
-        circle_center.y > rect_c||ner.y + radius) {
+        circle_center.y > rect_c || rect_corner.y + radius) {
       return false
     }
     // Is the circle center inside the rect or near one of the edges?
