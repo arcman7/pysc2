@@ -28,23 +28,23 @@ class Color extends all_collections_generated_classes.Color {
   }
 
   add(o) {
-    return Color(this.r + o.r, this.g + o.g, this.b + o.b)
+    return this.set(this.r + o.r, this.g + o.g, this.b + o.b)
   }
 
   sub(o) {
-    return Color(this.r - o.r, this.g - o.g, this.b - o.b)
+    return this.set(this.r - o.r, this.g - o.g, this.b - o.b)
   }
 
   mul(val) {
-    return Color(this.r * val, this.g * val, this.b * val)
+    return this.set(this.r * val, this.g * val, this.b * val)
   }
 
   __truediv__(val) {
-    return Color(this.r / val, this.g / val, this.b / val)
+    return this.set(this.r / val, this.g / val, this.b / val)
   }
 
   floordiv(val) {
-    return Color(Math.floor(this.r / val), Math.floor(this.g / val), Math.floor(this.b / val))
+    return this.set(Math.floor(this.r / val), Math.floor(this.g / val), Math.floor(this.b / val))
   }
 
   div(val) {
@@ -91,7 +91,7 @@ function smooth_hue_palette(scale) {
   // optimizations. Assumes S=1, L=0.5, meaning C=1 and m=0.
   // 0 stays black, everything else moves into a hue.
   // Some initial values and scaling. Check wikipedia for variable meanings.
-  const h = np.range(0, scale).mul(1 / scale)
+  const h = np.range(0, scale).mul(6 / scale)
   //x = 255 * (1 - np.absolute(np.mod(h, 2) - 1))
   const x = ((np.abs(np.mod(h, 2).add(-1))).add(-1)).mul(255)
   // Initialize outputs to zero/black
