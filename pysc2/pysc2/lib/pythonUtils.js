@@ -20,7 +20,7 @@ function iter(container) {
     return container.__iter__()
   }
   if (len(container)) {
-    return Object.keys(container).map(key => container[key])
+    return Object.keys(container).map((key) => container[key])
   }
   throw new Error('ValueError: Cannont iterate over non-iterable')
 }

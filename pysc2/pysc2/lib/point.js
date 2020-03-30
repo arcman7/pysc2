@@ -198,7 +198,7 @@ class Rect extends all_collections_generated_classes.Rect {
   //A basic Rect class. Assumes tl <= br.//
 
   constructor() {
-    let arg = arguments
+    let arg = arguments //eslint-disable-line
     if (len(arg) === 1 || (len(arg) === 2 && arg[1] === null)) {
       arg = [origin, arg[0]]
     }
@@ -213,7 +213,7 @@ class Rect extends all_collections_generated_classes.Rect {
         b: Math.max(p1.y, p2.y),
         r: Math.max(p1.x, p2.x),
       })
-
+      return
     }
     if (len(arg) === 4) {
       if (arg[0] > arg[2] || arg[1] > arg[3]) {

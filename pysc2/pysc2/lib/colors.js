@@ -1,9 +1,10 @@
-const path = require('path');
+const path = require('path')
 const np = require(path.resolve(__dirname, './numpy.js'))
 const static_data = require(path.resolve(__dirname, './static_data.js'))
 const all_collections_generated_classes = require(path.resolve(__dirname, './all_collections_generated_classes.js'))
 const pythonUtils = require(path.resolve(__dirname, './pythonUtils.js'))
 const { len, int, zip } = pythonUtils
+
 
 class Color extends all_collections_generated_classes.Color {
   set(r = this.r, g = this.g, b = this.b) {
