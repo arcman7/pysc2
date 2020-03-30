@@ -44,7 +44,7 @@ class NamedNumpyArray {// extends np.ndarray:
   Details of how to subclass an ndarray are at:
   https://docs.scipy.org/doc/numpy-1.13.0/user/basics.subclassing.html
   */
-  __new__(cls, values, names, args, kwargs) {
+  __new__(values, names, args, kwargs) {
     obj = np.array(values, args, kwargs)
 
     if len(obj.shape) == 0:  // pylint: disable=g-explicit-length-test
