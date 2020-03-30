@@ -20,7 +20,7 @@ from __future__ import print_function
 import math
 import random
 
-import np
+import numpy as np
 
 from pysc2.lib import static_data
 
