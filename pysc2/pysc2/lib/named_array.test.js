@@ -31,10 +31,8 @@ describe('named_array:', () => {
   })
   const TestNamedTuple = { a: undefined, b: undefined, c: undefined, _fields: ['a', 'b', 'c'] }
   const BadNamedTuple = { a: undefined, b: undefined, _fields: ['a', 'b'] }
-  
+
 })
-
-
 
 
 
