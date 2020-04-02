@@ -41,7 +41,7 @@ class Linear extends Transform {
 	}
 
 	fwd_pt(pt){
-		return pt * this.scale + this.offset
+		return this.scale.mul(pt).add(offset)
 	}
 
 	back_dist(dist){
@@ -49,8 +49,9 @@ class Linear extends Transform {
 	}
 
 	back_pt(pt){
-		return (pt - this.offset) / this.scale
+		return pt.neg(this.offset).div(this.scale)
 	}
+
 	toString() {
     	return `Linear(scale = ${this.scale}, offset = ${this.offset})`
   	}
@@ -61,34 +62,43 @@ class Chain extends Transform {
 
 	constructor(){
 		this.transforms = arguments
+
 	}
 
 	fwd_dist(dist){
-		for (const transform in transforms) {
+		Object.keys(transforms).forEach((key) => {
+			const transform = transforms[key]
 			dist = transform.fwd_dist(dist)
-		} 
+		})
 		return dist
 	}
+
 	fwd_pt(pt){
-		for (const trnsform in transforms) {
+		Object.keys(transforms).forEach((key) => {
+			const transform = transforms[key]
 			pt = transform.fwd_pt(pt)
-		}
+		})
+		return pt
 	}
 
 	back_dist(dist){
-		for (const transform in transforms) {
+		Object.keys(transforms).forEach((key) => {
+			const transform = transforms[key]
 			dist = transform.back_dist(dist)
-		}
+		})
+		return dist
 	}
 
 	back_pt(pt){
-		for (const transform in transforms) {
+		Object.keys(transforms).forEach((key) => {
+			const transform = transforms[key]
 			pt = transform.back_pt(pt)
-		}
+		})
+		return pt
 	}
 
 	toString(){
-		return `Chain(${this.transforms,})`
+		return `Chain(${this.transforms})`
 	}
 }
 
@@ -98,13 +108,13 @@ class PixelToCoord extends Transform {
 		return dist
 	}
 	fwd_pt(pt){
-		return Math.floor(pt)
+		return pt.floor
 	}
 	back_dist(dist){
 		return dist
 	}
 	back_pit(pt){
-		return Math.floor(pt) + 0.5
+		return pt.floor.add(0.5)
 	}
 	toString(){
 		return 'PixelToCoord()'

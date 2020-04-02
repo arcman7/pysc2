@@ -140,23 +140,6 @@ function int(numOrStr) {
   return Math.floor(numOrStr)
 }
 
-module.exports = {
-  Array,
-  DefaultDict,
-  eq,
-  len,
-  int,
-  iter,
-  isinstance,
-  isObject,
-  map,
-  randomUniform,
-  String,
-  sum,
-  withPython,
-  zip,
-}
-
 /**
  * @summary A error thrown when a method is defined but not implemented (yet).
  * @param {any} message An additional message for the error.
@@ -183,3 +166,22 @@ function NotImplementedError(message) {
 
     this.message = str;
 }
+
+module.exports = {
+  Array,
+  DefaultDict,
+  eq,
+  len,
+  int,
+  iter,
+  isinstance,
+  isObject,
+  map,
+  NotImplementedError,
+  randomUniform,
+  String,
+  sum,
+  withPython,
+  zip,
+}
+
