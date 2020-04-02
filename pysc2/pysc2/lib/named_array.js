@@ -38,10 +38,10 @@ class NamedNumpyArray {// extends np.ndarray:
   second level of list can be skipped.
 
   Example usage:
-    a = named_array.NamedNumpyArray([1, 3, 6], ["a", "b", "c"])
-    a.a, a[1], a["c"] => 1, 3, 6
-    b = named_array.NamedNumpyArray([[1, 3], [6, 8]], [["a", "b"], None])
-    b.a, b[1], b["a", 1] => [1, 3], [6, 8], 3
+    bar = named_array.NamedNumpyArray([1, 3, 6], ["a", "b", "c"])
+    bar.a, bar[1], bar["c"] => 1, 3, 6
+    foo = named_array.NamedNumpyArray([[1, 3], [6, 8]], [["a", "b"], None])
+    foo.a, foo[1], foo["a", 1] => [1, 3], [6, 8], 3
     c = named_array.NamedNumpyArray([[1, 3], [6, 8]], [None, ["a", "b"]])
     c[0].a, b[1, 0], b[1, "b"] => 1, 6, 8
   Look at the tests for more examples including using enums and named tuples.
