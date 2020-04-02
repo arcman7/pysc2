@@ -49,7 +49,7 @@ class Linear extends Transform {
 	}
 
 	back_pt(pt){
-		return pt.neg(this.offset).div(this.scale)
+		return pt.sub(this.offset).div(this.scale)
 	}
 
 	toString() {
