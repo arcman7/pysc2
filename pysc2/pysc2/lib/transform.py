@@ -47,7 +47,6 @@ class Transform(object):
   def back_pt(self, pt):
     raise NotImplementedError()
 
-
 class Linear(Transform):
   """A linear transform with a scale and offset."""
 

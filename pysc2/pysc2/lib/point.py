@@ -132,32 +132,24 @@ class Point(all_collections_generated_classes.Point):
       return Point(self.x + pt_or_val, self.y + pt_or_val)
 
   def __sub__(self, pt_or_val):
-    if isinstance(pt_or_val, int) and isinstance(self.x, float):
-      pt_or_val = float(pt_or_val)
     if isinstance(pt_or_val, Point):
       return Point(float(self.x) - float(pt_or_val.x), float(self.y) - float(pt_or_val.y))
     else:
       return Point(float(self.x)- pt_or_val, float(self.y) - pt_or_val)
 
   def __mul__(self, pt_or_val):
-    if isinstance(pt_or_val, int) and isinstance(self.x, float):
-      pt_or_val = float(pt_or_val)
     if isinstance(pt_or_val, Point):
       return Point(self.x * pt_or_val.x, self.y * pt_or_val.y)
     else:
       return Point(self.x * pt_or_val, self.y * pt_or_val)
 
   def __truediv__(self, pt_or_val):
-    if isinstance(pt_or_val, int) and isinstance(self.x, float):
-      pt_or_val = float(pt_or_val)
     if isinstance(pt_or_val, Point):
       return Point(self.x / pt_or_val.x, self.y / pt_or_val.y)
     else:
       return Point(self.x / pt_or_val, self.y / pt_or_val)
 
   def __floordiv__(self, pt_or_val):
-    if isinstance(pt_or_val, int) and isinstance(self.x, float):
-      pt_or_val = float(pt_or_val)
     if isinstance(pt_or_val, Point):
       return Point(int(self.x // pt_or_val.x), int(self.y // pt_or_val.y))
     else:
