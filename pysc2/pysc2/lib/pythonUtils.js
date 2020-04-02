@@ -1,10 +1,14 @@
+function assert(cond, errMsg) {
+  if (cond === false) {
+    throw new Error(errMsg)
+  }
+}
 function len(container) {
   if (container.__len__) {
     return container.__len__()
   }
   return Object.keys(container).length;
 }
-
 function eq(a, b) {
   if (a.__eq__) {
     return a.__eq__(b)
@@ -14,7 +18,6 @@ function eq(a, b) {
   }
   return a === b
 }
-
 function iter(container) {
   if (container.__iter__) {
     return container.__iter__()
@@ -24,7 +27,6 @@ function iter(container) {
   }
   throw new Error('ValueError: Cannont iterate over non-iterable')
 }
-
 //eslint-disable-next-line
 Array.prototype.extend = function(array) {
   for (let i = 0; i < array.length; i++) {
@@ -53,16 +55,22 @@ String.prototype.rjust = function(length, char = ' ') {
 }
 function isinstance(a, compare) {
   const keys = Object.keys(compare);
-  if (keys.length) {
+  if (Array.isArray(compare) && keys.length) {
     for (let i = 0; i < keys.length; i++) {
-      if (a instanceof compare[keys[i]]) {
-        return true;
+      if (isinstance(a, compare[keys[i]])) {
+        return true
       }
     }
     return false
   }
   if (compare === Number) {
     return Number(a) === a
+  }
+  if (compare === Boolean) {
+    return Boolean(a) === a
+  }
+  if (compare === String) {
+    return String(a) === a
   }
   return a instanceof compare;
 }
@@ -141,33 +149,37 @@ function int(numOrStr) {
 }
 
 /**
+ From:
+ https://gist.github.com/tregusti/0b37804798a7634bc49c#gistcomment-2193237
+
  * @summary A error thrown when a method is defined but not implemented (yet).
  * @param {any} message An additional message for the error.
  */
 function NotImplementedError(message) {
-    ///<summary>The error thrown when the given function isn't implemented.</summary>
-    const sender = (new Error)
-        .stack
-        .split('\n')[2]
-        .replace(' at ','')
-        ;
+  ///<summary>The error thrown when the given function isn't implemented.</summary>
+  const sender = (new Error) //eslint-disable-line
+    .stack
+    .split('\n')[2]
+    .replace(' at ', '');
 
-    this.message = `The method ${sender} isn't implemented.`;
+  this.message = `The method ${sender} isn't implemented.`;
 
-    // Append the message if given.
-    if (message)
-        this.message += ` Message: "${message}".`;
+  // Append the message if given.
+  if (message) {
+    this.message += ` Message: "${message}".`;
+  }
 
-    let str = this.message;
+  let str = this.message;
 
-    while (str.indexOf('  ') > -1) {
-        str = str.replace('  ', ' ');
-    }
+  while (str.indexOf('  ') > -1) {
+    str = str.replace('  ', ' ');
+  }
 
-    this.message = str;
+  this.message = str;
 }
 
 module.exports = {
+  assert,
   Array,
   DefaultDict,
   eq,
@@ -184,4 +196,3 @@ module.exports = {
   withPython,
   zip,
 }
-
