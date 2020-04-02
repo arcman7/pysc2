@@ -33,7 +33,7 @@ class Linear extends Transform {
       this.scale = scale
     }
     assert(this.scale.x !== 0 && this.scale.y !== 0)
-    this.offset = offset || point.Point(0, 0)
+    this.offset = offset || new point.Point(0, 0)
   }
 
   fwd_dist(dist) {
