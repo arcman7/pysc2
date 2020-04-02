@@ -5,20 +5,25 @@ https://docs.scipy.org/doc/numpy/user/basics.rec.html are not enough since they
 actually change the type and don't interoperate well with tensorflow.
 */
 
-
-
 // import re
-const path = require('path');
-const Enum = require('enum')
+const path = require('path')
+const Enum = require('python-enum')
 const np = require(path.resolve(__dirname, './numpy.js'))
+const pythonUtils = require(path.resolve(__dirname, './pythonUtils.js'))
 
-
-
+const { isinstance } = pythonUtils
 class NamedDict {
   //A dict where you can use `d["element"]` or `d.element`.//
-
+  constructor(kwargs) {
+    if (!kwargs) {
+      return
+    }
+    Object.keys(kwargs).forEach((key) => {
+      this[key] = kwargs[key]
+    })
+  }
 }
-// pylint: disable=protected-access
+
 class NamedNumpyArray {// extends np.ndarray:
   /*A subclass of ndarray that lets you give names to indices.
 
@@ -33,245 +38,86 @@ class NamedNumpyArray {// extends np.ndarray:
   second level of list can be skipped.
 
   Example usage:
-    a = named_array.NamedNumpyArray([1, 3, 6], ["a", "b", "c"])
-    a.a, a[1], a["c"] => 1, 3, 6
-    b = named_array.NamedNumpyArray([[1, 3], [6, 8]], [["a", "b"], None])
-    b.a, b[1], b["a", 1] => [1, 3], [6, 8], 3
+    bar = named_array.NamedNumpyArray([1, 3, 6], ["a", "b", "c"])
+    bar.a, bar[1], bar["c"] => 1, 3, 6
+    foo = named_array.NamedNumpyArray([[1, 3], [6, 8]], [["a", "b"], None])
+    foo.a, foo[1], foo["a", 1] => [1, 3], [6, 8], 3
     c = named_array.NamedNumpyArray([[1, 3], [6, 8]], [None, ["a", "b"]])
     c[0].a, b[1, 0], b[1, "b"] => 1, 6, 8
   Look at the tests for more examples including using enums and named tuples.
-  
+
   Details of how to subclass an ndarray are at:
   https://docs.scipy.org/doc/numpy-1.13.0/user/basics.subclassing.html
   */
-  __new__(values, names, args, kwargs) {
-    obj = np.array(values, args, kwargs)
-
-    if len(obj.shape) == 0:  // pylint: disable=g-explicit-length-test
-      raise ValueError("Scalar arrays are unsupported.")
-
-    if len(obj.shape) == 1:
-      if obj.shape[0] == 0 and names and names[0] is None:
+  constructor(values, names) {
+    const obj = np.tensor(values)
+    if (obj.shape.length === 0) {
+      throw new Error('ValueError: Scalar arrays are unsupported')
+    }
+    if (obj.shape.length === 1) {
+      if (obj.shape[0] === 0 && names && names[0] === undefined) {
         // Support arrays of length 0.
-        names = [None]
-      else:
+        names = [undefined]
+      } else {
         // Allow just a single dimension if the array is also single dimension.
-        try:
-          if len(names) > 1:
+        try {
+          if (names.length > 1) {
             names = [names]
-        except TypeError:  // len of a namedtuple is a TypeError
+          }
+        } catch (err) { // len of a namedtuple is a TypeError
           names = [names]
+        }
+      }
+    }
 
     // Validate names!
-    if not isinstance(names, (list, tuple)) or len(names) != len(obj.shape) {
-      raise ValueError(
-          "Names must be a list of length equal to the array shape: %s != %s." %
-          (len(names), len(obj.shape)))
-    index_names = []
-    only_none = obj.shape[0] > 0
-    for i, o in enumerate(names) {
-      if o is None:
-        index_names.append(o)
-      else:
-        only_none = False
-        if isinstance(o, Enum.EnumMeta) {
-          for j, n in enumerate(o._member_names_) {
-            if j != o[n]:
-              raise ValueError("Enum has holes or doesn't start from 0.")
+    if (!isinstance(names, Array) || names.length !== obj.shape.length) {
+      throw new Error(`ValueError: Names must be a list of length equal to the array shape: ${names.length} != ${obj.shape.length}.`)
+    }
+    const index_names = []
+    let only_none = obj.shape[0] > 0
+    Object.keys(names).forEach((o, i) => {
+      if (o === undefined) {
+        index_names.push(o)
+      } else {
+        only_none = false
+        if (isinstance(o, Enum.EnumMeta)) {
+          Object.keys(o).forEach((n, j) => {
+            if (j !== o[n]) {
+              throw new Error('ValueError: Enum has holes or doesn\'t start from 0.')
+            }
+          })
           o = o._member_names_
-        elif isinstance(o, type) {  // Assume namedtuple
-          try:
-            o = o._fields
-          except AttributeError:
-            raise ValueError("Bad names. Must be None, a list of strings, "
-                             "a namedtuple, or Intenum.")
-        elif isinstance(o, (list, tuple)) {
-          for n in o:
-            if not isinstance(n, str) {
-              raise ValueError(
-                  "Bad name, must be a list of strings, not %s" % type(n))
-        else:
-          raise ValueError("Bad names. Must be None, a list of strings, "
-                           "a namedtuple, or Intenum.")
-        if obj.shape[i] != len(o) {
-          raise ValueError(
-              "Wrong number of names in dimension %s. Got %s, expected %s." % (
-                  i, len(o), obj.shape[i]))
-        index_names.append({n: j for j, n in enumerate(o)})
-    if only_none:
-      raise ValueError("No names given. Use a normal numpy.ndarray instead.")
+        } else if (o._fields) {
+          o = o._fields
+        } else if (isinstance(o, Array)) {
+          o.forEach((n) => {
+            if (typeof (n) !== 'string') {
+              throw new Error(`ValueError: Bad name, must be a list of strings not: ${JSON.stringify(o)}`)
+            }
+          })
+        } else {
+          throw new Error('Bad names. Must be None, a list of strings, a namedtuple, or Intenum.')
+        }
+        if (obj.shape[i] !== o.length) {
+          throw new Error(`ValueError: Wrong number of names in dimension ${i}. Got ${o.length}, expected ${obj.shape[i]}.`)
+        }
+        Object.keys(o).forEach((n, j) => {
+          const thing = {}
+          thing[n] = j
+          index_names.push(thing)
+        })
+      }
+    })
+
+    if (only_none) {
+      throw new Error('No names given. Use a normal numpy.ndarray instead.')
+    }
 
     // Finally convert to a NamedNumpyArray.
     obj = obj.view(cls)
     obj._index_names = index_names  // [{name: index}, ...], dict per dimension.
     return obj
-  }
-
-  __array_finalize__(self, obj) {
-    if obj is None:
-      return
-    self._index_names = getattr(obj, "_index_names", None)
-  }
-
-  __getattr__(self, name) {
-    try:
-      return self[name]
-    except KeyError:
-      raise AttributeError("Bad attribute name: %s" % name)
-  }
-
-  __setattr__(self, name, value) {
-    if name == "_index_names":  // Need special handling to avoid recursion.
-      // super(NamedNumpyArray, self).__setattr__(name, value)
-      super().__setattr__(name, value)
-    else:
-      self.__setitem__(name, value)
-
-  }
-
-  __getitem__(self, indices) {
-    //Get by indexing lookup.//
-    indices = self._indices(indices)
-    // obj = super(NamedNumpyArray, self).__getitem__(indices)
-    obj = super().__getitem__(indices)
-
-    if (isinstance(indices, np.ndarray) and len(indices.shape) > 1 and
-        indices.dtype == bool) {
-      // Is this a multi-dimensional mask, eg: obj[obj == 5] ?
-      // Multi-dimensional masks return a single dimensional array, and it's
-      // unclear what it means for the result to have names, so return a normal
-      // numpy array.
-      return np.array(obj)
-
-    if isinstance(obj, np.ndarray) {  // If this is a view, index the names too.
-      if not isinstance(indices, tuple) {
-        indices = (indices,)
-      new_names = []
-      dim = 0
-      for i, index in enumerate(indices) {
-        if isinstance(index, numbers.Integral) {
-          dim += 1  // Drop this dimension's names.
-        elif index is Ellipsis:
-          // Copy all the dimensions' names through.
-          end = len(self.shape) - len(indices) + i + 1
-          for j in range(dim, end) {
-            new_names.append(self._index_names[j])
-          dim = end
-        elif index is np.newaxis:  // Add an unnamed dimension.
-          new_names.append(None)
-          // Don't modify dim, as we're still working on the same one.
-        elif (self._index_names[dim] is None or
-              (isinstance(index, slice) and index == _NULL_SLICE)) {
-          // Keep unnamed dimensions or ones where the slice is a no-op.
-          new_names.append(self._index_names[dim])
-          dim += 1
-        elif isinstance(index, (slice, list, np.ndarray)) {
-          if isinstance(index, np.ndarray) and len(index.shape) > 1:
-            raise TypeError("What does it mean to index into a named array by "
-                            "a multidimensional array? %s" % index)
-          // Rebuild the index of names for the various forms of slicing.
-          names = sorted(self._index_names[dim].items(),
-                         key=lambda item: item[1])
-          names = np.array(names, dtype=object)  // Support full numpy slicing.
-          sliced = names[index]  // Actually slice it.
-          indexed = {n: j for j, (n, _) in enumerate(sliced)}  // Reindex.
-          if len(sliced) != len(indexed) {
-            // Names aren't unique, so drop the names for this dimension.
-            indexed = None
-          new_names.append(indexed)
-          dim += 1
-        else:
-          raise TypeError("Unknown index: %s; %s" % (type(index), index))
-      obj._index_names = new_names + self._index_names[dim:]
-      if len(obj._index_names) != len(obj.shape) {
-        raise IndexError("Names don't match object shape: %s != %s" % (
-            len(obj.shape), len(obj._index_names)))
-    return obj
-  }
-
-  __setitem__(self, indices, value) {
-    // super(NamedNumpyArray, self).__setitem__(self._indices(indices), value)
-    super().__setitem__(self._indices(indices), value)
-  }
-
-  __getslice__(self, i, j) {  // deprecated, but still needed...
-    // https://docs.python.org/2.0/ref/sequence-methods.html
-    return self[max(0, i) {max(0, j) {]
-  }
-
-  __setslice__(self, i, j, seq) {  // deprecated, but still needed...
-    self[max(0, i) {max(0, j) {] = seq
-  }
-
-  __repr__(self) {
-    //A repr, parsing the original and adding the names param.//
-    names = []
-    for dim_names in self._index_names:
-      if dim_names:
-        dim_names = [n for n, _ in sorted(dim_names.items(),
-                                          key=lambda item: item[1])]
-        if len(dim_names) > 11:
-          dim_names = dim_names[:5] + ["..."] + dim_names[-5:]
-      names.append(dim_names)
-    if len(names) == 1:
-      names = names[0]
-  }
-
-    // "NamedNumpyArray([1, 3, 6], dtype=int32)" ->
-    // ["NamedNumpyArray", "[1, 3, 6]", ", dtype=int32"]
-    matches = re.findall(r"^(\w+)\(([\d\., \n\[\]]*)(,\s+\w+=.+)?\)$",
-                         np.array_repr(self))[0]
-    space = "\n               " if matches[2] and matches[2][1] == "\n" else ""
-    return "%s(%s,%s %s%s)" % (
-        matches[0], matches[1], space, names, matches[2])
-  }
-
-  __reduce__(self) {
-    // Support pickling: https://stackoverflow.com/a/26599346
-    // state = super(NamedNumpyArray, self).__reduce__()  // pytype: disable=attribute-error
-    state = super().__reduce__()  // pytype: disable=attribute-error
-    assert len(state) == 3  // Verify numpy hasn't changed their protocol.
-    return (state[0], state[1], state[2] + (self._index_names,))
-  }
-
-  __setstate__(self, state) {
-    // Support pickling: https://stackoverflow.com/a/26599346
-    self._index_names = state[-1]
-    // super(NamedNumpyArray, self).__setstate__(state[0:-1])  // pytype: disable=attribute-error
-    super().__setstate__(state[0:-1])  // pytype: disable=attribute-error
-  }
-
-  _indices(self, indices) {
-    //Turn all string indices into int indices, preserving ellipsis.//
-    if isinstance(indices, tuple) {
-      out = []
-      dim = 0
-      for i, index in enumerate(indices) {
-        if index is Ellipsis:
-          out.append(index)
-          dim = len(self.shape) - len(indices) + i + 1
-        elif index is np.newaxis:
-          out.append(None)
-        else:
-          out.append(self._get_index(dim, index))
-          dim += 1
-      return tuple(out)
-    else:
-      return self._get_index(0, indices)
-  }
-
-  _get_index(self, dim, index) {
-    //Turn a string into a real index, otherwise return the index.//
-    if isinstance(index, str) {
-      try:
-        return self._index_names[dim][index]
-      except KeyError:
-        raise KeyError("Name '%s' is invalid for axis %s." % (index, dim))
-      except TypeError:
-        raise TypeError(
-            "Trying to access an unnamed axis %s by name: '%s'" % (dim, index))
-    else:
-      return index
   }
 }
 
