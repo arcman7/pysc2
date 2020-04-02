@@ -3,7 +3,7 @@ const path = require('path')
 const point = require(path.resolve(__dirname, './point.js'))
 const pythonUtils = require(path.resolve(__dirname, './pythonUtils.js'))
 
-NotImplementedError = pythonUtils.NotImplementedError
+const NotImplementedError = pythonUtils.NotImplementedError
 
 class Transform extends object {
 	fwd_dist(dist){
