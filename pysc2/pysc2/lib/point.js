@@ -55,22 +55,22 @@ class Point extends all_collections_generated_classes.Point {
 
   round() {
     //Round `x` and `y` to integers.//
-    return Point(Math.round(this.x), Math.round(this.y))
+    return this.constructor.build(Math.round(this.x), Math.round(this.y))
   }
 
   floor() {
     //Round `x` and `y` down to integers.//
-    return Point(Math.floor(this.x), Math.floor(this.y))
+    return this.constructor.build(Math.floor(this.x), Math.floor(this.y))
   }
 
   ceil() {
     //Round `x` and `y` up to integers.//
-    return Point(Math.ceil(this.x), Math.ceil(this.y))
+    return this.constructor.build(Math.ceil(this.x), Math.ceil(this.y))
   }
 
   abs() {
     //Take the absolute value of `x` and `y`.//
-    return Point(Math.abs(this.x), Math.abs(this.y))
+    return this.constructor.build(Math.abs(this.x), Math.abs(this.y))
   }
 
   len() {
@@ -94,11 +94,11 @@ class Point extends all_collections_generated_classes.Point {
   }
 
   min_dim() {
-    return min(this.x, this.y)
+    return Math.min(this.x, this.y)
   }
 
   max_dim() {
-    return max(this.x, this.y)
+    return Math.max(this.x, this.y)
   }
 
   transpose() {
@@ -117,7 +117,7 @@ class Point extends all_collections_generated_classes.Point {
     )
   }
 
-  rotate_rand(angle=180) {
+  rotate_rand(angle = 180) {
     return this.rotate_deg(randomUniform(-angle, angle))
   }
 
@@ -130,8 +130,8 @@ class Point extends all_collections_generated_classes.Point {
     //Bound this point within the rect defined by (`p1`, `p2`).//
     const r = new Rect(p1, p2)
     return this.constructor._make({
-      x: min(max(this.x, r.l), r.r),
-      y: min(max(this.y, r.t), r.b),
+      x: Math.min(Math.max(this.x, r.l), r.r),
+      y: Math.min(Math.max(this.y, r.t), r.b),
     })
   }
 
@@ -144,36 +144,33 @@ class Point extends all_collections_generated_classes.Point {
   }
 
   add(pt_or_val) {
-    if (isinstance(pt_or_val, this.constructor)){
-      return this.constructor.build(self.x + pt_or_val.x, self.y + pt_or_val.y)
+    if (isinstance(pt_or_val, this.constructor)) {
+      return this.constructor.build(this.x + pt_or_val.x, this.y + pt_or_val.y)
     }
-    return this.constructor.build(self.x + pt_or_val, self.y + pt_or_val)
+    return this.constructor.build(this.x + pt_or_val, this.y + pt_or_val)
   }
-  
+
   sub(pt_or_val) {
-    if (isinstance(pt_or_val, this.constructor.build)) {
-      return this.constructor.build(float(this.x) - float(pt_or_val.x), float(this.y) - float(pt_or_val.y))
+    if (isinstance(pt_or_val, this.constructor)) {
+      return this.constructor.build(this.x - (pt_or_val.x), this.y - (pt_or_val.y))
     }
-    return this.constructor.build(float(this.x)- pt_or_val, float(this.y) - pt_or_val)
+    return this.constructor.build(this.x - pt_or_val, this.y - pt_or_val)
   }
-  
+
   mul(pt_or_val) {
-    if (isinstance(pt_or_val, this.constructor.build)) {
+    if (isinstance(pt_or_val, this.constructor)) {
       return this.constructor.build(this.x * pt_or_val.x, this.y * pt_or_val.y)
     }
     return this.constructor.build(this.x * pt_or_val, this.y * pt_or_val)
   }
-  
+
   truediv(pt_or_val) {
-    if (isinstance((pt_or_val, int) && isinstance(this.x, float))) {
-      pt_or_val = float(pt_or_val)
-    }
-    if (isinstance(pt_or_val, this.constructor.build)) {
+    if (isinstance(pt_or_val, this.constructor)) {
       return this.constructor.build(this.x / pt_or_val.x, this.y / pt_or_val.y)
     }
     return this.constructor.build(this.x / pt_or_val, this.y / pt_or_val)
   }
-  
+
   floordiv(pt_or_val) {
     if (isinstance(pt_or_val, this.constructor.build)) {
       return this.constructor.build(
@@ -285,7 +282,7 @@ class Rect extends all_collections_generated_classes.Rect {
   }
 
   get size() {
-    return this.br - this.tl
+    return this.br.sub(this.tl)
   }
 
   get area() {
@@ -294,15 +291,15 @@ class Rect extends all_collections_generated_classes.Rect {
   }
 
   round() {
-    return Rect(this.tl.round(), this.br.round())
+    return this.constructor.build(this.tl.round(), this.br.round())
   }
 
   floor() {
-    return Rect(this.tl.floor(), this.br.floor())
+    return this.constructor.build(this.tl.floor(), this.br.floor())
   }
 
   ceil() {
-    return Rect(this.tl.ceil(), this.br.ceil())
+    return this.constructor.build(this.tl.ceil(), this.br.ceil())
   }
 
   contains_point(pt) {
@@ -325,7 +322,7 @@ class Rect extends all_collections_generated_classes.Rect {
 
     // Is the circle far from the rect?
     if (circle_center.x > rect_corner.x + radius ||
-        circle_center.y > rect_c || rect_corner.y + radius) {
+        circle_center.y > rect_corner.y || rect_corner.y + radius) {
       return false
     }
     // Is the circle center inside the rect or near one of the edges?
