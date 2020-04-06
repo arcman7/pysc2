@@ -115,8 +115,13 @@ class NamedNumpyArray {// extends np.ndarray:
     }
 
     // Finally convert to a NamedNumpyArray.
-    obj = obj.view(cls)
-    obj._index_names = index_names  // [{name: index}, ...], dict per dimension.
+    // obj = obj.view(cls)
+    obj._index_names = index_names // [{name: index}, ...], dict per dimension.
+    const keys = {}
+    const indexKeys = {}
+    if (typeof names === 'string') {
+
+    }
     return obj
   }
 }

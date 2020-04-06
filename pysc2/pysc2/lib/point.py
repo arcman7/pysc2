@@ -20,7 +20,7 @@
 import math
 import random
 
-import all_collections_generated_classes_orig as all_collections_generated_classes
+from pysc2.lib import all_collections_generated_classes_orig as all_collections_generated_classes
 # import all_collections_generated_classes
 
 # class Point(collections.namedtuple("Point", ["x", "y"])):

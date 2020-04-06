@@ -18,8 +18,8 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-# import p_collections as collections
-import all_collections_generated_classes
+import  collections
+from pysc2.env import all_collections_generated_classes
 from absl import logging
 import random
 import time

@@ -23,7 +23,7 @@ import os
 
 from pysc2.lib import gfile
 
-import all_collections_generated_classes
+from pysc2.run_configs import all_collections_generated_classes
 
 
 # class Version(collections.namedtuple("Version", [

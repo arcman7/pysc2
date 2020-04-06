@@ -19,7 +19,7 @@ from __future__ import print_function
 
 import abc
 # import p_collections as collections
-import all_collections_generated_classes
+from pysc2.env import all_collections_generated_classes
 
 import enum as Enum
 

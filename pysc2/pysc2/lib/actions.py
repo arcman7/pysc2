@@ -25,7 +25,7 @@ from s2clientprotocol import ui_pb2 as sc_ui
 from absl import logging
 
 
-import all_collections_generated_classes_orig as all_collections_generated_classes
+from pysc2.lib import all_collections_generated_classes_orig as all_collections_generated_classes
 # import all_collections_generated_classes
 
 # necessary shim(s) for eventual javascript transpiling:
