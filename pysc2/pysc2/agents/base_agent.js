@@ -7,8 +7,8 @@ class BaseAgent { //eslint-disable-line
     this.reward = 0
     this.episodes = 0
     this.steps = 0
-    this.obs_spec = 0
-    this.action_spec = 0
+    this.obs_spec = null
+    this.action_spec = null
   }
 
 	setup(obs_spec, action_spec){ //eslint-disable-line
