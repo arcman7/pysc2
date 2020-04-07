@@ -178,6 +178,10 @@ function NotImplementedError(message) {
   this.message = str;
 }
 
+function randomChoice(arr) {
+  return arr[Math.floor(Math.random() * arr.length)]
+}
+
 module.exports = {
   assert,
   Array,
@@ -195,4 +199,5 @@ module.exports = {
   sum,
   withPython,
   zip,
+  randomChoice,
 }
