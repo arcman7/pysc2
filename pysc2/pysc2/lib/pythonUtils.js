@@ -179,8 +179,13 @@ function NotImplementedError(message) {
 }
 
 function randomChoice(arr) {
+  // This function does not support "size" of output shape.
+  if (Array.isArray(arr)) {
+    arr = [Array(arr).key()]
+  }
   return arr[Math.floor(Math.random() * arr.length)]
 }
+
 
 module.exports = {
   assert,
