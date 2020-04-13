@@ -178,6 +178,31 @@ function NotImplementedError(message) {
   this.message = str;
 }
 
+function ValueError(value) {
+  /*
+  The error thrown when an invalid argument is passed.
+  */
+  const sender = (new Error) //eslint-disable-line
+    .stack
+    .split('\n')[2]
+    .replace(' at ', '');
+
+  this.message = `The argument from ${sender} is an invalid arugment.`;
+
+  // Append the message if given.
+  if (value) {
+    this.message += ` Invalid argument: "${value}".`;
+  }
+
+  let str = this.message;
+
+  while (str.indexOf('  ') > -1) {
+    str = str.replace('  ', ' ');
+  }
+
+  this.message = str;
+}
+
 module.exports = {
   assert,
   Array,
@@ -193,6 +218,7 @@ module.exports = {
   randomUniform,
   String,
   sum,
+  ValueError,
   withPython,
   zip,
 }

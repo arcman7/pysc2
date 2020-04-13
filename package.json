@@ -27,7 +27,8 @@
     "@tensorflow/tfjs-node": "^1.7.0",
     "@tensorflow/tfjs-node-gpu": "^1.2.7",
     "dev-dependencies": "^1.0.0",
-    "python-enum": "^1.0.4",
+    "numjs": "^0.16.0",
+    "python-enum": "^1.0.7",
     "threading-js": "^1.0.6"
   },
   "devDependencies": {

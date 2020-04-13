@@ -39,7 +39,6 @@ class NamedDict(dict):
 
 _NULL_SLICE = slice(None, None, None)
 
-
 # pylint: disable=protected-access
 class NamedNumpyArray(np.ndarray):
   """A subclass of ndarray that lets you give names to indices.
@@ -70,7 +69,7 @@ class NamedNumpyArray(np.ndarray):
 
   def __new__(cls, values, names, *args, **kwargs):
     obj = np.array(values, *args, **kwargs)
-
+    # print('values: ', values, '  names: ', names)
     if len(obj.shape) == 0:  # pylint: disable=g-explicit-length-test
       raise ValueError("Scalar arrays are unsupported.")
 

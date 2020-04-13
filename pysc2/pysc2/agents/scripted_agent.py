@@ -19,7 +19,7 @@ from __future__ import print_function
 
 import numpy
 
-from pysc2.lib import base_agent
+from pysc2.agents import base_agent
 from pysc2.lib import actions
 from pysc2.lib import features
 
@@ -34,6 +34,8 @@ RAW_FUNCTIONS = actions.RAW_FUNCTIONS
 def _xy_locs(mask):
   """Mask should be a set of bools from comparison with a feature layer."""
   y, x = mask.nonzero()
+  # print('mask shap:')
+  # print(mask.shape)
   return list(zip(x, y))
 
 
