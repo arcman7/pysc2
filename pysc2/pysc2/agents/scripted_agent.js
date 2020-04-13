@@ -90,14 +90,19 @@ class CollectMineralShardsFeatureUnits extends base_agent.BaseAgent {
     if (marines !== null) {
       return FUNCTIONS.no_op()
     }
-    const marine_unit = 
+    let marine_unit = marines[0]
+    marines.forEach((m) => {
+      if (m.is_selected == this._marine_selected){
+        marine_unit = m
+      }
+    })
     const marine_xy = [marine_unit.x, marine_unit.y]
 
     if (marine_unit.is_selected !== null) {
       this._marine_selected = true
       return RAW_FUNCTIONS.selected_point("select", marine_xy)
     }
-
+    
     if (FUNCTIONS.Move_screen.id in obs.observation.available_actions) {
       const minerals = []
       Object.keys(obs.observation.feature_units).forEach((key) => {
