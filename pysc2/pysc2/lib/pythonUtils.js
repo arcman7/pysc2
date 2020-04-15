@@ -202,7 +202,29 @@ function ValueError(value) {
 
   this.message = str;
 }
-
+function randomChoice(arr) {
+  // This function does not support "size" of output shape.
+  if (Array.isArray(arr)) {
+    arr = [Array(arr).key()]
+  }
+  return arr[Math.floor(Math.random() * arr.length)]
+}
+function nonZero(arr) {
+  // This function outputs a array of indices of nonzero elements
+  const rows = []
+  const cols = []
+  const shape = arr.shape
+  arr = arr.arraySync()
+  for (let row = 0; row < shape[0]; row++) {
+    for (let col = 0; col < shape[1]; col++) {
+      if (arr[row][col] !== 0) {
+        rows.push(row)
+        cols.push(col)
+      }
+    }
+  }
+  return [rows, cols]
+}
 module.exports = {
   assert,
   Array,
@@ -221,4 +243,6 @@ module.exports = {
   ValueError,
   withPython,
   zip,
+  randomChoice,
+  nonZero,
 }
