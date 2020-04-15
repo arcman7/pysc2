@@ -60,8 +60,8 @@ class NamedNumpyArray(np.ndarray):
     bar = named_array.NamedNumpyArray([[1, 3], [6, 8]], [["a", "b"], None])
     bar.a, bar[1], bar["a", 1] => [1, 3], [6, 8], 3
     
-    c = named_array.NamedNumpyArray([[1, 3], [6, 8]], [None, ["a", "b"]])
-    c[0].a, b[1, 0], b[1, "b"] => 1, 6, 8
+    baz = named_array.NamedNumpyArray([[1, 3], [6, 8]], [None, ["a", "b"]])
+    baz[0].a, baz[1, 0], baz[1, "b"] => 1, 6, 8
   Look at the tests for more examples including using enums and named tuples.
   """
   # Details of how to subclass an ndarray are at:
