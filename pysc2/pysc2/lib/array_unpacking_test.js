@@ -25,7 +25,7 @@ function test(values, names) {
   function assign(name, keyPathArray)  {
     let cur = values
     while (keyPathArray.length) {
-      cur = values[keyPathArray.pop()]
+      cur = values[keyPathArray.shift()]
     }
     obj[name] = cur
   }
@@ -37,3 +37,4 @@ function test(values, names) {
 test([1,2,3], 'foo')
 test([1,2,3], ['foo', 'bar', 'baz'])
 test([[1],[2],[3]], ['foo', 'bar', 'baz'])
+test([[1],[2],[3]], [ [ 'a', 'b', 'c' ] ])

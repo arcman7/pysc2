@@ -51,6 +51,7 @@ class NamedNumpyArray {// extends np.ndarray:
   constructor(values, names) {
     const obj = values
     obj.tensor = np.tensor(values)
+    obj.shape = obj.tensor.shape
     if (obj.shape.length === 0) {
       throw new Error('ValueError: Scalar arrays are unsupported')
     }
@@ -76,7 +77,8 @@ class NamedNumpyArray {// extends np.ndarray:
     }
     const index_names = []
     let only_none = obj.shape[0] > 0
-    Object.keys(names).forEach((o, i) => {
+    Object.keys(names).forEach((key, i) => {
+      let o = names[key]
       if (o === undefined) {
         index_names.push(o)
       } else {
@@ -138,29 +140,60 @@ class NamedNumpyArray {// extends np.ndarray:
         return
       }
       let cur = values
+      // let key
+      // console.log('keyPathArray: ', keyPathArray)
       while (keyPathArray.length) {
-        cur = values[keyPathArray.pop()]
+        // key = keyPathArray.shift()
+        // cur = values[key]
+        // console.log('key: ', key, '  cur: ', cur)
+        cur = values[keyPathArray.shift()]
       }
+      // console.log('assign:\n   name:', name, ' val: ', cur)
       obj[name] = cur
     }
+    // console.log('about to call traverse -> names: ', names)
     traverse(names, [], assign)
+    let valuesCopy
+    if (Array.isArray(values)) {
+      valuesCopy = values.slice(0, values.length)
+    }
+    const returnVal = getProxy(obj)
     function getProxy(thing) {
       return new Proxy(thing, {
-        //eslint-disable-next-line
         get: (target, name) => {
+          console.log('name: ', name)
+          if (name === 'values') {
+            console.log('A0')
+            return values
+          }
           let val
-          if (Number.isInteger(name)) {
-            const arr = target.tensor.arraySync()
+          if (Number.isInteger(Number(name))) {
+            console.log('A')
+            name = Number(name)
+            // const arr = target.tensor.arraySync()
+            const arr = obj.values
             if (name > 0) {
               val = arr[name]
             } else {
               val = arr[arr.length + name]
             }
-          }
-          if (name === undefined || name === null) {
+            // gather
+          } else if (Array.isArray(name) || name.tensor) {
+            console.log('B')
+            if (name.tensor) {
+              name = name.values
+            }
+            val = obj.tensor.gather(name).tensor.arraySync()
+          } else if (name === 'undefined' || name === 'null') {
+            console.log('C')
             val = [target]
+          } else if (obj.hasOwnProperty(name)) {
+            console.log('D')
+            val = obj[name]
+          } else {
+            console.log('E')
+            val = target[name]
           }
-          val = target[name]
           if (Array.isArray(val)) {
             return getProxy(val)
           }
@@ -168,27 +201,13 @@ class NamedNumpyArray {// extends np.ndarray:
         },
       })
     }
-    return getProxy(obj)
-    // return obj
-    // return new Proxy(obj, {
-    //   //eslint-disable-next-line
-    //   get: (target, name) => {
-    //     let val
-    //     if (Number.isInteger(name)) {
-    //       const arr = target.tensor.arraySync()
-    //       if (name > 0) {
-    //         val = arr[name]
-    //       } else {
-    //         val = arr[arr.length + name]
-    //       }
-    //     }
-    //     if (name === undefined || name === null) {
-    //       val = [target]
-    //     }
-    //     val = target[name]
-    //     return val
-    //   },
-    // })
+    let valuesCopy
+    if (Array.isArray(values)) {
+      valuesCopy = values.slice(0, values.length)
+    }
+    const returnVal = getProxy(obj)
+    returnVal.values = valuesCopy
+    return returnVal
   }
 }
 

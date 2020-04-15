@@ -6,8 +6,14 @@ const Enum = require('python-enum')
 const np = require(path.resolve(__dirname, './numpy.js'))
 const named_array = require(path.resolve(__dirname, './named_array.js'))
 const pythonUtils = require(path.resolve(__dirname, './pythonUtils.js'))
-const { ValueError, pythonWith } = pythonUtils
+const { ValueError } = pythonUtils
 
+function arrayEqual(a, b) {
+  a.forEach((ele, i) => {
+    console.log(ele, i)
+    expect(ele).toEqual(b[i])
+  })
+}
 //Tests for lib.named_array.//
 
 // class NamedDictTest(absltest.TestCase):
@@ -45,8 +51,8 @@ describe('named_array:', () => {
       [BadNamedTuple],
       [{ 'a': 0, 'b': 1, 'c': 2 }],
     ]
-    badNames.forEach((badNames) => {
-      expect(() => new named_array.NamedNumpyArray(values, badNames)).toThrow(Error)
+    badNames.forEach((badName) => {
+      expect(() => new named_array.NamedNumpyArray(values, badName)).toThrow(Error)
     })
   })
   test('  test_single_dimension:', () => {
@@ -59,17 +65,18 @@ describe('named_array:', () => {
       ["list_tuple", [["a", "b", "c"]]],
       ["named_tuple", TestNamedTuple], //7
       ["named_tuple2", [TestNamedTuple]], // 8
-      ["int_enum", TestEnum], // 9 
+      ["int_enum", TestEnum], // 9
       ["int_enum2", [TestEnum]], // 10
     ]
     singleNames.forEach((pair) => {
       const [_, names] = pair
-      const a = named_array.NamedNumpyArray(values, names)
+      const a = new named_array.NamedNumpyArray(values, names)
       expect(a[0]).toBe(1)
       expect(a[1]).toBe(3)
       expect(a[2]).toBe(6)
       expect(a[2]).toBe(6)
       expect(a.a).toBe(1)
+      // console.log('a.a: ', a.a, ' a.b: ', a.b, ' a.c:', a.c)
       expect(a.b).toBe(3)
       expect(a.c).toBe(6) // 7
       expect(a.d).toBe(undefined)
@@ -78,23 +85,25 @@ describe('named_array:', () => {
       expect(a["c"]).toBe(6)
       expect(a["d"]).toBe(undefined)
       // New axis = None
-      expect(a).toEqual([1, 3, 6])
+      // expect(a).toEqual([1, 3, 6])
+      arrayEqual([1, 3, 6], a)
       // expect(a[np.newaxis], [[1, 3, 6]])
-      expect(a[null]).toEqual([[1, 3, 6]])
+      // expect(a[null]).toEqual([[1, 3, 6]])
+      // arrayEqual([values], a[null])
       // expect(a[:, null], [[1], [3], [6]])
       // expect(a[null, :, null], [[[1], [3], [6]]])
       // expect(a[null, a % 3 == 0, null], [[[3], [6]]])
-      expect(a[null][null], [[[1, 3, 6]]])
+      // expect(a[null][null]).toEqual([[[1, 3, 6]]])
+      arrayEqual([[values]], a[null][null])
       expect(a[null][0]).toEqual([1, 3, 6])
-      /* what do these mean? */
       // expect(a[null, 0], 1)
       // expect(a[null, "a"], 1)
-      // expect(a[null][0].a, 1)
+      expect(a[null][0].a).toBe(1)
       // expect(a[null][0, "b"], 3)
 
       // range slicing
-      expect(a.slice(0, 2)).toEqual([1,3])
-      expect(a.slice(1, 3)).toEqual([3,6])
+      expect(a.slice(0, 2)).toEqual([1, 3])
+      expect(a.slice(1, 3)).toEqual([3, 6])
       /* what do these mean? */
       // expect(a[0:2:], [1, 3])
       // expect(a[0:2:1], [1, 3])
@@ -109,159 +118,37 @@ describe('named_array:', () => {
       expect(a[[0, 1]]).toEqual([1, 3])
       expect(a[[1, 0]]).toEqual([3, 1])
       expect(a[[1, 2]]).toEqual([3, 6])
-      expect(a[np.array([0, 2])], [1, 6])
-      expect(a[[1, 2]].b, 3)
-      expect(a[[2, 0]].c, 6)
+      // expect(a[np.array([0, 2])]).toEqual([1, 6])
+      const inds = new named_array.NamedNumpyArray([0, 2], ['a', 'b'])
+      expect(a[inds]).toEqual([1, 6])
+      expect(a[[1, 2]].b).toBe(3)
+      expect(a[[2, 0]].c).toBe(6)
       // with self.assertRaises(TypeError):
       //   // Duplicates lead to unnamed dimensions.
       //   a[[0, 0]].a  // pylint: disable=pointless-statement
 
-      a[1] = 4
-      expect(a[1], 4)
-      expect(a.b, 4)
-      expect(a["b"], 4)
+      // a[1] = 4
+      // expect(a[1], 4)
+      // expect(a.b, 4)
+      // expect(a["b"], 4)
 
-      a[1:2] = 2
-      expect(a[1], 2)
-      expect(a.b, 2)
-      expect(a["b"], 2)
+      // a[1:2] = 2
+      // expect(a[1], 2)
+      // expect(a.b, 2)
+      // expect(a["b"], 2)
 
-      a[[1]] = 3
-      expect(a[1], 3)
-      expect(a.b, 3)
-      expect(a["b"], 3)
+      // a[[1]] = 3
+      // expect(a[1], 3)
+      // expect(a.b, 3)
+      // expect(a["b"], 3)
 
-      a.b = 5
-      expect(a[1], 5)
-      expect(a.b, 5)
-      expect(a["b"], 5)
+      // a.b = 5
+      // expect(a[1], 5)
+      // expect(a.b, 5)
+      // expect(a["b"], 5)
     })
-
   })
 })
-
-
-
-// // class TestNamedTuple(collections.namedtuple("TestNamedTuple", ["a", "b", "c"])):
-// class TestNamedTuple(object):
-//   _fields = ["a", "b", "c"]
-//   __slots__ = ("a", "b", "c")
-//   pass
-
-
-// // class BadNamedTuple(collections.namedtuple("BadNamedTuple", ["a", "b"])):
-// class BadNamedTuple(object):
-//   _fields = ["a", "b"]
-//   __slots__ = ("a", "b")
-//   pass
-
-
-// class NamedArrayTest(parameterized.TestCase):
-
-//   def assertArrayEqual(self, a, b):
-//     np.testing.assert_array_equal(a, b)
-
-//   @parameterized.named_parameters(
-//       ("null", null),
-//       ("null2", [null]),
-//       ("short_list", ["a"]),
-//       ("long_list", ["a", "b", "c", "d"]),
-//       ("long_list2", [["a", "b", "c", "d"]]),
-//       ("ints", [[1, "b", 3]]),
-//       ("bad_enum", [BadEnum]),
-//       ("bad_namedtuple", [BadNamedTuple]),
-//       ("dict", [{"a": 0, "b": 1, "c": 2}]),
-//       ("set", [{"a", "b", "c"}]),
-//   )
-//   def test_bad_names(self, names):
-//     with self.assertRaises(ValueError):
-//       named_array.NamedNumpyArray([1, 3, 6], names)
-
-//   @parameterized.named_parameters(
-//       ("list", ["a", "b", "c"]),
-//       ("tuple", ("a", "b", "c")),
-//       ("list2", [["a", "b", "c"]]),
-//       ("tuple2", (("a", "b", "c"))),
-//       ("list_tuple", [("a", "b", "c")]),
-//       ("named_tuple", TestNamedTuple),
-//       ("named_tuple2", [TestNamedTuple]),
-//       ("int_enum", TestEnum),
-//       ("int_enum2", [TestEnum]),
-//   )
-//   def test_single_dimension(self, names):
-//     a = named_array.NamedNumpyArray([1, 3, 6], names)
-//     self.assertEqual(a[0], 1)
-//     self.assertEqual(a[1], 3)
-//     self.assertEqual(a[2], 6)
-//     self.assertEqual(a[-1], 6)
-//     self.assertEqual(a.a, 1)
-//     self.assertEqual(a.b, 3)
-//     self.assertEqual(a.c, 6)
-//     with self.assertRaises(AttributeError):
-//       a.d
-//     self.assertEqual(a["a"], 1)
-//     self.assertEqual(a["b"], 3)
-//     self.assertEqual(a["c"], 6)
-//     with self.assertRaises(KeyError):
-//       a["d"]
-
-//     // New axis = null
-//     self.assertArrayEqual(a, [1, 3, 6])
-//     self.assertArrayEqual(a[np.newaxis], [[1, 3, 6]])
-//     self.assertArrayEqual(a[null], [[1, 3, 6]])
-//     self.assertArrayEqual(a[null, :], [[1, 3, 6]])
-//     self.assertArrayEqual(a[:, null], [[1], [3], [6]])
-//     self.assertArrayEqual(a[null, :, null], [[[1], [3], [6]]])
-//     self.assertArrayEqual(a[null, a % 3 == 0, null], [[[3], [6]]])
-//     self.assertArrayEqual(a[null][null], [[[1, 3, 6]]])
-//     self.assertArrayEqual(a[None][0], [1, 3, 6])
-//     self.assertEqual(a[None, 0], 1)
-//     self.assertEqual(a[None, "a"], 1)
-//     self.assertEqual(a[None][0].a, 1)
-//     self.assertEqual(a[None][0, "b"], 3)
-
-//     // range slicing
-//     self.assertArrayEqual(a[0:2], [1, 3])
-//     self.assertArrayEqual(a[1:3], [3, 6])
-//     self.assertArrayEqual(a[0:2:], [1, 3])
-//     self.assertArrayEqual(a[0:2:1], [1, 3])
-//     self.assertArrayEqual(a[::2], [1, 6])
-//     self.assertArrayEqual(a[::-1], [6, 3, 1])
-//     self.assertEqual(a[1:3][0], 3)
-//     self.assertEqual(a[1:3].b, 3)
-//     self.assertEqual(a[1:3].c, 6)
-
-//     // list slicing
-//     self.assertArrayEqual(a[[0, 0]], [1, 1])
-//     self.assertArrayEqual(a[[0, 1]], [1, 3])
-//     self.assertArrayEqual(a[[1, 0]], [3, 1])
-//     self.assertArrayEqual(a[[1, 2]], [3, 6])
-//     self.assertArrayEqual(a[np.array([0, 2])], [1, 6])
-//     self.assertEqual(a[[1, 2]].b, 3)
-//     self.assertEqual(a[[2, 0]].c, 6)
-//     with self.assertRaises(TypeError):
-//       // Duplicates lead to unnamed dimensions.
-//       a[[0, 0]].a  // pylint: disable=pointless-statement
-
-//     a[1] = 4
-//     self.assertEqual(a[1], 4)
-//     self.assertEqual(a.b, 4)
-//     self.assertEqual(a["b"], 4)
-
-//     a[1:2] = 2
-//     self.assertEqual(a[1], 2)
-//     self.assertEqual(a.b, 2)
-//     self.assertEqual(a["b"], 2)
-
-//     a[[1]] = 3
-//     self.assertEqual(a[1], 3)
-//     self.assertEqual(a.b, 3)
-//     self.assertEqual(a["b"], 3)
-
-//     a.b = 5
-//     self.assertEqual(a[1], 5)
-//     self.assertEqual(a.b, 5)
-//     self.assertEqual(a["b"], 5)
 
 //   def test_empty_array(self):
 //     named_array.NamedNumpyArray([], [None, ["a", "b"]])
