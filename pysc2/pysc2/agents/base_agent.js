@@ -2,6 +2,10 @@ const path = require('path')
 const actions = require(path.resolve(__dirname, '..', 'lib', './action.js'))
 
 class BaseAgent {
+  /*
+  A base agent to write custom scripted agents.
+  It can also act as a passive agent that does nothing but no-ops.
+  */
   constructor() {
     this.reward = 0
     this.episodes = 0

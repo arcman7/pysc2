@@ -178,6 +178,7 @@ function NotImplementedError(message) {
   this.message = str;
 }
 
+<<<<<<< HEAD
 function ValueError(value) {
   /*
   The error thrown when an invalid argument is passed.
@@ -202,6 +203,31 @@ function ValueError(value) {
 
   this.message = str;
 }
+=======
+function randomChoice(arr) {
+  // This function does not support "size" of output shape.
+  if (Array.isArray(arr)) {
+    arr = [Array(arr).key()]
+  }
+  return arr[Math.floor(Math.random() * arr.length)]
+}
+
+function nonZero(arr) {
+  // This function outputs a array of indices of nonzero elements
+  const rows = []
+  const cols = []
+  const shape = arr.shape
+  arr = arr.arraySync()
+  for (let row = 0; row < shape[0]; row++) {
+    for (let col = 0; col < shape[1]; col++) {
+      if (arr[row][col] !== 0) {
+        rows.push(row)
+        cols.push(col)
+      }
+    }
+  }
+  return [rows,cols]
+>>>>>>> 3874d3d6e336ab53247706bd305c826b9e62460e
 
 module.exports = {
   assert,
@@ -221,4 +247,6 @@ module.exports = {
   ValueError,
   withPython,
   zip,
+  randomChoice,
+  nonZero,
 }
