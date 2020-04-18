@@ -167,45 +167,14 @@ class NamedNumpyArray {// extends np.ndarray:
 
     // Finally convert to a NamedNumpyArray.
     obj._index_names = index_names // [{name: index}, ...], dict per dimension.
-    function traverse(arr, previousIndexs, cb) {
-      if (isinstance(arr, Enum.EnumMeta)) {
-        arr = arr.keys
-      }
-      if (!Array.isArray(arr)) {
-        cb(arr, previousIndexs)
-        return
-      }
-      arr.forEach((ele, index) => {
-        if (Array.isArray(ele)) {
-          traverse(ele, previousIndexs.concat(index), cb)
-        } else {
-          cb(ele, previousIndexs.concat(index))
-        }
-      })
-    }
-    function assign(name, keyPathArray) {
-      if (!name) {
-        return
-      }
-      let cur = values
-      // let key
-      // console.log('keyPathArray: ', keyPathArray)
-      while (keyPathArray.length) {
-        // key = keyPathArray.shift()
-        // cur = values[key]
-        // console.log('key: ', key, '  cur: ', cur)
-        cur = values[keyPathArray.shift()]
-      }
-      // console.log('assign:\n   name:', name, ' val: ', cur)
-      obj[name] = cur
-    }
-    // console.log('about to call traverse -> names: ', names)
-    traverse(names, [], assign)
-    let valuesCopy
-    if (Array.isArray(values)) {
-      valuesCopy = values.slice(0, values.length)
-    }
-    const returnVal = getProxy(obj)
+    unpack(values, names)
+    // function getArrayProxy(arr) {
+    //   return new Proxy(arr, {
+    //     get: (target, name) => {
+    //       if ()
+    //     },
+    //   })
+    // }
     function getProxy(thing) {
       return new Proxy(thing, {
         get: (target, name) => {
@@ -215,31 +184,25 @@ class NamedNumpyArray {// extends np.ndarray:
             return values
           }
           let val
-          if (Number.isInteger(Number(name))) {
-            console.log('A')
+          if (typeof name === 'string' && Number.isInteger(Number(name))) {
+            // console.log('A')
+            // console.log(obj)
+            // console.log(Object.keys(obj))
             name = Number(name)
-            // const arr = target.tensor.arraySync()
-            const arr = obj.values
-            if (name > 0) {
-              val = arr[name]
+            if (name >= 0) {
+              val = target[name]
+              // console.log('here1')
             } else {
-              val = arr[arr.length + name]
+              val = target[target.length + name]
+              // console.log('here2')
             }
             // gather
-          } else if (Array.isArray(name) || name.tensor) {
-            console.log('B')
-            if (name.tensor) {
-              name = name.values
-            }
-            val = obj.tensor.gather(name).tensor.arraySync()
           } else if (name === 'undefined' || name === 'null') {
-            console.log('C')
+            // console.log('C')
             val = [target]
-          } else if (obj.hasOwnProperty(name)) {
-            console.log('D')
-            val = obj[name]
+            // return val
           } else {
-            console.log('E')
+            // console.log('E')
             val = target[name]
           }
           if (Array.isArray(val)) {
@@ -249,13 +212,7 @@ class NamedNumpyArray {// extends np.ndarray:
         },
       })
     }
-    let valuesCopy
-    if (Array.isArray(values)) {
-      valuesCopy = values.slice(0, values.length)
-    }
-    const returnVal = getProxy(obj)
-    returnVal.values = valuesCopy
-    return returnVal
+    return getProxy(obj)
   }
 }
 

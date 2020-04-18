@@ -10,7 +10,7 @@ const { ValueError } = pythonUtils
 
 function arrayEqual(a, b) {
   a.forEach((ele, i) => {
-    console.log(ele, i)
+    // console.log(ele, i)
     expect(ele).toEqual(b[i])
   })
 }
@@ -71,6 +71,7 @@ describe('named_array:', () => {
     singleNames.forEach((pair) => {
       const [_, names] = pair
       const a = new named_array.NamedNumpyArray(values, names)
+      // console.log(a)
       expect(a[0]).toBe(1)
       expect(a[1]).toBe(3)
       expect(a[2]).toBe(6)
