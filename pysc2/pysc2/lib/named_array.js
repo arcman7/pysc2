@@ -5,11 +5,39 @@ https://docs.scipy.org/doc/numpy/user/basics.rec.html are not enough since they
 actually change the type and don't interoperate well with tensorflow.
 */
 
-// import re
 const path = require('path')
 const Enum = require('python-enum')
 const np = require(path.resolve(__dirname, './numpy.js'))
 const pythonUtils = require(path.resolve(__dirname, './pythonUtils.js'))
+function assign(values, name, keyPathArray) {
+  let value = values
+  let parent
+  while (keyPathArray.length) {
+    if (keyPathArray.length === 1) {
+      parent = value
+    }
+    value = value[keyPathArray.shift()]
+  }
+  parent[name] = value
+}
+function unpack(values, names, nameIndex = 0, keyPathArray = []) {
+  //sanitize input
+  if (isinstance(names, Enum.EnumMeta)) {
+    names = names.member_names_
+  } else if (names.contructor && names.constructor._fields) {
+    names = names.constructor._fields
+  } else if (!Array.isArray(names)) {
+    names = Object.keys(names)
+  }
+  const nameList = names[nameIndex]
+  if (nameList === null || nameList === undefined) {
+    return
+  }
+  nameList.forEach((name, index) => {
+    assign(values, name, keyPathArray.concat(index))
+    unpack(values, names, nameIndex + 1, keyPathArray.concat(index))
+  })
+}
 
 const { isinstance } = pythonUtils
 class NamedDict {
@@ -36,18 +64,38 @@ class NamedNumpyArray {// extends np.ndarray:
   to a particular dimension, use None. If your array only has one dimension, the
   second level of list can be skipped.
 
-  Example usage:
-    bar = named_array.NamedNumpyArray([1, 3, 6], ["a", "b", "c"])
-    bar.a, bar[1], bar["c"] => 1, 3, 6
-    foo = named_array.NamedNumpyArray([[1, 3], [6, 8]], [["a", "b"], None])
-    foo = named_array.NamedNumpyArray([[1, 3], [6, 8]], [["a"], ["b"]])
-    foo.a, foo[1], foo["a", 1] => [1, 3], [6, 8], 3
-    c = named_array.NamedNumpyArray([[1, 3], [6, 8]], [None, ["a", "b"]])
-    c[0].a, b[1, 0], b[1, "b"] => 1, 6, 8
-  Look at the tests for more examples including using enums and named tuples.
 
-  Details of how to subclass an ndarray are at:
-  https://docs.scipy.org/doc/numpy-1.13.0/user/basics.subclassing.html
+    Jihan & Ryan - Documentation notes:
+
+     var foo = named_array.NamedNumpyArray([1, 3, 6], ["a", "b", "c"])
+                col   
+    dimension    0     
+       a         1        
+       b         3
+       c         6
+
+    usage: foo.a => 1, foo.b => 3, foo.c => 6
+
+      bar = named_array.NamedNumpyArray([[1, 3], [6, 8]], [["a", "b"], None])
+                col   col
+    dimension    0     1
+       a (0)     1     3 
+       b (1)     6     8
+
+    usage: bar.a => [1,3], bar.a[0] => 1, bar.a[1] => 3
+    usage: bar.b => [6,8], bar.b[0] => 6, bar.b[1] => 8
+      
+     baz = named_array.NamedNumpyArray([[1, 3], [6, 8]], [None, ["a", "b"]])
+    
+                col           col       
+    dimension    a             b
+    None (0)     1             3
+    None (1)     6             8
+
+    usage: bar[0] => [1,3], bar[0].a => 1, bar[0].a => 3
+    usage: bar[1] => [6,8], bar[0].b => 6, bar[1].b => 8
+
+  Look at the tests for more examples including using enums and named tuples.
   */
   constructor(values, names) {
     const obj = values
@@ -118,7 +166,6 @@ class NamedNumpyArray {// extends np.ndarray:
     }
 
     // Finally convert to a NamedNumpyArray.
-    // obj = obj.view(cls)
     obj._index_names = index_names // [{name: index}, ...], dict per dimension.
     function traverse(arr, previousIndexs, cb) {
       if (isinstance(arr, Enum.EnumMeta)) {
