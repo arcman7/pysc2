@@ -51,7 +51,7 @@ class NamedDict {
     })
   }
 }
-class NamedNumpyArray {// extends np.ndarray:
+class NamedNumpyArray extends Array {// extends np.ndarray:
   /*A subclass of ndarray that lets you give names to indices.
 
   This is a normal ndarray in the sense that you can always index by numbers and
@@ -98,6 +98,7 @@ class NamedNumpyArray {// extends np.ndarray:
   Look at the tests for more examples including using enums and named tuples.
   */
   constructor(values, names) {
+    super(...values)
     const obj = values
     obj.tensor = np.tensor(values)
     obj.shape = obj.tensor.shape
@@ -164,10 +165,10 @@ class NamedNumpyArray {// extends np.ndarray:
     if (only_none) {
       throw new Error('No names given. Use a normal numpy.ndarray instead.')
     }
-
+    obj._named_array_values = values
     // Finally convert to a NamedNumpyArray.
     obj._index_names = index_names // [{name: index}, ...], dict per dimension.
-    unpack(values, names)
+    unpack(this, names)
     // function getArrayProxy(arr) {
     //   return new Proxy(arr, {
     //     get: (target, name) => {
@@ -175,49 +176,85 @@ class NamedNumpyArray {// extends np.ndarray:
     //     },
     //   })
     // }
-    function getProxy(thing) {
-      return new Proxy(thing, {
-        get: (target, name) => {
-          console.log('name: ', name)
-          if (name === 'values') {
-            console.log('A0')
-            return values
-          }
-          let val
-          if (typeof name === 'string' && Number.isInteger(Number(name))) {
-            // console.log('A')
-            // console.log(obj)
-            // console.log(Object.keys(obj))
-            name = Number(name)
-            if (name >= 0) {
-              val = target[name]
-              // console.log('here1')
-            } else {
-              val = target[target.length + name]
-              // console.log('here2')
-            }
-            // gather
-          } else if (name === 'undefined' || name === 'null') {
-            // console.log('C')
-            val = [target]
-            // return val
-          } else {
-            // console.log('E')
-            val = target[name]
-          }
-          if (Array.isArray(val)) {
-            return getProxy(val)
-          }
-          return val
-        },
-      })
+    // obj.valueAt = function () {
+    //   let value = obj
+    //   let args = arguments //eslint-disable-line
+    //   if (Array.isArray(args[0])) {
+    //     args = args[0]
+    //   }
+    //   if (args[0]._named_array_values) {
+    //     args = args[0]._named_array_values
+    //   }
+    //   for (let i = 0; i < args.length; i++) {
+    //     value = value[args[i]]
+    //   }
+    //   return value
+    // }
+  }
+
+  valueAt() {
+    let value = this
+    let args = arguments //eslint-disable-line
+    if (Array.isArray(args[0])) {
+      args = args[0]
     }
-    return getProxy(obj)
+    if (args[0]._named_array_values) {
+      args = args[0]._named_array_values
+    }
+    for (let i = 0; i < args.length; i++) {
+      value = value[args[i]]
+    }
+    return value
   }
 }
 
-
+function getNamedNumpyArray(values, names) {
+  const keys = Object.keys(values).concat('length')
+  function getProxy(thing) {
+    return new Proxy(thing, {
+      get: (target, name) => {
+        // console.log('name: ', name)
+        if (name === '_named_array_values') {
+          // console.log('A0')
+          return target._named_array_values
+        }
+        let val
+        if (typeof name === 'string' && Number.isInteger(Number(name))) {
+          // console.log('A')
+          // console.log(obj)
+          // console.log(Object.keys(obj))
+          name = Number(name)
+          if (name >= 0) {
+            val = target[name]
+            // console.log('here1')
+          } else {
+            val = target[target.length + name]
+            // console.log('here2')
+          }
+          // gather
+        } else if (name === 'undefined' || name === 'null') {
+          // console.log('C')
+          val = [target]
+          // return val
+        } else {
+          // console.log('E')
+          val = target[name]
+        }
+        if (Array.isArray(val)) {
+          return getProxy(val)
+        }
+        return val
+      },
+      ownKeys: () => keys,
+      getOwnPropertyDescriptor: function(target, key) {
+        return { value: this.get(target, key), enumerable: true, configurable: true }
+      }
+    })
+  }
+  const obj = new NamedNumpyArray(values, names) //eslint-disable-line
+  return getProxy(obj)
+}
 module.exports = {
   NamedDict,
-  NamedNumpyArray,
+  NamedNumpyArray: getNamedNumpyArray,
 }
