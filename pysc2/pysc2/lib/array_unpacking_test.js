@@ -92,48 +92,104 @@ function unpack(values, names, nameIndex = 0, keyPathArray = []) {
 }
 
 
-var values = [[[[0, 1], [2, 3]], [[4, 5], [6, 7]]],
-         [[[8, 9], [10, 11]], [[12, 13], [14, 15]]]]
-var names = [["a", "b"], ["c", "d"], ["e", "f"], ["g", "h"]]
-unpack(values, names)
+// var values = [[[[0, 1], [2, 3]], [[4, 5], [6, 7]]],
+//          [[[8, 9], [10, 11]], [[12, 13], [14, 15]]]]
+// var names = [["a", "b"], ["c", "d"], ["e", "f"], ["g", "h"]]
+// unpack(values, names)
 
-console.log(values.a)
-console.log(values.b)
-console.log(values.a.c)
-console.log(values.b.c)
-console.log(values.a.d)
-console.log(values.b.d)
-console.log(values.a.c.e)
-console.log(values.b.c.e)
-console.log(values.a.c.f)
-console.log(values.b.c.f)
-console.log(values.a.c.e.g)
-console.log(values.b.c.e.g)
-console.log(values.a.c.e.h)
-console.log(values.b.c.e.h)
-console.log(values.a.c.f.g)
-console.log(values.b.c.f.g)
-console.log(values.a.c.f.h)
-console.log(values.b.c.f.h)
-
-
+// console.log(values.a)
+// console.log(values.b)
+// console.log(values.a.c)
+// console.log(values.b.c)
+// console.log(values.a.d)
+// console.log(values.b.d)
+// console.log(values.a.c.e)
+// console.log(values.b.c.e)
+// console.log(values.a.c.f)
+// console.log(values.b.c.f)
+// console.log(values.a.c.e.g)
+// console.log(values.b.c.e.g)
+// console.log(values.a.c.e.h)
+// console.log(values.b.c.e.h)
+// console.log(values.a.c.f.g)
+// console.log(values.b.c.f.g)
+// console.log(values.a.c.f.h)
+// console.log(values.b.c.f.h)
 
 
 
+var named_array = require('./named_array.js');
 
+var values = [1, 3, 6];
+var names = ['a', 'b', 'c'];
+var a = named_array.NamedNumpyArray(values, names);
 
+// for (var i in a) { console.log(i) }
 
-
-
-
-
-
-
-
+a.a = 10
+console.log(a.a)
 
 
 
 
+
+// function assign(values, name, keyPathArray) {
+//   let value = values
+//   let parent
+//   while (keyPathArray.length) {
+//     if (keyPathArray.length === 1) {
+//       parent = value
+//     }
+//     value = value[keyPathArray.shift()]
+//   }
+//   parent[name] = value
+// }
+// function unpack(values, names, nameIndex = 0, keyPathArray = []) {
+//   //sanitize input
+//   if (names.contructor && names.constructor._fields) {
+//     names = names.constructor._fields
+//   } else if (!Array.isArray(names)) {
+//     names = Object.keys(names)
+//   }
+//   const nameList = names[nameIndex]
+//   if (nameList === null || nameList === undefined) {
+//     return
+//   }
+//   nameList.forEach((name, index) => {
+//     assign(values, name, keyPathArray.concat(index))
+//     unpack(values, names, nameIndex + 1, keyPathArray.concat(index))
+//   })
+// }
+// class Test extends Array {// extends np.ndarray:
+//   constructor(values, names) {
+//     super(...values)
+//     const obj = values
+
+//     // Validate names!
+//     const index_names = []
+    
+//     const copy = values.map((e) => e)
+//     obj._named_array_values = copy
+//     // Finally convert to a NamedNumpyArray.
+//     obj._index_names = index_names // [{name: index}, ...], dict per dimension.
+//     unpack(this, names)
+//   }
+
+//   valueAt() {
+//     let value = this
+//     let args = arguments //eslint-disable-line
+//     if (Array.isArray(args[0])) {
+//       args = args[0]
+//     }
+//     if (args[0]._named_array_values) {
+//       args = args[0]._named_array_values
+//     }
+//     for (let i = 0; i < args.length; i++) {
+//       value = value[args[i]]
+//     }
+//     return value
+//   }
+// }
 
 
 

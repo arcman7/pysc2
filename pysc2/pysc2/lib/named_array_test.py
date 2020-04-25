@@ -86,7 +86,7 @@ class NamedArrayTest(parameterized.TestCase):
   def test_bad_names(self, names):
     # print('names*********************')
     # print(names)
-    print('bad:')
+    # print('bad:')
     with self.assertRaises(ValueError):
       named_array.NamedNumpyArray([1, 3, 6], names)
 
