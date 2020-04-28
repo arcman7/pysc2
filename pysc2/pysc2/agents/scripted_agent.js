@@ -9,7 +9,7 @@ const FUNCTIONS = actions.FUNCTIONS
 const RAW_FUNCTIONS = actions.RAW_FUNCTIONS
 
 const _PLAYER_SELF = features.PlayerRelative.SELF
-const _PLAYER_NEUTRAL = features.PlayerRelative.NEUTRAL
+const _PLAYER_NEUTRAL = features.PlayerRelative.NEUTRAL //beacon/minerals
 const _PLAYER_ENEMY = features.PlayerRelative.ENEMY
 
 function _xy_locs(mask) {
@@ -49,7 +49,7 @@ class CollectMineralShards extends base_agent.BaseAgent {
       }
       const marines = _xy_locs(player_relative == _PLAYER_SELF)
       const axis1 = 0
-      const marine_xy = numpy.round(numpy.mean(marines, axis1))
+      const marine_xy = numpy.round(numpy.mean(marines, axis1)) //Average location.
       const axis2 = 1
       const distances = numpy.norm(numpy.tensor(minerals).sub(marine_xy), axis2)
       const closest_mineral_xy = minerals[numpy.argMin(distances)]
@@ -102,11 +102,12 @@ class CollectMineralShardsFeatureUnits extends base_agent.BaseAgent {
     const marine_xy = [marine_unit.x, marine_unit.y]
 
     if (!marine_unit.is_selected) {
+      //Nothing selected or the wrong marine is selected.
       this._marine_selected = true
       return FUNCTIONS.selected_point("select", marine_xy)
     }
-
     if (obs.observation.available_actions.includes(FUNCTIONS.Move_screen.id)) {
+      //Find and move to the nearest mineral.
       let minerals = []
       Object.keys(obs.observation.feature_units).forEach((key) => {
         const unit = obs.observation.feature_units[key]
@@ -116,13 +117,16 @@ class CollectMineralShardsFeatureUnits extends base_agent.BaseAgent {
       })
 
       if (minerals.includes(this._previous_mineral_xy)) {
+        //Don't go for the same mineral shard as other marine.
         minerals = minerals.filter((mineral) => mineral !== this._previous_mineral_xy)
       }
 
       if (minerals) {
+        //Find the closest.
         const axis = 1
         const distances = numpy.norm(numpy.tensor(minerals).sub(numpy.tensor(marine_xy)), axis)
         const closest_mineral_xy = minerals[numpy.argMin(distances)]
+        //Swap to the other marine.
         this._marine_selected = false
         this._previous_mineral_xy = closest_mineral_xy
         return FUNCTIONS.Move_screen("now", closest_mineral_xy)
@@ -178,10 +182,12 @@ class CollectMineralShardsRaw extends base_agent.BaseAgent {
         minerals.push([unit.x, unit.y])
       }
     })
+    //Don't go for the same mineral shard as other marine.
     if (minerals.includes(this._previous_mineral_xy)) {
       minerals = minerals.filter((mineral) => mineral !== this._previous_mineral_xy)
     }
     if (minerals) {
+      //Find the closest.
       const axis = 1
       const distances = numpy.norm(numpy.tensor(minerals).sub(numpy.tensor(marine_xy)), axis)
       const closest_mineral_xy = minerals[numpy.argMin(distances)]
@@ -205,6 +211,7 @@ class DefeatRoaches extends base_agent.BaseAgent {
       if (!roaches) {
         return FUNCTIONS.no_op()
       }
+      //Find the roach with max y coord.
       const temp = []
       for (let i = 0; i < roaches.length; i++) {
         temp.push(roaches[i][1])
@@ -246,6 +253,7 @@ class DefeatRoachesRaw extends base_agent.BaseAgent {
     })
 
     if (marines && roaches) {
+      //Find the roach with max y coord.
       const target = roaches.sort((r) => r.y).tag
       return RAW_FUNCTIONS.Attack_unit("now", marines, target)
     }
