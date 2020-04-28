@@ -121,7 +121,7 @@ class CollectMineralShardsFeatureUnits extends base_agent.BaseAgent {
 
       if (minerals) {
         const axis = 1
-        const distances = numpy.norm(numpy.tensor(minerals).sub(marine_xy), axis)
+        const distances = numpy.norm(numpy.tensor(minerals).sub(numpy.tensor(marine_xy)), axis)
         const closest_mineral_xy = minerals[numpy.argMin(distances)]
         this._marine_selected = false
         this._previous_mineral_xy = closest_mineral_xy
@@ -183,7 +183,7 @@ class CollectMineralShardsRaw extends base_agent.BaseAgent {
     }
     if (minerals) {
       const axis = 1
-      const distances = numpy.norm(numpy.tensor(minerals).sub(marine_xy), axis)
+      const distances = numpy.norm(numpy.tensor(minerals).sub(numpy.tensor(marine_xy)), axis)
       const closest_mineral_xy = minerals[numpy.argMin(distances)]
 
       this._last_marine = marine_unit.tag
@@ -207,7 +207,7 @@ class DefeatRoaches extends base_agent.BaseAgent {
       }
       const temp = []
       for (let i = 0; i < roaches.length; i++) {
-        temp.push(numpy.tensor(roaches)[i], [1])
+        temp.push(roaches[i][1])
       }
       const target = roaches[numpy.argMax(temp)]
       return FUNCTIONS.Attack_screen("now", target)
