@@ -254,7 +254,7 @@ class DefeatRoachesRaw extends base_agent.BaseAgent {
 
     if (marines && roaches) {
       //Find the roach with max y coord.
-      const target = roaches.sort((r) => r.y).tag
+      const target = roaches.sort((r1, r2) => r2.y - r1.y)[0].tag
       return RAW_FUNCTIONS.Attack_unit("now", marines, target)
     }
     return FUNCTIONS.no_op()
