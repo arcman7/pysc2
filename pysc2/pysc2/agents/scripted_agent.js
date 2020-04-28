@@ -29,7 +29,7 @@ class MoveToBeacon extends base_agent.BaseAgent {
         return FUNCTIONS.no_op()
       }
       const axis = 0
-      const beacon_center = Math.round(numpy.mean(beacon, axis))
+      const beacon_center = numpy.round(numpy.mean(beacon, axis))
       return FUNCTIONS.Move_screen("now", beacon_center)
     }
     return FUNCTIONS.select_army("select")
@@ -49,7 +49,7 @@ class CollectMineralShards extends base_agent.BaseAgent {
       }
       const marines = _xy_locs(player_relative == _PLAYER_SELF)
       const axis1 = 0
-      const marine_xy = Math.round(numpy.mean(marines, axis1))
+      const marine_xy = numpy.round(numpy.mean(marines, axis1))
       const axis2 = 1
       const distances = numpy.norm(numpy.tensor(minerals) - marine_xy, axis2)
       const closest_mineral_xy = minerals[numpy.argMin(distances)]

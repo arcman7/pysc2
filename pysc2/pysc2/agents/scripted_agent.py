@@ -34,8 +34,6 @@ RAW_FUNCTIONS = actions.RAW_FUNCTIONS
 def _xy_locs(mask):
   """Mask should be a set of bools from comparison with a feature layer."""
   y, x = mask.nonzero()
-  # print('mask shap:')
-  # print(mask.shape)
   return list(zip(x, y))
 
 
