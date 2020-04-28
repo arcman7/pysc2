@@ -1,12 +1,7 @@
 const path = require('path')
 // import pickle
 const Enum = require('python-enum')
-
-
-const np = require(path.resolve(__dirname, './numpy.js'))
 const named_array = require(path.resolve(__dirname, './named_array.js'))
-const pythonUtils = require(path.resolve(__dirname, './pythonUtils.js'))
-// const { ValueError } = pythonUtils
 
 function arrayEqual(a, b) {
   a.forEach((ele, i) => {
