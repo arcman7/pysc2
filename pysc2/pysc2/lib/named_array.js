@@ -170,7 +170,6 @@ class NamedNumpyArray extends Array {// extends np.ndarray:
       names = Object.keys(names)
     }
     this.__pickleArgs = [values, names]
-    // const obj = values
     this.tensor = np.tensor(values)
     this.shape = this.tensor.shape
     if (this.shape.length === 0) {
@@ -196,18 +195,16 @@ class NamedNumpyArray extends Array {// extends np.ndarray:
     if (!isinstance(names, Array) || names.length !== this.shape.length) {
       throw new Error(`ValueError: Names must be a list of length equal to the array shape: ${names.length} != ${this.shape.length}.`)
     }
-    // const index_names = []
     let only_none = this.shape[0] > 0
     Object.keys(names).forEach((key, i) => {
       let o = names[key]
       if (o === null) {
-        // index_names.push(o)
+        // skip
       } else {
         only_none = false
         if (isinstance(o, Enum.EnumMeta)) {
           o.member_names_.forEach((n, j) => {
             if (j != o[n]) {
-              // console.log('n: ', n, ' i: ', j, ' o[', n, ']: ', o[n])
               throw new Error('ValueError: Enum has holes or doesn\'t start from 0.')
             }
           })
@@ -226,11 +223,6 @@ class NamedNumpyArray extends Array {// extends np.ndarray:
         if (this.shape[i] !== o.length) {
           throw new Error(`ValueError: Wrong number of names in dimension ${i}. Got ${o.length}, expected ${this.shape[i]}.`)
         }
-        // Object.keys(o).forEach((n, j) => {
-        //   const thing = {}
-        //   thing[n] = j
-        //   // index_names.push(thing)
-        // })
       }
     })
 
@@ -240,7 +232,6 @@ class NamedNumpyArray extends Array {// extends np.ndarray:
     const copy = values.map((e) => e)
     this._named_array_values = copy
     // Finally convert to a NamedNumpyArray.
-    // this._index_names = index_names // [{name: index}, ...], dict per dimension.
     unpack(this, names)
   }
 
@@ -272,6 +263,7 @@ class NamedNumpyArray extends Array {// extends np.ndarray:
       if (Array.isArray(ele)) {
         const temp = this.where(conditionFunc, ele, results, false)
         results.concat(temp)
+        // NOTE: below will NOT work
         // results = results.concat(this.where(conditionFunc, ele, results, false))
         return
       }
@@ -299,20 +291,14 @@ class NamedNumpyArray extends Array {// extends np.ndarray:
 }
 
 function getNamedNumpyArray(values, names) {
-  // const keys = Object.keys(values).concat('length')
   let returnVal
   function getProxy(thing, override) {
-    // const keys = Object.keys(thing).concat('length') //, 'arguments')
-    // console.log('keys: ', keys)
     return new Proxy(thing, {
       get: (target, name) => {
-        // console.log('name: ', name)
         if (name === Symbol.iterator) {
-          // console.log('here!')
           return target[Symbol.iterator].bind(target)
         }
         if (name === '_named_array_values') {
-          // console.log('A0')
           return target._named_array_values
         }
         if (name === 'length') {
@@ -320,28 +306,19 @@ function getNamedNumpyArray(values, names) {
         }
         let val
         if (typeof name === 'string' && Number.isInteger(Number(name))) {
-          // console.log('A')
-          // console.log(obj)
-          // console.log(Object.keys(obj))
           name = Number(name)
           if (name >= 0) {
             val = target[name]
-            // console.log('here1')
           } else {
             val = target[target.length + name]
-            // console.log('here2')
           }
           // gather
         } else if (name === 'undefined' || name === 'null') {
-          // console.log('C')
           val = [target]
-          // return val
         } else if (override) {
           val = returnVal[name]
-          // console.log('E')
         } else {
           val = target[name]
-          // console.log('G')
         }
         if (Array.isArray(val)) {
           return getProxy(val)
@@ -352,7 +329,6 @@ function getNamedNumpyArray(values, names) {
         target[key] = value
         return value
       },
-      // ownKeys: () => keys,
       ownKeys: (target) => Object.keys(target).concat(['length']),
       getOwnPropertyDescriptor: function(target, key) {
         if (key === 'length') {
