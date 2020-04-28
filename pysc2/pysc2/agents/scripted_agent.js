@@ -22,7 +22,7 @@ class MoveToBeacon extends base_agent.BaseAgent {
 // An agent specifically for solving the MoveToBeacon map.//
   step(obs) {
     super.step(obs)
-    if (FUNCTIONS.MOVE_screen.id in obs.observation.available_actions) {
+    if (obs.observation.available_actions.includes(FUNCTIONS.MOVE_screen.id)) {
       const player_relative = obs.observation.feature_screen.player_relative
       const beacon = _xy_locs(player_relative == _PLAYER_NEUTRAL)
       if (!beacon) {
@@ -41,7 +41,7 @@ class CollectMineralShards extends base_agent.BaseAgent {
 
   step(obs) {
     super.step(obs)
-    if (FUNCTIONS.Move_screen.id in obs.observation.available_actions) {
+    if (obs.observation.available_actions.includes(FUNCTIONS.Move_screen.id)) {
       const player_relative = obs.observation.feature_screen
       const minerals = _xy_locs(player_relative == _PLAYER_NEUTRAL)
       if (!minerals) {
@@ -70,7 +70,7 @@ class CollectMineralShardsFeatureUnits extends base_agent.BaseAgent {
 */
   setup(obs_spec, action_spec) {
     super.setup(obs_spec, action_spec)
-    if (!("feature_units" in obs_spec)) {
+    if (!(obs_spec.includes("feature_units"))) {
       throw new Error("This agent requires the feature_units observation.")
     }
   }
@@ -106,7 +106,7 @@ class CollectMineralShardsFeatureUnits extends base_agent.BaseAgent {
       return FUNCTIONS.selected_point("select", marine_xy)
     }
 
-    if (FUNCTIONS.Move_screen.id in obs.observation.available_actions) {
+    if (obs.observation.available_actions.includes(FUNCTIONS.Move_screen.id)) {
       let minerals = []
       Object.keys(obs.observation.feature_units).forEach((key) => {
         const unit = obs.observation.feature_units[key]
@@ -115,7 +115,7 @@ class CollectMineralShardsFeatureUnits extends base_agent.BaseAgent {
         }
       })
 
-      if (this._previous_mineral_xy in minerals) {
+      if (minerals.includes(this._previous_mineral_xy)) {
         minerals = minerals.filter((mineral) => mineral !== this._previous_mineral_xy)
       }
 
@@ -141,7 +141,7 @@ class CollectMineralShardsRaw extends base_agent.BaseAgent {
   */
   setup(obs_spec, action_spec) {
     super.setup(obs_spec, action_spec)
-    if (!("raw_units" in obs_spec)) {
+    if (!(obs_spec.includes("raw_units"))) {
       throw new Error("This agent requires the raw_units observation.")
     }
   }
@@ -178,7 +178,7 @@ class CollectMineralShardsRaw extends base_agent.BaseAgent {
         minerals.push([unit.x, unit.y])
       }
     })
-    if (this._previous_mineral_xy in minerals) {
+    if (minerals.includes(this._previous_mineral_xy)) {
       minerals = minerals.filter((mineral) => mineral !== this._previous_mineral_xy)
     }
     if (minerals) {
@@ -199,7 +199,7 @@ class DefeatRoaches extends base_agent.BaseAgent {
 
   step(obs) {
     super.step(obs)
-    if (FUNCTIONS.Attack_screen.id in obs.observation.available_actions) {
+    if (obs.observation.available_actions.includes(FUNCTIONS.Attack_screen.id)) {
       const player_relative = obs.observation.feature_screen.player_relative
       const roaches = _xy_locs(player_relative == _PLAYER_ENEMY)
       if (!roaches) {
@@ -212,7 +212,7 @@ class DefeatRoaches extends base_agent.BaseAgent {
       const target = roaches[numpy.argMax(temp)]
       return FUNCTIONS.Attack_screen("now", target)
     }
-    if (FUNCTIONS.select_army.id in obs.observation.available_actions) {
+    if (obs.observation.available_actions.includes(FUNCTIONS.select_army.id)) {
       return FUNCTIONS.select_army("select")
     }
     return FUNCTIONS.no_op()
@@ -223,7 +223,7 @@ class DefeatRoachesRaw extends base_agent.BaseAgent {
 /*An agent specifically for solving DefeatRoaches using raw actions.*/
   setup(obs_spec, action_spec) {
     super.setup(obs_spec, action_spec)
-    if (!("raw_units" in obs_spec)) {
+    if (!(obs_spec.includes("raw_units"))) {
       throw new Error("This agent requires the raw_units observation")
     }
   }
