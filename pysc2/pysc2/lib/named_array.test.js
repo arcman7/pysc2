@@ -68,15 +68,15 @@ describe('named_array:', () => {
   test('  test_single_dimension:', () => {
     const values = [1, 3, 6]
     const singleNames = [
-      ["list", ["a", "b", "c"]],
-      ["tuple", ["a", "b", "c"]],
-      ["list2", [["a", "b", "c"]]],
-      ["tuple2", [["a", "b", "c"]]],
-      ["list_tuple", [["a", "b", "c"]]],
-      ["named_tuple", TestNamedTuple],
-      ["named_tuple2", [TestNamedTuple]],
-      ["int_enum", TestEnum],
-      ["int_enum2", [TestEnum]],
+      ['list', ['a', 'b', 'c']],
+      ['tuple', ['a', 'b', 'c']],
+      ['list2', [['a', 'b', 'c']]],
+      ['tuple2', [['a', 'b', 'c']]],
+      ['list_tuple', [['a', 'b', 'c']]],
+      ['named_tuple', TestNamedTuple],
+      ['named_tuple2', [TestNamedTuple]],
+      ['int_enum', TestEnum],
+      ['int_enum2', [TestEnum]],
     ]
     singleNames.forEach((pair, i) => { //eslint-disable-line
       // console.log('here', i)
@@ -91,10 +91,10 @@ describe('named_array:', () => {
       expect(a.b).toBe(3)
       expect(a.c).toBe(6) // 7
       expect(a.d).toBe(undefined)
-      expect(a["a"]).toBe(1)
-      expect(a["b"]).toBe(3)
-      expect(a["c"]).toBe(6)
-      expect(a["d"]).toBe(undefined)
+      expect(a['a']).toBe(1)
+      expect(a['b']).toBe(3)
+      expect(a['c']).toBe(6)
+      expect(a['d']).toBe(undefined)
       // New axis = None
       // expect(a).toEqual([1, 3, 6])
       arrayEqual([1, 3, 6], a)
@@ -111,9 +111,9 @@ describe('named_array:', () => {
       arrayEqual([[rawVals]], a[null][null])
       arrayEqual(rawVals, a[null][0])
       // expect(a[null, 0], 1)
-      // expect(a[null, "a"], 1)
+      // expect(a[null, 'a'], 1)
       expect(a[null][0].a).toBe(1)
-      // expect(a[null][0, "b"], 3)
+      // expect(a[null][0, 'b'], 3)
 
       // range slicing
       // expect(a.slice(0, 2)).toEqual([1, 3])
@@ -143,17 +143,17 @@ describe('named_array:', () => {
       a[1] = 4
       expect(a[1]).toBe(4)
       expect(a.b).toBe(4)
-      expect(a["b"]).toBe(4)
+      expect(a['b']).toBe(4)
 
       // a[1:2] = 2
       // expect(a[1], 2)
-      expect(a.b).toBe(2)
-      expect(a['b']).toBe(2)
+      // expect(a.b).toBe(2)
+      // expect(a['b']).toBe(2)
 
       // a[[1]] = 3
       // expect(a[1], 3)
       // expect(a.b, 3)
-      // expect(a["b"], 3)
+      // expect(a['b'], 3)
 
       a.b = 5
       expect(a[1]).toBe(5)
@@ -204,7 +204,7 @@ describe('named_array:', () => {
     // arrayEqual(a[:, null], [[[1, 3]], [[6, 8]]])
     // arrayEqual(a[None, :, None], [[[[1, 3]], [[6, 8]]]])
     // arrayEqual(a[None, 0, None], [[[1, 3]]])
-    // arrayEqual(a[None, "a", None], [[[1, 3]]])
+    // arrayEqual(a[None, 'a', None], [[[1, 3]]])
     arrayEqual(a[null][null], [[[[1, 3], [6, 8]]]])
     arrayEqual(a[null][0], [[1, 3], [6, 8]])
     arrayEqual(a[null][0].a, [1, 3])
@@ -219,8 +219,45 @@ describe('named_array:', () => {
     expect(a.valueAt(0, 'b')).toBe(3)
     expect(a.valueAt(1, 'b')).toBe(8)
     expect(a[0].a).toBe(1)
-    arrayEqual(a[a > 2], [3, 6, 8])
-    arrayEqual(a[a % 3 == 0], [3, 6])
-    arrayEqual(a[None, :, "a"], [[1, 6]])
+    arrayEqual([3, 6, 8], a.where((n) => n > 2))
+    arrayEqual([3, 6], a.where((n) => n % 3 == 0))
+    // arrayEqual(a.valueAt(None, :, 'a'), [[1, 6]])
+  })
+  test('  test_slicing', () => {
+    let a = named_array.NamedNumpyArray([1, 2, 3, 4, 5], 'abcde'.split(''))
+    arrayEqual([1, 2, 3, 4, 5], a.slice(0))
+    arrayEqual([2, 4], a.where((n) => n % 2 === 0))
+    expect(a.where((n) => n % 2 === 0).b).toBe(2)
+    a = named_array.NamedNumpyArray(
+      [
+        [[[0, 1], [2, 3]], [[4, 5], [6, 7]]],
+        [[[8, 9], [10, 11]], [[12, 13], [14, 15]]]
+      ],
+      [['a', 'b'], ['c', 'd'], ['e', 'f'], ['g', 'h']]
+    )
+    expect(a.a.c.e.g).toBe(0)
+    expect(a.b.c.f.g).toBe(10)
+    expect(a.b.d.f.h).toBe(15)
+    // arrayEqual(a[0, ..., 0], [[0, 2], [4, 6]])
+    // arrayEqual(a[0, ..., 1], [[1, 3], [5, 7]])
+    // arrayEqual(a[0, 0, ..., 1], [1, 3])
+    // arrayEqual(a[0, ..., 1, 1], [3, 7])
+    // arrayEqual(a[..., 1, 1], [[3, 7], [11, 15]])
+    // arrayEqual(a[1, 0, ...], [[8, 9], [10, 11]])
+
+    // arrayEqual(a["a", ..., "g"], [[0, 2], [4, 6]])
+    // arrayEqual(a["a", ...], [[[0, 1], [2, 3]], [[4, 5], [6, 7]]])
+    // arrayEqual(a[..., "g"], [[[0, 2], [4, 6]], [[8, 10], [12, 14]]])
+    // arrayEqual(a["a", "c"], [[0, 1], [2, 3]])
+    // arrayEqual(a["a", ...].c, [[0, 1], [2, 3]])
+    // arrayEqual(a["a", ..., "g"].c, [0, 2])
+  })
+  test('  test_pickle', () => {
+    const arr = named_array.NamedNumpyArray([1, 3, 6], ['a', 'b', 'c'])
+    const pickled = arr.pickle()
+    const unpickled = named_array.NamedNumpyArray(...JSON.parse(pickled))
+    arrayEqual([1, 3, 6], arr)
+    arrayEqual([1, 3, 6], unpickled)
+    console.warn('Definitely need better pickling and pickling tests here')
   })
 })

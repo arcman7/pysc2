@@ -47,13 +47,16 @@ Array.prototype.where = function where(conditionFunc, start = this._named_array_
   if (init === false) {
     return results
   }
-  return this.getProxy(results)
+  return this.getProxy(results, true)
 }
 function assign(values, name, keyPathArray) {
   let value = values
   let parent
   let index
   let lookUpIndex
+  if (name === null || name === undefined) {
+    return
+  }
   while (keyPathArray.length) {
     if (keyPathArray.length === 1) {
       parent = value
@@ -62,15 +65,10 @@ function assign(values, name, keyPathArray) {
     lookUpIndex = index
     value = value[index]
   }
-  // Object.assign(parent, {
-  //   get
-  // })
-  // parent._look_up = {}
   Object.defineProperty(parent, name, {
     get: function() { return parent[lookUpIndex] },
     set: function(val) { parent[lookUpIndex] = val; return val }
   })
-  // parent[name] = value
 }
 function unpack(values, names, nameIndex = 0, keyPathArray = []) {
   //sanitize input
@@ -82,8 +80,11 @@ function unpack(values, names, nameIndex = 0, keyPathArray = []) {
     names = Object.keys(names)
   }
   let nameList = names[nameIndex]
-  if (nameList === null || nameList === undefined) {
+  if (nameList === undefined) {
     return
+  }
+  if (nameList === null) {
+    nameList = names
   }
   if (typeof nameList === 'string') {
     nameList = names
@@ -168,6 +169,7 @@ class NamedNumpyArray extends Array {// extends np.ndarray:
     } else if (!Array.isArray(names)) {
       names = Object.keys(names)
     }
+    this.__pickleArgs = [values, names]
     // const obj = values
     this.tensor = np.tensor(values)
     this.shape = this.tensor.shape
@@ -280,7 +282,7 @@ class NamedNumpyArray extends Array {// extends np.ndarray:
     if (init === false) {
       return results
     }
-    return this.getProxy(results)
+    return this.getProxy(results, true)
   }
 
   slice() {
@@ -289,6 +291,10 @@ class NamedNumpyArray extends Array {// extends np.ndarray:
 
   getProxy() { //eslint-disable-line
     return arguments //eslint-disable-line
+  }
+
+  pickle() {
+    return JSON.stringify(this.__pickleArgs)
   }
 }
 

@@ -56,22 +56,63 @@ var { isinstance } = pythonUtils
 //   .map(combosArray => combosArray)
 //   .filter((el, idx, self) => (self.indexOf(el) === idx))
 // }
+// function assign(values, name, keyPathArray) {
+//   let value = values
+//   // console.log('assign\n\t value: ', value, '\n\tname: ', name, '\n\tkeyPathArray: ', keyPathArray)
+//   let parent
+//   while (keyPathArray.length) {
+//     if (keyPathArray.length === 1) {
+//       parent = value
+//     }
+//     value = value[keyPathArray.shift()]
+//   }
+//   // console.log('parent: ', parent)
+//   // console.log('value: ', value)
+//   parent[name] = value
+// }
+// function unpack(values, names, nameIndex = 0, keyPathArray = []) {
+//   // console.log('nameIndex: ' + nameIndex + '\nkeyPathArray: ' + JSON.stringify(keyPathArray))
+//   //sanitize input
+//   if (isinstance(names, Enum.EnumMeta)) {
+//     names = names.member_names_
+//   } else if (names.contructor && names.constructor._fields) {
+//     names = names.constructor._fields
+//   } else if (!Array.isArray(names)) {
+//     names = Object.keys(names)
+//   }
+//   const nameList = names[nameIndex]
+//   // console.log('nameList: ', nameList)
+//   if (nameList === null || nameList === undefined) {
+//     return
+//   }
+//   nameList.forEach((name, index) => {
+//     assign(values, name, keyPathArray.concat(index))
+//     unpack(values, names, nameIndex + 1, keyPathArray.concat(index))
+//   })
+// }
+
 function assign(values, name, keyPathArray) {
   let value = values
-  // console.log('assign\n\t value: ', value, '\n\tname: ', name, '\n\tkeyPathArray: ', keyPathArray)
   let parent
+  let index
+  let lookUpIndex
+  if (name === null) {
+    return
+  }
   while (keyPathArray.length) {
     if (keyPathArray.length === 1) {
       parent = value
     }
-    value = value[keyPathArray.shift()]
+    index = keyPathArray.shift()
+    lookUpIndex = index
+    value = value[index]
   }
-  // console.log('parent: ', parent)
-  // console.log('value: ', value)
-  parent[name] = value
+  Object.defineProperty(parent, name, {
+    get: function() { return parent[lookUpIndex] },
+    set: function(val) { parent[lookUpIndex] = val; return val }
+  })
 }
 function unpack(values, names, nameIndex = 0, keyPathArray = []) {
-  // console.log('nameIndex: ' + nameIndex + '\nkeyPathArray: ' + JSON.stringify(keyPathArray))
   //sanitize input
   if (isinstance(names, Enum.EnumMeta)) {
     names = names.member_names_
@@ -80,54 +121,70 @@ function unpack(values, names, nameIndex = 0, keyPathArray = []) {
   } else if (!Array.isArray(names)) {
     names = Object.keys(names)
   }
-  const nameList = names[nameIndex]
-  // console.log('nameList: ', nameList)
-  if (nameList === null || nameList === undefined) {
+  let nameList = names[nameIndex]
+  if (nameList === undefined) {
     return
   }
-  nameList.forEach((name, index) => {
-    assign(values, name, keyPathArray.concat(index))
-    unpack(values, names, nameIndex + 1, keyPathArray.concat(index))
-  })
+  if (nameList === null) {
+    nameList = names
+  }
+  if (typeof nameList === 'string') {
+    nameList = names
+  } else if (nameList.constructor && nameList.constructor._fields) {
+    nameList = nameList.constructor._fields
+  } else if (isinstance(nameList, Enum.EnumMeta)) {
+    nameList = nameList.member_names_
+  }
+  try {
+    nameList.forEach((name, index) => {
+      assign(values, name, keyPathArray.concat(index))
+      unpack(values, names, nameIndex + 1, keyPathArray.concat(index))
+    })
+  } catch (err) {
+    console.log('nameList: ', nameList, ' nameIndex: ', nameIndex, '\nerr: ', err)
+  }
 }
+var values = [[[[0, 1], [2, 3]], [[4, 5], [6, 7]]],
+         [[[8, 9], [10, 11]], [[12, 13], [14, 15]]]]
+var names = [["a", "b"], ["c", "d"], ["e", "f"], ["g", "h"]]
+unpack(values, names)
 
-
-// var values = [[[[0, 1], [2, 3]], [[4, 5], [6, 7]]],
-//          [[[8, 9], [10, 11]], [[12, 13], [14, 15]]]]
-// var names = [["a", "b"], ["c", "d"], ["e", "f"], ["g", "h"]]
-// unpack(values, names)
-
-// console.log(values.a)
-// console.log(values.b)
-// console.log(values.a.c)
-// console.log(values.b.c)
-// console.log(values.a.d)
-// console.log(values.b.d)
-// console.log(values.a.c.e)
-// console.log(values.b.c.e)
-// console.log(values.a.c.f)
-// console.log(values.b.c.f)
-// console.log(values.a.c.e.g)
-// console.log(values.b.c.e.g)
-// console.log(values.a.c.e.h)
-// console.log(values.b.c.e.h)
-// console.log(values.a.c.f.g)
-// console.log(values.b.c.f.g)
-// console.log(values.a.c.f.h)
-// console.log(values.b.c.f.h)
+console.log(values.a)
+console.log(values.b)
+console.log(values.a.c)
+console.log(values.b.c)
+console.log(values.a.d)
+console.log(values.b.d)
+console.log(values.a.c.e)
+console.log(values.b.c.e)
+console.log(values.a.c.f)
+console.log(values.b.c.f)
+console.log(values.a.c.e.g)
+console.log(values.b.c.e.g)
+console.log(values.a.c.e.h)
+console.log(values.b.c.e.h)
+console.log(values.a.c.f.g)
+console.log(values.b.c.f.g)
+console.log(values.a.c.f.h)
+console.log(values.b.c.f.h)
 
 
 
-var named_array = require('./named_array.js');
+// var named_array = require('./named_array.js');
 
-var values = [1, 3, 6];
-var names = ['a', 'b', 'c'];
-var a = named_array.NamedNumpyArray(values, names);
-
+// var values = [1, 3, 6];
+// var names = ['a', 'b', 'c'];
+// var a = named_array.NamedNumpyArray(values, names);
+console.log('here')
+var v = [[1, 3], [6, 8]]
+unpack(v, [null, ['a', 'b']])
+console.log(v)
+console.log(v[0].a)
+// var a = named_array.NamedNumpyArray([[1, 3], [6, 8]], [null, ['a', 'b']])
 // for (var i in a) { console.log(i) }
 
-a.a = 10
-console.log(a.a)
+// a.a = 10
+// console.log(a.a)
 
 
 
