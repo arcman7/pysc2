@@ -51,7 +51,7 @@ class CollectMineralShards extends base_agent.BaseAgent {
       const axis1 = 0
       const marine_xy = numpy.round(numpy.mean(marines, axis1))
       const axis2 = 1
-      const distances = numpy.norm(numpy.tensor(minerals) - marine_xy, axis2)
+      const distances = numpy.norm(numpy.tensor(minerals).sub(marine_xy), axis2)
       const closest_mineral_xy = minerals[numpy.argMin(distances)]
       return FUNCTIONS.Move_screen("now", closest_mineral_xy)
     }
@@ -121,7 +121,7 @@ class CollectMineralShardsFeatureUnits extends base_agent.BaseAgent {
 
       if (minerals) {
         const axis = 1
-        const distances = numpy.norm(numpy.tensor(minerals) - numpy.tensor(marine_xy), axis)
+        const distances = numpy.norm(numpy.tensor(minerals).sub(marine_xy), axis)
         const closest_mineral_xy = minerals[numpy.argMin(distances)]
         this._marine_selected = false
         this._previous_mineral_xy = closest_mineral_xy
@@ -183,7 +183,7 @@ class CollectMineralShardsRaw extends base_agent.BaseAgent {
     }
     if (minerals) {
       const axis = 1
-      const distances = numpy.norm(numpy.tensor(minerals) - numpy.tensor(marine_xy), axis)
+      const distances = numpy.norm(numpy.tensor(minerals).sub(marine_xy), axis)
       const closest_mineral_xy = minerals[numpy.argMin(distances)]
 
       this._last_marine = marine_unit.tag
