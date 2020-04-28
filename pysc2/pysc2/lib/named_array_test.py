@@ -47,7 +47,7 @@ class TestEnum(Enum.IntEnum):
 
 
 class BadEnum(Enum.IntEnum):
-  a = 1
+  a = 1 #bad becuase it doenst start at zero
   b = 2
   c = 3
 
@@ -84,8 +84,9 @@ class NamedArrayTest(parameterized.TestCase):
       ("set", [{"a", "b", "c"}]),
   )
   def test_bad_names(self, names):
-    print('names*********************')
-    print(names)
+    # print('names*********************')
+    # print(names)
+    print('bad:')
     with self.assertRaises(ValueError):
       named_array.NamedNumpyArray([1, 3, 6], names)
 
@@ -95,10 +96,10 @@ class NamedArrayTest(parameterized.TestCase):
       ("list2", [["a", "b", "c"]]),
       ("tuple2", (("a", "b", "c"))),
       ("list_tuple", [("a", "b", "c")]),
-      ("named_tuple", TestNamedTuple),
-      ("named_tuple2", [TestNamedTuple]),
-      ("int_enum", TestEnum),
-      ("int_enum2", [TestEnum]),
+      ("named_tuple", TestNamedTuple), #7
+      ("named_tuple2", [TestNamedTuple]), # 8
+      ("int_enum", TestEnum), # 9 
+      ("int_enum2", [TestEnum]), # 10
   )
   def test_single_dimension(self, names):
     a = named_array.NamedNumpyArray([1, 3, 6], names)
@@ -108,7 +109,7 @@ class NamedArrayTest(parameterized.TestCase):
     self.assertEqual(a[-1], 6)
     self.assertEqual(a.a, 1)
     self.assertEqual(a.b, 3)
-    self.assertEqual(a.c, 6)
+    self.assertEqual(a.c, 6) # 7
     with self.assertRaises(AttributeError):
       a.d  # pylint: disable=pointless-statement
     self.assertEqual(a["a"], 1)

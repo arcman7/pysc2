@@ -75,6 +75,11 @@ class FeatureType(Enum.Enum):
   SCALAR = 1
   CATEGORICAL = 2
 
+# FeatureType.SCALAR # returns an instance of the enum class
+# FeatureType(1) # returns FeatureType.SCALAR
+# FeatureType(2) # returns FeatureType.CATEGORICAL
+# a = FeatureType(1)
+# a.CATEGORICAL == FeatureType.CATEGORICAL # True
 
 class PlayerRelative(Enum.IntEnum):
   """The values for the `player_relative` feature layers."""

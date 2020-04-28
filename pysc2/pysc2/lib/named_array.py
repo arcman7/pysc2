@@ -39,7 +39,6 @@ class NamedDict(dict):
 
 _NULL_SLICE = slice(None, None, None)
 
-
 # pylint: disable=protected-access
 class NamedNumpyArray(np.ndarray):
   """A subclass of ndarray that lets you give names to indices.
@@ -60,9 +59,43 @@ class NamedNumpyArray(np.ndarray):
     
     bar = named_array.NamedNumpyArray([[1, 3], [6, 8]], [["a", "b"], None])
     bar.a, bar[1], bar["a", 1] => [1, 3], [6, 8], 3
+
+    bar = named_array.NamedNumpyArray([[1, 3], [6, 8]], [["a", "b"], ["c", "d"]])
     
-    c = named_array.NamedNumpyArray([[1, 3], [6, 8]], [None, ["a", "b"]])
-    c[0].a, b[1, 0], b[1, "b"] => 1, 6, 8
+    baz = named_array.NamedNumpyArray([[1, 3], [6, 8]], [None, ["a", "b"]])
+    baz[0].a, baz[1, 0], baz[1, "b"] => 1, 6, 8
+
+    Jihan & Ryan - Documentation notes:
+
+     var foo = named_array.NamedNumpyArray([1, 3, 6], ["a", "b", "c"])
+                col   
+    dimension    0     
+       a         1        
+       b         3
+       c         6
+
+    usage: foo.a => 1, foo.b => 3, foo.c => 6
+
+      bar = named_array.NamedNumpyArray([[1, 3], [6, 8]], [["a", "b"], None])
+                col   col
+    dimension    0     1
+       a (0)     1     3 
+       b (1)     6     8
+
+    usage: bar.a => [1,3], bar.a[0] => 1, bar.a[1] => 3
+    usage: bar.b => [6,8], bar.b[0] => 6, bar.b[1] => 8
+      
+     baz = named_array.NamedNumpyArray([[1, 3], [6, 8]], [None, ["a", "b"]])
+    
+                col           col       
+    dimension    a             b
+    None (0)     1             3
+    None (1)     6             8
+
+    usage: bar[0] => [1,3], bar[0].a => 1, bar[0].a => 3
+    usage: bar[1] => [6,8], bar[0].b => 6, bar[1].b => 8
+
+
   Look at the tests for more examples including using enums and named tuples.
   """
   # Details of how to subclass an ndarray are at:
@@ -70,7 +103,7 @@ class NamedNumpyArray(np.ndarray):
 
   def __new__(cls, values, names, *args, **kwargs):
     obj = np.array(values, *args, **kwargs)
-
+    # print('values: ', values, '  names: ', names)
     if len(obj.shape) == 0:  # pylint: disable=g-explicit-length-test
       raise ValueError("Scalar arrays are unsupported.")
 
@@ -94,6 +127,7 @@ class NamedNumpyArray(np.ndarray):
     index_names = []
     only_none = obj.shape[0] > 0
     for i, o in enumerate(names):
+      print('i: ', i, '  o:')
       if o is None:
         index_names.append(o)
       else:

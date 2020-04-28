@@ -59,7 +59,9 @@ module.exports = {
   where: tf.where,
   mean: tf.mean,
   argMin: tf.argMin,
+  argMax: tf.argMax,
   norm: tf.norm,
+  round: tf.round,
   getCol(tensor, col) {
     const temp = tf.transpose(tensor)
     return temp.slice(col, 1)

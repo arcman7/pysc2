@@ -178,6 +178,30 @@ function NotImplementedError(message) {
   this.message = str;
 }
 
+function ValueError(value) {
+  /*
+  The error thrown when an invalid argument is passed.
+  */
+  const sender = (new Error) //eslint-disable-line
+    .stack
+    .split('\n')[2]
+    .replace(' at ', '');
+
+  this.message = `The argument from ${sender} is an invalid arugment.`;
+
+  // Append the message if given.
+  if (value) {
+    this.message += ` Invalid argument: "${value}".`;
+  }
+
+  let str = this.message;
+
+  while (str.indexOf('  ') > -1) {
+    str = str.replace('  ', ' ');
+  }
+
+  this.message = str;
+}
 function randomChoice(arr) {
   // This function does not support "size" of output shape.
   if (Array.isArray(arr)) {
@@ -185,7 +209,6 @@ function randomChoice(arr) {
   }
   return arr[Math.floor(Math.random() * arr.length)]
 }
-
 function nonZero(arr) {
   // This function outputs a array of indices of nonzero elements
   const rows = []
@@ -200,8 +223,8 @@ function nonZero(arr) {
       }
     }
   }
-  return [rows,cols]
-
+  return [rows, cols]
+}
 module.exports = {
   assert,
   Array,
@@ -217,6 +240,7 @@ module.exports = {
   randomUniform,
   String,
   sum,
+  ValueError,
   withPython,
   zip,
   randomChoice,
