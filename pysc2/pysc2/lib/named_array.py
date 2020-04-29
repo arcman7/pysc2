@@ -127,7 +127,7 @@ class NamedNumpyArray(np.ndarray):
     index_names = []
     only_none = obj.shape[0] > 0
     for i, o in enumerate(names):
-      print('i: ', i, '  o:')
+      # print('i: ', i, '  o:')
       if o is None:
         index_names.append(o)
       else:
