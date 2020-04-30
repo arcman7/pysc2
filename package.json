@@ -23,9 +23,9 @@
     "tests": "jest --colors"
   },
   "dependencies": {
-    "@tensorflow/tfjs": "^1.7.0",
-    "@tensorflow/tfjs-node": "^1.7.0",
-    "@tensorflow/tfjs-node-gpu": "^1.2.7",
+    "@tensorflow/tfjs": "^1.7.4",
+    "@tensorflow/tfjs-node": "^1.7.4",
+    "@tensorflow/tfjs-node-gpu": "^1.7.4",
     "dev-dependencies": "^1.0.0",
     "numjs": "^0.16.0",
     "python-enum": "^1.0.7",
@@ -34,8 +34,9 @@
   "devDependencies": {
     "eslint": "^6.8.0",
     "eslint-config-airbnb-base": "^14.1.0",
-    "eslint-plugin-import": "^2.20.1",
-    "jest": "^25.1.0",
-    "node-pre-gyp": "^0.14.0"
+    "eslint-plugin-import": "^2.20.2",
+    "jest": "^25.5.2",
+    "node-pre-gyp": "^0.14.0",
+    "sc2clientprotocol": "0.0.0"
   }
 }
