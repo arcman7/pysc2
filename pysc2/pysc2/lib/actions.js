@@ -555,9 +555,6 @@ class Function extends all_collections_generated_classes.Function {
     //Define a function represented as a game ability.//
     // assert function_type in ABILITY_FUNCTIONS
     if (!ABILITY_FUNCTIONS[function_type]) {
-      // console.log(arguments)
-      // console.log(arguments[2], function_type)
-      // console.log(JSON.stringify({id_, name, function_type: function_type, ability_id}))
       console.warn('ability: Unknown function type: ', JSON.stringify(function_type))
     }
     return new this.prototype.constructor({
@@ -644,7 +641,7 @@ class Function extends all_collections_generated_classes.Function {
   str(self, space = false) {
     //String version. Set space=True to line them all up nicely.//
     const val1 = (String(Math.floor(self.id))).rjust(space && 4)
-    return `${ val1 } ${ this.name.ljust(space && 50) } (${ this.args.join('; ') })`
+    return `${val1} ${this.name.ljust(space && 50)} (${this.args.join('; ')})`
   }
 }
 
@@ -666,8 +663,6 @@ class Functions {
     functions.forEach((f) => {
       this._func_dict[f.name] = f
     })
-    // console.log('this._func_dict: ', this._func_dict)
-    // console.log('this._func_list: ', this._func_list)
     if (Object.keys(this._func_dict).length !== this._func_list.length) {
       throw new Error('ValueError: Function names must be unique')
     }
