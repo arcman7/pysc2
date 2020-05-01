@@ -4,7 +4,7 @@ const actions = require(path.resolve(__dirname, '..', 'lib', './actions.js'))
 const features = require(path.resolve(__dirname, '..', 'lib', './features.js'))
 const numpy = require(path.resolve(__dirname, '..', 'lib', '.numpy.js'))
 const pythonUtils = require(path.resolve(__dirname, '..', 'lib', './pythonUtils.js'))
-const {nonZero, zip} = pythonUtils
+const { nonZero, zip } = pythonUtils
 const FUNCTIONS = actions.FUNCTIONS
 const RAW_FUNCTIONS = actions.RAW_FUNCTIONS
 
@@ -259,4 +259,13 @@ class DefeatRoachesRaw extends base_agent.BaseAgent {
     }
     return FUNCTIONS.no_op()
   }
+}
+
+module.exports = {
+  CollectMineralShards,
+  CollectMineralShardsFeatureUnits,
+  CollectMineralShardsRaw,
+  DefeatRoaches,
+  DefeatRoachesRaw,
+  MoveToBeacon,
 }
