@@ -48,3 +48,6 @@ network with the following structure
 The observations ot are encoded into vector representations,
 combined, and processed by a deep LSTM9, which maintains
 memory between steps.
+
+
+/c/Users/Ryan/AppData/Local/Programs/Python/Python37-32/Lib/site-packages/s2clientprotocol
