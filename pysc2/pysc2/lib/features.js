@@ -1,6 +1,6 @@
 const path = require('path');
 const s2clientprotocol = require('s2clientprotocol')
-const Enum = require('enum')
+const Enum = require('python-enum')
 const actions = require(path.resolve(__dirname, './actions.js'))
 const colors = require(path.resolve(__dirname, './colors.js'))
 const named_array = require(path.resolve(__dirname, './named_array.js'))
