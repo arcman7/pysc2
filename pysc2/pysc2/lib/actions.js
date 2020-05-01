@@ -1,14 +1,14 @@
 const path = require('path');
 const s2clientprotocol = require('s2clientprotocol')
-const Enum = require('enum')
+const Enum = require('python-enum')
 const point = require(path.resolve(__dirname, './point.js'))
 const pythonUtils = require(path.resolve(__dirname, './pythonUtils.js'))
 const all_collections_generated_classes = require(path.resolve(__dirname, './all_collections_generated_classes.js'))
 const numpy = require(path.resolve(__dirname, './numpy.js'))
 
-const { spatial_pb2, ui_pb2 } = s2clientprotocol
-const sc_spatial = spatial_pb2
-const sc_ui = ui_pb2
+const { spatial_pb, ui_pb } = s2clientprotocol
+const sc_spatial = spatial_pb
+const sc_ui = ui_pb
 const { len, iter, isinstance, isObject } = pythonUtils
 
 const ActionSpace = Enum.IntEnum('ActionSpace', {
@@ -235,8 +235,9 @@ class ArgumentType extends all_collections_generated_classes.ArgumentType {
       const thing = [1]
       real.push(thing)
     })
+    const self = this
     function factory(i, name) {
-      return new this.prototype.constructor({
+      return new self.prototype.constructor({
         id: i,
         name,
         sizes: [len(real)],
@@ -250,11 +251,12 @@ class ArgumentType extends all_collections_generated_classes.ArgumentType {
 
   static scalar(value) {
     // Create an ArgumentType with a single scalar in range(value).//
-    return (i, name) => this.prototype.constructor({
+    const self = this
+    return (i, name) => new self.prototype.constructor({
       id: i,
       name,
       sizes: [value],
-      fn: a => a[0],
+      fn: (a) => a[0],
       values: null,
       count: null,
     })
@@ -264,11 +266,11 @@ class ArgumentType extends all_collections_generated_classes.ArgumentType {
     // Create an ArgumentType that is represented by a point.Point.//
     const self = this;
     function factory(i, name) {
-      return self.prototype.constructor({
+      return new self.prototype.constructor({
         id: i,
         name,
         sizes: [0, 0],
-        fn: a => point.Point(...a).floor(),
+        fn: (a) => point.Point(...a).floor(),
         values: null,
         count: null,
       })
@@ -278,7 +280,7 @@ class ArgumentType extends all_collections_generated_classes.ArgumentType {
 
   static spec(id_, name, sizes) {
     // Create an ArgumentType to be used in ValidActions.//
-    return this.prototype.constructor({
+    return new this.prototype.constructor({
       id: id_,
       name,
       sizes,
@@ -298,7 +300,7 @@ class ArgumentType extends all_collections_generated_classes.ArgumentType {
       return arg.slice(0, count)
     }
 
-    return (i, name) => this.prototype.constructor({
+    return (i, name) => new this.prototype.constructor({
       id: i,
       name,
       sizes: [size],
@@ -345,7 +347,7 @@ class Arguments extends all_collections_generated_classes.Arguments {
       const factory = kwargs[name]
       named[name] = factory(this._fields.indexOf(name), name)
     })
-    return this.prototype.constructor(named)
+    return new this.prototype.constructor(named)
   }
 }
 
@@ -374,7 +376,7 @@ class RawArguments extends all_collections_generated_classes.RawArguments {
       const factory = kwargs[name]
       named[name] = factory(this._fields.indexOf(name), name)
     })
-    return this.prototype.constructor(named)
+    return new this.prototype.constructor(named)
   }
 }
 
@@ -384,7 +386,7 @@ function _define_position_based_enum(name, options) {
     const funcName = [0]
     dict[funcName] = index
   })
-  return Enum(dict)
+  return Enum(name, dict)
 }
 
 const QUEUED_OPTIONS = [
@@ -395,49 +397,54 @@ const QUEUED_OPTIONS = [
 const Queued = _define_position_based_enum("Queued", QUEUED_OPTIONS)
 
 const CONTROL_GROUP_ACT_OPTIONS = [
-  ["recall", sc_ui.ActionControlGroup.Recall],
-  ["set", sc_ui.ActionControlGroup.Set],
-  ["append", sc_ui.ActionControlGroup.Append],
-  ["set_and_steal", sc_ui.ActionControlGroup.SetAndSteal],
-  ["append_and_steal", sc_ui.ActionControlGroup.AppendAndSteal],
+  ["recall", sc_ui.ActionControlGroup.RECALL],
+  ["set", sc_ui.ActionControlGroup.SET],
+  ["append", sc_ui.ActionControlGroup.APPEND],
+  ["set_and_steal", sc_ui.ActionControlGroup.SETANDSTEAL],
+  ["append_and_steal", sc_ui.ActionControlGroup.APPENDANDSTEAL],
 ]
 
 const ControlGroupAct = _define_position_based_enum(
-  "ControlGroupAct", CONTROL_GROUP_ACT_OPTIONS)
+  "ControlGroupAct", CONTROL_GROUP_ACT_OPTIONS
+)
 
 const SELECT_POINT_ACT_OPTIONS = [
-  ["select", sc_spatial.ActionSpatialUnitSelectionPoint.Select],
-  ["toggle", sc_spatial.ActionSpatialUnitSelectionPoint.Toggle],
-  ["select_all_type", sc_spatial.ActionSpatialUnitSelectionPoint.AllType],
-  ["add_all_type", sc_spatial.ActionSpatialUnitSelectionPoint.AddAllType],
+  ["select", sc_spatial.ActionSpatialUnitSelectionPoint.Type.SELECT],
+  ["toggle", sc_spatial.ActionSpatialUnitSelectionPoint.Type.TOGGLE],
+  ["select_all_type", sc_spatial.ActionSpatialUnitSelectionPoint.Type.ALLTYPE],
+  ["add_all_type", sc_spatial.ActionSpatialUnitSelectionPoint.Type.ADDALLTYPE],
 ]
 const SelectPointAct = _define_position_based_enum(
-  "SelectPointAct", SELECT_POINT_ACT_OPTIONS)
+  "SelectPointAct", SELECT_POINT_ACT_OPTIONS
+)
 
 const SELECT_ADD_OPTIONS = [
   ["select", false],
   ["add", true],
 ]
 const SelectAdd = _define_position_based_enum(
-  "SelectAdd", SELECT_ADD_OPTIONS)
+  "SelectAdd", SELECT_ADD_OPTIONS
+)
 
 const SELECT_UNIT_ACT_OPTIONS = [
-  ["select", sc_ui.ActionMultiPanel.SingleSelect],
-  ["deselect", sc_ui.ActionMultiPanel.DeselectUnit],
-  ["select_all_type", sc_ui.ActionMultiPanel.SelectAllOfType],
-  ["deselect_all_type", sc_ui.ActionMultiPanel.DeselectAllOfType],
+  ["select", sc_ui.ActionMultiPanel.SINGLESELECT],
+  ["deselect", sc_ui.ActionMultiPanel.DESELECTUNIT],
+  ["select_all_type", sc_ui.ActionMultiPanel.SELECTALLOFTYPE],
+  ["deselect_all_type", sc_ui.ActionMultiPanel.DESELECTALLOFTYPE],
 ]
 const SelectUnitAct = _define_position_based_enum(
-  "SelectUnitAct", SELECT_UNIT_ACT_OPTIONS)
+  "SelectUnitAct", SELECT_UNIT_ACT_OPTIONS
+)
 
 const SELECT_WORKER_OPTIONS = [
-  ["select", sc_ui.ActionSelectIdleWorker.Set],
-  ["add", sc_ui.ActionSelectIdleWorker.Add],
-  ["select_all", sc_ui.ActionSelectIdleWorker.All],
-  ["add_all", sc_ui.ActionSelectIdleWorker.AddAll],
+  ["select", sc_ui.ActionSelectIdleWorker.Type.SET],
+  ["add", sc_ui.ActionSelectIdleWorker.Type.ADD],
+  ["select_all", sc_ui.ActionSelectIdleWorker.Type.All],
+  ["add_all", sc_ui.ActionSelectIdleWorker.Type.ADDAll],
 ]
 const SelectWorker = _define_position_based_enum(
-  "SelectWorker", SELECT_WORKER_OPTIONS)
+  "SelectWorker", SELECT_WORKER_OPTIONS
+)
 
 const TYPES = Arguments.types({
   screen: ArgumentType.point(),
@@ -445,10 +452,12 @@ const TYPES = Arguments.types({
   screen2: ArgumentType.point(),
   queued: ArgumentType.enum(QUEUED_OPTIONS, Queued),
   control_group_act: ArgumentType.enum(
-    CONTROL_GROUP_ACT_OPTIONS, ControlGroupAct),
+    CONTROL_GROUP_ACT_OPTIONS, ControlGroupAct
+  ),
   control_group_id: ArgumentType.scalar(10),
   select_point_act: ArgumentType.enum(
-    SELECT_POINT_ACT_OPTIONS, SelectPointAct),
+    SELECT_POINT_ACT_OPTIONS, SelectPointAct
+  ),
   select_add: ArgumentType.enum(SELECT_ADD_OPTIONS, SelectAdd),
   select_unit_act: ArgumentType.enum(SELECT_UNIT_ACT_OPTIONS, SelectUnitAct),
   select_unit_id: ArgumentType.scalar(500), // Depends on current selection.
@@ -523,8 +532,11 @@ class Function extends all_collections_generated_classes.Function {
   // }
 
   static ui_func(id_, name, function_type, avail_fn = always) {
+    if (typeof function_type === 'function') {
+      function_type = function_type.name
+    }
     //Define a function representing a ui action.//
-    return this.prototype.constructor({
+    return new this.prototype.constructor({
       id: id_,
       name,
       ability_id: 0,
@@ -537,12 +549,15 @@ class Function extends all_collections_generated_classes.Function {
   }
 
   static ability(id_, name, function_type, ability_id, general_id = 0) {
+    if (typeof function_type === 'function') {
+      function_type = function_type.name
+    }
     //Define a function represented as a game ability.//
     // assert function_type in ABILITY_FUNCTIONS
     if (!ABILITY_FUNCTIONS[function_type]) {
-      console.warn('Unknown function type: ', JSON.stringify(function_type))
+      console.warn('ability: Unknown function type: ', JSON.stringify(function_type))
     }
-    return this.prototype.constructor({
+    return new this.prototype.constructor({
       id: id_,
       name,
       ability_id,
@@ -555,12 +570,15 @@ class Function extends all_collections_generated_classes.Function {
   }
 
   static raw_ability(id_, name, function_type, ability_id, general_id = 0,
-                  avail_fn = always) {
+    avail_fn = always) {
+    if (typeof function_type === 'function') {
+      function_type = function_type.name
+    }
     //Define a function represented as a game ability.//
     if (!RAW_ABILITY_FUNCTIONS[function_type]) {
-      console.warn('Unknown function type: ', JSON.stringify(function_type))
+      console.warn('raw_ability: Unknown function type: ', JSON.stringify(function_type))
     }
-    return this.prototype.constructor({
+    return new this.prototype.constructor({
       id: id_,
       name,
       ability_id,
@@ -573,8 +591,11 @@ class Function extends all_collections_generated_classes.Function {
   }
 
   static raw_ui_func(id_, name, function_type, avail_fn = always) {
+    if (typeof function_type === 'function') {
+      function_type = function_type.name
+    }
     //Define a function representing a ui action.//
-    return this.prototype.constructor({
+    return new this.prototype.constructor({
       id: id_,
       name,
       ability_id: 0,
@@ -620,7 +641,7 @@ class Function extends all_collections_generated_classes.Function {
   str(self, space = false) {
     //String version. Set space=True to line them all up nicely.//
     const val1 = (String(Math.floor(self.id))).rjust(space && 4)
-    return `${ val1 } ${ this.name.ljust(space && 50) } (${ this.args.join('; ') })`
+    return `${val1} ${this.name.ljust(space && 50)} (${this.args.join('; ')})`
   }
 }
 
@@ -636,13 +657,13 @@ class Functions {
 
   /* @param functions Array */
   __init__(functions) {
-    functions = functions.sort(f => f.id)
+    functions = functions.sort((fA, fB) => fB.id - fA.id)
     this._func_list = functions
     this._func_dict = {}
     functions.forEach((f) => {
       this._func_dict[f.name] = f
     })
-    if (len(this._func_dict) !== len(this._function_list)) {
+    if (Object.keys(this._func_dict).length !== this._func_list.length) {
       throw new Error('ValueError: Function names must be unique')
     }
   }
@@ -1868,7 +1889,7 @@ const _Raw_Functions = Enum.IntEnum("_Raw_Functions", tempDict)
 _RAW_FUNCTIONS = _RAW_FUNCTIONS
   .map((f) => f._replace({ id: _Raw_Functions(f.id) }))
 
-const RAW_FUNCTIONS = Functions(_RAW_FUNCTIONS)
+const RAW_FUNCTIONS = new Functions(_RAW_FUNCTIONS)
 
 // Some indexes to support features.py and action conversion.
 const RAW_ABILITY_IDS = {}

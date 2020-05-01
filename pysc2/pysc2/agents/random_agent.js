@@ -1,8 +1,8 @@
 const path = require('path'); //eslint-disable-line
 const base_agent = require(path.resolve(__dirname, './base_agent.js'))
-const actions = require(path.resolve(__dirname, '..', 'lib', './action.js'))
+const actions = require(path.resolve(__dirname, '..', 'lib', './actions.js'))
 const pythonUtils = require(path.resolve(__dirname, '..', 'lib', './pythonUtils.js'))
-const {randomChoice} = pythonUtils
+const { randomChoice } = pythonUtils
 
 class RandomAgent extends base_agent.BaseAgent {
   // A random agent for starcraft. //

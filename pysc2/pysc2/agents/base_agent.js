@@ -1,5 +1,5 @@
 const path = require('path')
-const actions = require(path.resolve(__dirname, '..', 'lib', './action.js'))
+const actions = require(path.resolve(__dirname, '..', 'lib', './actions.js'))
 
 class BaseAgent {
   /*

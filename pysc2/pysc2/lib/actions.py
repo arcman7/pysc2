@@ -522,6 +522,7 @@ class Function(all_collections_generated_classes.Function):
   @classmethod
   def ability(cls, id_, name, function_type, ability_id, general_id=0):
     """Define a function represented as a game ability."""
+    # print(id_, name, function_type)
     assert function_type in ABILITY_FUNCTIONS
     return cls(id_, name, ability_id, general_id, function_type,
                FUNCTION_TYPES[function_type], None, False)
