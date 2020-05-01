@@ -192,29 +192,29 @@ function piece_wise_linear(scale, points) {
 
 function winter(scale) {
   return piece_wise_linear(scale, [
-    [0, Color(0, 0.5, 0.4).mul(255)],
-    [1, Color(1, 1, 0.4).mul(255)]
+    [0, new Color(0, 0.5, 0.4).mul(255)],
+    [1, new Color(1, 1, 0.4).mul(255)]
   ])
 }
 
 function hot(scale) {
   return piece_wise_linear(scale, [
-    [0, Color(0.5, 0, 0).mul(255)],
-    [0.2, Color(1, 0, 0).mul(255)],
-    [0.6, Color(1, 1, 0).mul(255)],
-    [1, Color(1, 1, 1).mul(255)]
+    [0, new Color(0.5, 0, 0).mul(255)],
+    [0.2, new Color(1, 0, 0).mul(255)],
+    [0.6, new Color(1, 1, 0).mul(255)],
+    [1, new Color(1, 1, 1).mul(255)]
   ])
 }
 
 function height_map(scale) {
   return piece_wise_linear(scale, [
-    [0, Color(0, 0, 0)], // Abyss
-    [40 / 255, Color(67, 109, 95)], // Water, little below this height.
-    [50 / 255, Color(168, 152, 129)], // Beach
-    [60 / 255, Color(154, 124, 90)], // Sand, the mode height.
-    [70 / 255, Color(117, 150, 96)], // Grass
-    [80 / 255, Color(166, 98, 97)], // Dirt, should be the top.
-    [1, Color(255, 255, 100)], // Heaven. Shouldn't be seen.
+    [0, new Color(0, 0, 0)], // Abyss
+    [40 / 255, new Color(67, 109, 95)], // Water, little below this height.
+    [50 / 255, new Color(168, 152, 129)], // Beach
+    [60 / 255, new Color(154, 124, 90)], // Sand, the mode height.
+    [70 / 255, new Color(117, 150, 96)], // Grass
+    [80 / 255, new Color(166, 98, 97)], // Dirt, should be the top.
+    [1, new Color(255, 255, 100)], // Heaven. Shouldn't be seen.
   ])
 }
 
@@ -222,22 +222,22 @@ function height_map(scale) {
 // Palette used to color player_relative features.
 const PLAYER_RELATIVE_PALETTE = np.tensor([
   black,                 // Background.
-  Color(0, 142, 0),      // Self. (Green).
+  new Color(0, 142, 0),      // Self. (Green).
   yellow,                // Ally.
-  Color(129, 166, 196),  // Neutral. (Cyan.)
-  Color(113, 25, 34),    // Enemy. (Red).
+  new Color(129, 166, 196),  // Neutral. (Cyan.)
+  new Color(113, 25, 34),    // Enemy. (Red).
 ])
 
 const PLAYER_ABSOLUTE_PALETTE = np.tensor([
   black,                 // Background
-  Color(0, 142, 0),      // 1: Green
-  Color(113, 25, 34),    // 2: Red
-  Color(223, 215, 67),   // 3: Yellow
-  Color(66, 26, 121),    // 4: Purple
-  Color(222, 144, 50),   // 5: Orange
-  Color(46, 72, 237),    // 6: Blue
-  Color(207, 111, 176),  // 7: Pink
-  Color(189, 251, 157),  // 8: Light green
+  new Color(0, 142, 0),      // 1: Green
+  new Color(113, 25, 34),    // 2: Red
+  new Color(223, 215, 67),   // 3: Yellow
+  new Color(66, 26, 121),    // 4: Purple
+  new Color(222, 144, 50),   // 5: Orange
+  new Color(46, 72, 237),    // 6: Blue
+  new Color(207, 111, 176),  // 7: Pink
+  new Color(189, 251, 157),  // 8: Light green
   white.mul(0.1),           // 9: Does the game ever have more than 8 players?
   white.mul(0.1),           // 10: Does the game ever have more than 8 players?
   white.mul(0.1),           // 11: Does the game ever have more than 8 players?
@@ -245,7 +245,7 @@ const PLAYER_ABSOLUTE_PALETTE = np.tensor([
   white.mul(0.1),           // 13: Does the game ever have more than 8 players?
   white.mul(0.1),           // 14: Does the game ever have more than 8 players?
   white.mul(0.1),           // 15: Does the game ever have more than 8 players?
-  Color(129, 166, 196),  // 16 Neutral: Cyan
+  new Color(129, 166, 196),  // 16 Neutral: Cyan
 ])
 
 const VISIBILITY_PALETTE = np.tensor([

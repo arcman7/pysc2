@@ -20,12 +20,12 @@ const { Defaultdict, int, isinstance, len, map, pythonWith, sum, zip } = pythonU
 
 const EPSILON = 1e-5
 
-const FeatureType = Enum.Enum({
+const FeatureType = Enum.Enum('FeatureType', {
   SCALAR: 1,
   CATEGORICAL: 2,
 })
 
-const PlayerRelative = Enum.IntEnum({
+const PlayerRelative = Enum.IntEnum('PlayerRelative', {
   /*The values for the `player_relative` feature layers.*/
   null: 0,
   SELF: 1,
@@ -34,14 +34,14 @@ const PlayerRelative = Enum.IntEnum({
   ENEMY: 4,
 })
 
-const Visibility = Enum.IntEnum({
+const Visibility = Enum.IntEnum('Visibility', {
   /*Values for the `visibility` feature layers.*/
   HIDDEN: 0,
   SEEN: 1,
   VISIBLE: 2,
 })
 
-const Effects = Enum.IntEnum({
+const Effects = Enum.IntEnum('Effects', {
   /*Values for the `effects` feature layer.*/
   null: 0,
   PsiStorm: 1,
@@ -58,7 +58,7 @@ const Effects = Enum.IntEnum({
   LurkerSpines: 12,
 })
 
-const ScoreCumulative = Enum.IntEnum({
+const ScoreCumulative = Enum.IntEnum('ScoreCumulative', {
   /*Indices into the `score_cumulative` observation.*/
   score: 0,
   idle_production_time: 1,
@@ -75,7 +75,7 @@ const ScoreCumulative = Enum.IntEnum({
   spent_vespene: 12,
 })
 
-const ScoreByCategory = Enum.IntEnum({
+const ScoreByCategory = Enum.IntEnum('ScoreByCategory', {
   /*Indices for the `score_by_category` observation's first dimension.*/
   food_used: 0,
   killed_minerals: 1,
@@ -90,7 +90,7 @@ const ScoreByCategory = Enum.IntEnum({
   total_used_vespene: 10,
 })
 
-const ScoreCategories = Enum.IntEnum({
+const ScoreCategories = Enum.IntEnum('ScoreCategories', {
   /*Indices for the `score_by_category` observation's second dimension.*/
   null: 0,
   army: 1,
@@ -99,21 +99,21 @@ const ScoreCategories = Enum.IntEnum({
   upgrade: 4,
 })
 
-const ScoreByVital = Enum.IntEnum({
+const ScoreByVital = Enum.IntEnum('ScoreByVital', {
   /*Indices for the `score_by_vital` observation's first dimension.*/
   total_damage_dealt: 0,
   total_damage_taken: 1,
   total_healed: 2,
 })
 
-const ScoreVitals = Enum.IntEnum({
+const ScoreVitals = Enum.IntEnum('ScoreVitals', {
   /*Indices for the `score_by_vital` observation's second dimension.*/
   life: 0,
   shields: 1,
   energy: 2,
 })
 
-const Player = Enum.IntEnum({
+const Player = Enum.IntEnum('Player', {
   /*Indices into the `player` observation.*/
   player_id: 0,
   minerals: 1,
@@ -128,7 +128,7 @@ const Player = Enum.IntEnum({
   larva_count: 10,
 })
 
-const UnitLayer = Enum.IntEnum({
+const UnitLayer = Enum.IntEnum('UnitLayer', {
   /*Indices into the unit layers in the observations.*/
   unit_type: 0,
   player_relative: 1,
@@ -139,13 +139,13 @@ const UnitLayer = Enum.IntEnum({
   build_progress: 6,
 })
 
-const UnitCounts = Enum.IntEnum({
+const UnitCounts = Enum.IntEnum('UnitCounts', {
   /*Indices into the `unit_counts` observations.*/
   unit_type: 0,
   count: 1,
 })
 
-const FeatureUnit = Enum.IntEnum({
+const FeatureUnit = Enum.IntEnum('FeatureUnit', {
   /*Indices for the `feature_unit` observations.*/
   unit_type: 0,
   alliance: 1,
@@ -195,7 +195,7 @@ const FeatureUnit = Enum.IntEnum({
   shield_upgrade_level: 45,
 })
 
-const EffectPos = Enum.IntEnum({
+const EffectPos = Enum.IntEnum('EffectPos', {
   /*Positions of the active effects.*/
   effect: 0,
   alliance: 1,
@@ -205,14 +205,14 @@ const EffectPos = Enum.IntEnum({
   y: 5,
 })
 
-const Radar = Enum.IntEnum({
+const Radar = Enum.IntEnum('Radar', {
   /*Positions of the Sensor towers.*/
   x: 0,
   y: 1,
   radius: 2,
 })
 
-const ProductionQueue = Enum.IntEnum({
+const ProductionQueue = Enum.IntEnum('ProductionQueue', {
   /*Indices for the `production_queue` observations.*/
   ability_id: 0,
   build_progress: 1,
@@ -293,6 +293,7 @@ class Feature extends all_collections_generated_classes.Feature {
 
 Feature.unpack_layer = sw.decorate(Feature.unpack_layer)
 Feature.unpack_rgb_image = sw.decorate(Feature.unpack_rgb_image)
+const ScreenFeatures_fields = all_collections_generated_classes.ScreenFeatures._fields
 class ScreenFeatures extends all_collections_generated_classes.ScreenFeatures {
   constructor(kwargs) {
     //The set of screen feature layers.//
@@ -302,7 +303,7 @@ class ScreenFeatures extends all_collections_generated_classes.ScreenFeatures {
       val = kwargs[name]
       const { scale, type_, palette, clip } = val
       feats[name] = new Feature({
-        index: this.constructor._fields.indexOf(name),
+        index: ScreenFeatures_fields.indexOf(name),
         name,
         layer_set: 'renders',
         full_name: 'screen ' + name,
@@ -315,7 +316,7 @@ class ScreenFeatures extends all_collections_generated_classes.ScreenFeatures {
     super(feats)
   }
 }
-
+const MinimapFeatures_fields = all_collections_generated_classes.MinimapFeatures._fields
 class MinimapFeatures extends all_collections_generated_classes.MinimapFeatures {
   //The set of minimap feature layers.//
   constructor(kwargs) {
@@ -325,7 +326,7 @@ class MinimapFeatures extends all_collections_generated_classes.MinimapFeatures 
       val = kwargs[name]
       const { scale, type_, palette } = val
       feats[name] = new Feature({
-        index: this.constructor._fields.indexOf(name),
+        index: MinimapFeatures_fields.indexOf(name),
         name,
         layer_set: 'minimap_renders',
         full_name: 'minimap ' + name,
@@ -373,7 +374,7 @@ const SCREEN_FEATURES = new ScreenFeatures({
   placeholder: [2, FeatureType.CATEGORICAL, colors.winter, false],
 })
 
-const MINIMAP_FEATURES = MinimapFeatures({
+const MINIMAP_FEATURES = new MinimapFeatures({
   height_map: [256, FeatureType.SCALAR, colors.height_map],
   visibility_map: [4, FeatureType.CATEGORICAL, colors.VISIBILITY_PALETTE],
   creep: [2, FeatureType.CATEGORICAL, colors.CREEP_PALETTE],
