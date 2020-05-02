@@ -3,8 +3,9 @@ const s2clientprotocol = require('s2clientprotocol')
 const Enum = require('python-enum')
 const path = require('path')
 const actions = require(path.resolve(__dirname, './actions.js'))
-const pythonUtils = require(path.resolve(__dirname, './pythonUtils.js'))
+const features = require(path.resolve(__dirname, './features.js'))
 const point = require(path.resolve(__dirname, './point.js'))
+const pythonUtils = require(path.resolve(__dirname, './pythonUtils.js'))
 
 const { sc2api_pb2, raw_pb2 } = s2clientprotocol
 const sc_raw = raw_pb2
@@ -32,9 +33,13 @@ const always_expected = new Set(
   "no_op", "move_camera", "select_point", "select_rect",
   "select_control_group"
 )
-let features
-function hideSpecificActions(hide_specific_actions) {
-  
+function hideSpecificActions(self, hide_specific_actions) {
+  self.features = features.Features(
+    features.AgentInterfaceFormat(
+      RECTANGULAR_DIMENSIONS,
+      hide_specific_actions,
+    )
+  )
 }
 let obs
 describe('features:', () => {
