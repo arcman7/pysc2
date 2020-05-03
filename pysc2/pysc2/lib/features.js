@@ -411,7 +411,7 @@ function _to_point(dims) {
     if (size <= 0) {
       throw new Error(`ValueError: Must specify +ve value for size, got ${dims}.`)
     }
-    return point.Point(size, size)
+    return new point.Point(size, size)
   }
 }
 

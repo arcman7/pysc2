@@ -68,7 +68,6 @@ class AvailableActionsTest(absltest.TestCase):
   }
 
   def setUp(self):
-    # super(AvailableActionsTest, self).setUp()
     super().setUp()
     self.obs = text_format.Parse(observation_text_proto, sc_pb.Observation())
     self.hideSpecificActions(True)
@@ -80,8 +79,10 @@ class AvailableActionsTest(absltest.TestCase):
 
   def assertAvail(self, expected):
     actual = self.features.available_actions(self.obs)
-    # print()
     actual_names = {actions.FUNCTIONS[i].name for i in actual}
+    # print('actual: ', type(actual))
+    print('actual: ', actual)
+    # print('actual_names: ', type(actual_names))
     self.assertEqual(actual_names, set(expected) | self.always_expected)
 
   def testAlways(self):
