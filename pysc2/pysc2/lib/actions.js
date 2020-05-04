@@ -13,8 +13,8 @@ const { len, iter, isinstance, isObject } = pythonUtils
 
 const ActionSpace = Enum.IntEnum('ActionSpace', {
   FEATURES: 1, // Act in feature layer pixel space with FUNCTIONS below.
-  RGB: 2,      // Act in RGB pixel space with FUNCTIONS below.
-  RAW: 3,      // Act with unit tags with RAW_FUNCTIONS below.
+  RGB: 2, //      Act in RGB pixel space with FUNCTIONS below.
+  RAW: 3, //      Act with unit tags with RAW_FUNCTIONS below.
 })
 
 function spatial(action, action_space) {
@@ -653,6 +653,7 @@ class Functions {
   */
   constructor(functions) {
     this.__init__(functions)
+    return this._getProxy(this)
   }
 
   /* @param functions Array */
@@ -680,8 +681,8 @@ class Functions {
     return this._func_list
   }
 
-  __len__() {
-    return len(this._func_list)
+  get length() {
+    return this._func_list.length
   }
 
   __eq__(other) {
@@ -691,6 +692,27 @@ class Functions {
       }
     }
     return true;
+  }
+
+  _getProxy(thing) {
+    const self = this //eslint-disable-line
+    return new Proxy(thing, {
+      get: (target, name) => {
+        if (name === Symbol.iterator) {
+          return target._func_list[Symbol.iterator].bind(target._func_list)
+        }
+        if (name === '_func_list' || name === '_func_dict') {
+          return target[name]
+        }
+        if (typeof name === 'number' || (typeof name === 'string' && Number.isInteger(Number(name)))) {
+          return target._func_list[name]
+        }
+        if (name === 'forEach') {
+          return target._func_list.forEach
+        }
+      },
+      ownKeys: (target) => Object.keys(target._func_dict)
+    })
   }
 }
 
@@ -1293,8 +1315,8 @@ const FUNCTIONS = new Functions(_FUNCTIONS)
 // Some indexes to support features.py and action conversion.
 const ABILITY_IDS = {}
 const ABILITY_IDS_seen = new Map()
-for (let i = 0; i < iter(FUNCTIONS).length; i++) {
-  const _func = iter(FUNCTIONS)[i];
+for (let i = 0; i < FUNCTIONS.length; i++) {
+  const _func = FUNCTIONS[i];
   ABILITY_IDS[_func.ability_id] = ABILITY_IDS[_func.ability_id] || []
   if (_func.ability_id >= 0 && !ABILITY_IDS_seen.has(_func)) {
     ABILITY_IDS[_func.ability_id].push(_func)
@@ -1306,7 +1328,7 @@ Object.keys(ABILITY_IDS).forEach((key) => {
   Object.freeze(ABILITY_IDS[key])
 })
 const FUNCTIONS_AVAILABLE = {}
-iter(FUNCTIONS).forEach((f) => {
+FUNCTIONS.forEach((f) => {
   if (f.avail_fn) {
     FUNCTIONS_AVAILABLE[f.id] = f
   }
@@ -1894,8 +1916,8 @@ const RAW_FUNCTIONS = new Functions(_RAW_FUNCTIONS)
 // Some indexes to support features.py and action conversion.
 const RAW_ABILITY_IDS = {}
 const RAW_ABILITY_IDS_seen = new Map()
-for (let i = 0; i < iter(RAW_FUNCTIONS).length; i++) {
-  const _func = iter(RAW_FUNCTIONS)[i];
+for (let i = 0; i < RAW_FUNCTIONS.length; i++) {
+  const _func = RAW_FUNCTIONS[i];
   RAW_ABILITY_IDS[_func.ability_id] = RAW_ABILITY_IDS[_func.ability_id] || []
   if (_func.ability_id >= 0 && !RAW_ABILITY_IDS_seen.has(_func)) {
     RAW_ABILITY_IDS[_func.ability_id].push(_func)
@@ -1907,7 +1929,7 @@ Object.keys(RAW_ABILITY_IDS).forEach((key) => {
   Object.freeze(RAW_ABILITY_IDS[key])
 })
 const RAW_FUNCTIONS_AVAILABLE = {}
-iter(RAW_FUNCTIONS).forEach((f) => {
+RAW_FUNCTIONS.forEach((f) => {
   if (f.avail_fn) {
     RAW_FUNCTIONS_AVAILABLE[f.id] = f
   }

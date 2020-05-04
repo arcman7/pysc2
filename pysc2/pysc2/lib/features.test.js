@@ -1,5 +1,5 @@
 // const googleProtobuf = require('google-protobuf')
-const text_format = require('protobuf-textformat');
+// const text_format = require('protobuf-textformat');
 const s2clientprotocol = require('s2clientprotocol')
 const Enum = require('python-enum')
 const path = require('path')
@@ -72,8 +72,22 @@ function assertAvail(expected) {
 }
 describe('features:', () => {
   beforeEach(() => {
-    testState.obs = text_format.parse(observation_text_proto, sc_pb.Observation())
-    console.log(testState.obs)
+    const playerCommon = new sc_pb.PlayerCommon()
+    playerCommon.setPlayerId(1)
+    playerCommon.setMinerals(0)
+    playerCommon.setVespene(0)
+    playerCommon.setFoodCap(10)
+    playerCommon.setFoodUsed(0)
+    playerCommon.setFoodArmy(0)
+    playerCommon.setFoodWorkers(0)
+    playerCommon.setIdleWorkerCount(0)
+    playerCommon.setArmyCount(0)
+    playerCommon.setWarpGateCount(0)
+    playerCommon.setLarvaCount(0)
+    const observation = new sc_pb.Observation()
+    observation.setPlayerCommon(playerCommon)
+    observation.setGameLoop(20)
+    testState.obs = observation
     hideSpecificActions(true)
   })
   describe('  AvailableActionsTest', () => {

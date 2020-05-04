@@ -914,10 +914,11 @@ function _init_valid_functions(action_dimensions) {
   let args = Object.keys(actions.TYPES).map((key) => {
     const t = actions.TYPES[key]
     return actions.ArgumentType
-      .spec(t.id, t.name, sizes.get(t.name, t.sizes))
+      .spec(t.id, t.name, sizes[t.name] || t.sizes)
   })
   const types = new actions.Arguments(args)
   args = Object.keys(actions.FUNCTIONS).map((key) => {
+    console.log('key: ', key)
     const f = actions.FUNCTIONS[key]
     const tuple = []
     Object.keys(f.args).forEach((k) => {
@@ -945,7 +946,7 @@ function _init_valid_raw_functions(raw_resolution, max_selected_units) {
   let args = Object.keys(actions.RAW_TYPES).map((key) => {
     const t = actions.RAW_TYPES[key]
     return actions.ArgumentType
-      .spec(t.id, t.name, sizes.get(t.name, t.sizes))
+      .spec(t.id, t.name, sizes[t.name] || t.sizes)
   })
   const types = new actions.RawArguments(args)
   args = Object.keys(actions.RAW_FUNCTIONS).map((key) => {
@@ -974,7 +975,7 @@ class Features {
   contexts, eg a supervised dataset pipeline.
   */
 
-  constructor(self, agent_interface_format = null, map_size = null,
+  constructor(agent_interface_format = null, map_size = null,
     requested_races = null, map_name = 'unknown') {
     /*Initialize a Features instance matching the specified interface format.
 
