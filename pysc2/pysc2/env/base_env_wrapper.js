@@ -1,7 +1,8 @@
 const path = require('path')
-const environment = require(path.resolve(__dirname, '..', 'env', './environment.js'))
-
+const environment = require(path.resolve(__dirname, './environment.js'))
+/*A base env wrapper so we don't need to override everything every time.*/
 class BaseEnvWrapper extends environment.Base {
+  /*A base env wrapper so we don't need to override everything every time.*/
   constructor(env) {
     this._env = env
   }
