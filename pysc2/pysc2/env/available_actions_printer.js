@@ -8,6 +8,7 @@ class AvailableActionsPrinter extends base_evn_wrapper.base_evn_wrapper {
     this._seen = set()
     this._action_spec = this._action_spec()[0]
   }
+
   step() {
     const all_obs = super.step(arguments)
     Object.keys(all_obs).forEach((key) => {
@@ -22,7 +23,12 @@ class AvailableActionsPrinter extends base_evn_wrapper.base_evn_wrapper {
     })
     return all_obs
   }
+
   _print(s) {
     console.log(s)
   }
+}
+
+module.exports = {
+  AvailableActionsPrinter
 }
