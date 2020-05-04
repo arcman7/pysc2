@@ -35,3 +35,7 @@ class BaseEnvWrapper extends environment.Base {
     return this._env.state
   }
 }
+
+module.exports = {
+  BaseEnvWrapper
+}
