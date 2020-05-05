@@ -139,9 +139,10 @@ function withPython(withInterface, callback) {
   if (!withInterface.__enter__ || !withInterface.__exit__) {
     throw new Error('ValueError: withInterface must define a __enter__ and __exit__ method')
   }
-  const tempResult = withInterface.__enter__()
-  callback(tempResult)
+  let tempResult = withInterface.__enter__()
+  tempResult = callback(tempResult)
   withInterface.__exit__()
+  return tempResult
 }
 
 function int(numOrStr) {

@@ -9,24 +9,24 @@ const point = require(path.resolve(__dirname, './point.js'))
 const pythonUtils = require(path.resolve(__dirname, './pythonUtils.js'))
 
 const { sc2api_pb, raw_pb } = s2clientprotocol
-const sc_raw = raw_pb
+// const sc_raw = raw_pb
 const sc_pb = sc2api_pb
-const observation_text_proto = `
-player_common {
-  player_id: 1
-  minerals: 0
-  vespene: 0
-  food_cap: 10
-  food_used: 0
-  food_army: 0
-  food_workers: 0
-  idle_worker_count: 0
-  army_count: 0
-  warp_gate_count: 0
-  larva_count: 0
-}
-game_loop: 20
-`
+// const observation_text_proto = `
+// player_common {
+//   player_id: 1
+//   minerals: 0
+//   vespene: 0
+//   food_cap: 10
+//   food_used: 0
+//   food_army: 0
+//   food_workers: 0
+//   idle_worker_count: 0
+//   army_count: 0
+//   warp_gate_count: 0
+//   larva_count: 0
+// }
+// game_loop: 20
+// `
 const RECTANGULAR_DIMENSIONS = new features.Dimensions([84, 80], [64, 67])
 const SQUARE_DIMENSIONS = new features.Dimensions(84, 64)
 const always_expected = new Set([
@@ -54,8 +54,17 @@ function isIn(as) {
     return as.has(a)
   }
 }
+function setForEach(set, callback) {
+  const iter = set.values()
+  const results = []
+  let val
+  let i = 0
+  while(val = iter.next().value) { callback(val, i, results); i++ } //eslint-disable-line
+  return results
+}
 function assertAvail(expected) {
-  const actual = testState.features.available_action(testState.obs)
+  const actual = testState.features.available_actions(testState.obs)
+  console.log('actual: ', actual)
   // const actual_names = {}
   const actual_names = new Set()
   Object.keys(actual).forEach((key) => {
@@ -67,7 +76,7 @@ function assertAvail(expected) {
   })
   const compareTo = expected && expected.length ? new Set(expected) : always_expected
   if (eqSet(actual_names, compareTo) === false) {
-    throw new Error(`Sets not equal:\n\t expected:\n${actual_names.keys()}\n\t recieved:\n${compareTo.keys()}`)
+    throw new Error(`Sets not equal:\n   expected:\n    [${setForEach(actual_names, (val, _, results) => results.push(val))}]\n   recieved:\n    [${setForEach(compareTo, (val, _, results) => results.push(val))}]`)
   }
 }
 describe('features:', () => {

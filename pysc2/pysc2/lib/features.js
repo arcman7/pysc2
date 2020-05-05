@@ -1030,11 +1030,11 @@ class Features {
       throw new Error('ValueError: requested_races.length is greater than 2')
     }
     // apply @sw.decorate
-    this.transform_obs = sw.decorate(this.transform_obs)
-    this.available_actions = sw.decorate(this.available_actions)
-    this.transform_action = sw.decorate(this.transform_action)
-    this.reverse_action = sw.decorate(this.reverse_action)
-    this.reverse_raw_action = sw.decorate(this.reverse_raw_action)
+    this.transform_obs = sw.decorate(this.transform_obs.bind(this))
+    this.available_actions = sw.decorate(this.available_actions.bind(this))
+    this.transform_action = sw.decorate(this.transform_action.bind(this))
+    this.reverse_action = sw.decorate(this.reverse_action.bind(this))
+    this.reverse_raw_action = sw.decorate(this.reverse_raw_action.bind(this))
   }
 
   init_camera(feature_dimensions, map_size, camera_width_world_units, raw_resolution) {
@@ -1690,9 +1690,11 @@ class Features {
               if (raw_cargo_units) {
                 raw_cargo_units = np.array(raw_cargo_units, /*dtype=*/np.int64)
                 const all_raw_units = np.concatenate(
-                  [out['raw_units'], raw_cargo_units], /*axis=*/0)
+                  [out['raw_units'], raw_cargo_units], /*axis=*/0
+                )
                 out['raw_units'] = named_array.NamedNumpyArray(
-                  all_raw_units, [null, FeatureUnit], /*dtype=*/np.int64)
+                  all_raw_units, [null, FeatureUnit], /*dtype=*/np.int64
+                )
                 const temp = []
                 for (let i = 0; i < out['raw_units'].length; i++) {
                   temp.push(out['raw_units'][i][FeatureUnit.tag])
@@ -1719,13 +1721,16 @@ class Features {
           Object.keys(unit_counts).map((key) => {
             return [key, unit_counts[key]]
           }).sort((a, b) => a[0] < b[0]),
-          [null, UnitCounts], /*dtype=*/np.int32)
+          [null, UnitCounts],
+          /*dtype=*/np.int32
+        )
       })
     }
 
     if (aif.use_camera_position) {
       const camera_position = this._world_to_minimap_px.fwd_pt(
-        point.Point.build(raw.player.camera))
+        point.Point.build(raw.player.camera)
+      )
       out['camera_position'] = np.array((camera_position.x, camera_position.y),
         /*dtype=*/np.int32)
       out['camera_size'] = np.array((this._camera_size.x, this._camera_size.y),
@@ -1733,12 +1738,14 @@ class Features {
     }
     if (!this._raw) {
       out['available_actions'] = np.array(
-        this.available_actions(obs.observation), /*dtype=*/np.int32)
+        this.available_actions(obs.observation), /*dtype=*/np.int32
+      )
     }
 
     if (this._requested_races !== null) {
       out['home_race_requested'] = np.array(
-        [this._requested_races[player.player_id]], /*dtype=*/np.int32)
+        [this._requested_races[player.player_id]], /*dtype=*/np.int32
+      )
       Object.keys(this._requested_races).forEach((player_id) => {
         const race = this._requested_races[player_id]
         if (player_id !== player.player_id) {
@@ -1764,7 +1771,7 @@ class Features {
     return out
   }
 
-  available_actions(self, obs) {
+  available_actions(obs) {
     //Return the list of available action ids.//
     const available_actions = new Set()
     const hide_specific_actions = this._agent_interface_format.hide_specific_actions
@@ -1774,8 +1781,9 @@ class Features {
         available_actions.add(i)
       }
     })
-    Object.keys(obs.abilities).forEach((key) => {
-      const a = obs.abilities[key]
+    // console.log('obs: ', obs, ' keys: ', Object.keys(obs))
+    Object.keys(obs.getAbilitiesList()).forEach((key) => {
+      const a = obs.getAbilitiesList()[key]
       if (!(actions.ABILITY_IDS.hasOwnProperty(a.ability_id))) {
         console.warn(`Unknown ability ${a.ability_id} seen as available.`, a.ability_id)
         return
@@ -1791,10 +1799,10 @@ class Features {
           }
           if (func.general_id !== 0) { // Always offer generic actions.
             const ks = Object.keys(actions.ABILITY_IDS[func.general_id])
-            let k
+            let kk
             for (let i = 0; i < ks.length; i++) {
-              k = ks[i]
-              const general_func = actions.ABILITY_IDS[func.general_id][k]
+              kk = ks[i]
+              const general_func = actions.ABILITY_IDS[func.general_id][kk]
               if (general_func.function_type === func.function_type) {
                 // Only the right type. Don't want to expose the general action
                 // to minimap if only the screen version is available.
@@ -1810,7 +1818,12 @@ class Features {
         throw new Error(`ValueError("Failed to find applicable action for ${a}`)
       }
     })
-    return Array(available_actions)
+    const results = []
+    const iter = available_actions.values()
+    let i
+    while(i = iter.next().value) { results.push(i) } //eslint-disable-line
+    console.log('results: ', results)
+    return results
   }
 
   transform_action(self, obs, func_call, skip_available = false) {
