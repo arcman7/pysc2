@@ -257,8 +257,20 @@ describe('features:', () => {
       const value = features._to_point(['32', 64])
       expect(value).toMatchObject(new point.Point(32, 64))
     })
-    test('testNoneInputReturnsNullOutput', () => {
+    test('testNullInputReturnsNullOutput', () => {
       expect(() => features._to_point(null)).toThrow(Error)
+    })
+    test('testNullAsFirstElementOfArrayRaises', () => {
+      expect(() => features._to_point([null, 32])).toThrow(Error)
+    })
+    test('testNullAsSecondElementOfArrayRaises', () => {
+      expect(() => features._to_point([32, null])).toThrow(Error)
+    })
+    test('testSingletonArrayRaises', () => {
+      expect(() => features._to_point([32])).toThrow(Error)
+    })
+    test('testThreeArrayRaises', () => {
+      expect(() => features._to_point([32, 32, 32])).toThrow(Error)
     })
   })
 })
