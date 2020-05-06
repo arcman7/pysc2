@@ -242,7 +242,7 @@ class StopWatch {
     if (typeof (name_or_func) === 'function') {
       return decorator(name_or_func.name, name_or_func)
     }
-    return func => decorator(name_or_func, func)
+    return (func) => decorator(name_or_func, func)
   }
 
   push(name) {

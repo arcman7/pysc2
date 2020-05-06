@@ -658,7 +658,7 @@ class Functions {
 
   /* @param functions Array */
   __init__(functions) {
-    functions = functions.sort((fA, fB) => fB.id - fA.id)
+    functions = functions.sort((fA, fB) => fA.id - fB.id)
     this._func_list = functions
     this._func_dict = {}
     functions.forEach((f) => {
@@ -708,8 +708,12 @@ class Functions {
           return target._func_list[name]
         }
         if (name === 'forEach') {
-          return target._func_list.forEach
+          return target._func_list.forEach.bind(target._func_list)
         }
+        if (name === 'length') {
+          return target._func_list.length
+        }
+        return target._func_dict[name]
       },
       ownKeys: (target) => Object.keys(target._func_dict)
     })
@@ -725,19 +729,19 @@ let _FUNCTIONS = [
   Function.ui_func(3, "select_rect", select_rect),
   Function.ui_func(4, "select_control_group", control_group),
   Function.ui_func(5, "select_unit", select_unit,
-    (obs) => obs.ui_data.HasField("multi")),
+    (obs) => obs.hasUiData() && obs.getUiData().hasMulti()),
   Function.ui_func(6, "select_idle_worker", select_idle_worker,
-    (obs) => obs.player_common.idle_worker_count > 0),
+    (obs) => obs.hasPlayerCommon() && obs.getPlayerCommon().getIdleWorkerCount() > 0),
   Function.ui_func(7, "select_army", select_army,
-    (obs) => obs.player_common.army_count > 0),
+    (obs) => obs.hasPlayerCommon() && obs.getPlayerCommon().getArmyCount() > 0),
   Function.ui_func(8, "select_warp_gates", select_warp_gates,
-    (obs) => obs.player_common.warp_gate_count > 0),
+    (obs) => obs.hasPlayerCommon() && obs.getPlayerCommon().getWarpGateCount() > 0),
   Function.ui_func(9, "select_larva", select_larva,
-    (obs) => obs.player_common.larva_count > 0),
+    (obs) => obs.hasPlayerCommon() && obs.getPlayerCommon().getLarvaCount() > 0),
   Function.ui_func(10, "unload", unload,
-    (obs) => obs.ui_data.HasField("cargo")),
+    (obs) => obs.hasUiData() && obs.getUiData().hasCargo()),
   Function.ui_func(11, "build_queue", build_queue,
-    (obs) => obs.ui_data.HasField("production")),
+    (obs) => obs.hasUiData() && obs.getUiData().hasProduction()),
   // Everything below here is generated with gen_actions.py
   Function.ability(12, "Attack_screen", cmd_screen, 3674),
   Function.ability(13, "Attack_minimap", cmd_minimap, 3674),
@@ -1330,7 +1334,7 @@ Object.keys(ABILITY_IDS).forEach((key) => {
 const FUNCTIONS_AVAILABLE = {}
 FUNCTIONS.forEach((f) => {
   if (f.avail_fn) {
-    FUNCTIONS_AVAILABLE[f.id] = f
+    FUNCTIONS_AVAILABLE[f.id.key] = f
   }
 })
 

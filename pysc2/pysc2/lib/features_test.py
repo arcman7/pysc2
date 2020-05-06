@@ -80,9 +80,6 @@ class AvailableActionsTest(absltest.TestCase):
   def assertAvail(self, expected):
     actual = self.features.available_actions(self.obs)
     actual_names = {actions.FUNCTIONS[i].name for i in actual}
-    # print('actual: ', type(actual))
-    print('actual: ', actual)
-    # print('actual_names: ', type(actual_names))
     self.assertEqual(actual_names, set(expected) | self.always_expected)
 
   def testAlways(self):
@@ -222,6 +219,8 @@ class ToPointTest(absltest.TestCase):
 
   def testIntAsString(self):
     value = features._to_point("32")
+    print('value: ', value)
+    print('point: ', point.Point(32, 32))
     self.assertEqual(value, point.Point(32, 32))
 
   def testIntStringTwoTuple(self):

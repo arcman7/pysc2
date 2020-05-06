@@ -781,8 +781,6 @@ function parse_agent_interface_format({
       delay = delays[key]
       return delay / total
     }))
-    // console.log('******************** cumulative_sum : ')
-    // console.log(cumulative_sum)
     function fn() {
       const sample = Math.random() - EPSILON
       let cumulative
@@ -1718,7 +1716,7 @@ class Features {
           unit_counts[u.unit_type] += 1
         })
         out['unit_counts'] = named_array.NamedNumpyArray(
-          Object.keys(unit_counts).map((key) => {
+          Object.keys(unit_counts).map((key) => { //eslint-disable-line
             return [key, unit_counts[key]]
           }).sort((a, b) => a[0] < b[0]),
           [null, UnitCounts],
@@ -1778,35 +1776,34 @@ class Features {
     Object.keys(actions.FUNCTIONS_AVAILABLE).forEach((i) => {
       const func = actions.FUNCTIONS_AVAILABLE[i]
       if (func.avail_fn(obs)) {
-        available_actions.add(i)
+        available_actions.add(func.id.key)
       }
     })
-    // console.log('obs: ', obs, ' keys: ', Object.keys(obs))
-    Object.keys(obs.getAbilitiesList()).forEach((key) => {
-      const a = obs.getAbilitiesList()[key]
-      if (!(actions.ABILITY_IDS.hasOwnProperty(a.ability_id))) {
+    const abilities = obs.getAbilitiesList()
+    for (let index = 0; index < abilities.length; index++) {
+      const a = abilities[index]
+      if (!(actions.ABILITY_IDS.hasOwnProperty(a.getAbilityId()))) {
         console.warn(`Unknown ability ${a.ability_id} seen as available.`, a.ability_id)
         return
       }
       let found_applicable = false
-      Object.keys(actions.ABILITY_IDS).forEach((k) => {
-        const func = actions.ABILITY_IDS[k]
-        if (actions.POINT_REQUIRED_FUNCS[a.requires_point]
+      const ability_id = a.getAbilityId()
+      Object.keys(actions.ABILITY_IDS[ability_id]).forEach((k_id) => {
+        const func = actions.ABILITY_IDS[ability_id][k_id]
+        if (actions.POINT_REQUIRED_FUNCS.get(a.getRequiresPoint())
           .hasOwnProperty(func.function_type)) {
           if (func.general_id == 0 || !hide_specific_actions) {
-            available_actions.add(func.id)
+            available_actions.add(func.id.key)
             found_applicable = true
           }
-          if (func.general_id !== 0) { // Always offer generic actions.
-            const ks = Object.keys(actions.ABILITY_IDS[func.general_id])
-            let kk
-            for (let i = 0; i < ks.length; i++) {
-              kk = ks[i]
-              const general_func = actions.ABILITY_IDS[func.general_id][kk]
+          if (func.general_id != 0) { // Always offer generic actions.
+            const general_funcs = actions.ABILITY_IDS[func.general_id]
+            for (let i = 0; i < general_funcs.length; i++) {
+              const general_func = general_funcs[i]
               if (general_func.function_type === func.function_type) {
                 // Only the right type. Don't want to expose the general action
                 // to minimap if only the screen version is available.
-                available_actions.add(general_func.id)
+                available_actions.add(general_func.id.key)
                 found_applicable = true
                 break
               }
@@ -1815,14 +1812,13 @@ class Features {
         }
       })
       if (!found_applicable) {
-        throw new Error(`ValueError("Failed to find applicable action for ${a}`)
+        throw new Error(`ValueError("Failed to find applicable action for ${JSON.stringify(a.toObject())}`)
       }
-    })
+    }
     const results = []
     const iter = available_actions.values()
     let i
     while(i = iter.next().value) { results.push(i) } //eslint-disable-line
-    console.log('results: ', results)
     return results
   }
 
