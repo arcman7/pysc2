@@ -225,7 +225,31 @@ function nonZero(arr) {
   }
   return [rows, cols]
 }
+class ABCMeta {
+  static get abstractMethods() { return [] }
+  constructor() {
+    const abstractMethods = this.constructor.abstractMethods
+    function NotImplementedError(message) {
+        this.name = "NotImplementedError"
+        this.message = (message || "")
+    }
+    NotImplementedError.prototype = Error.prototype
+    Object.keys(abstractMethods).forEach((key) => {
+      const methodName = abstractMethods[key]
+      /* keeping this comment for inheritance blocking in the future */
+      // if (!this.constructor.prototype.hasOwnProperty(methodName) || typeof this.constructor.prototype[methodName] !== 'function') {
+      //   throw new NotImplementedError(methodName)
+      // }
+      if (typeof this.constructor.prototype[methodName] !== 'function') {
+        throw new NotImplementedError(methodName)
+      }
+    })
+  }
+}
+
+
 module.exports = {
+  ABCMeta,
   assert,
   Array,
   DefaultDict,
