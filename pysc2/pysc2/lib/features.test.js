@@ -48,17 +48,9 @@ function setForEach(set, callback) {
 }
 function assertAvail(expected) {
   const actual = testState.features.available_actions(testState.obs)
-  // console.log('actual: ', actual)
-  // const actual_names = {}
   const actual_names = new Set()
   Object.keys(actual).forEach((key) => {
     const i = actual[key]
-    // if (typeof i === 'function') {
-    //   i = i.name
-    // }
-    // if (!actions.FUNCTIONS[i]) {
-    //   console.log('i: ', i)
-    // }
     actual_names.add(actions.FUNCTIONS[i].name)
   })
   const compareTo = expected && expected.length ? new Set(expected) : always_expected
@@ -271,6 +263,135 @@ describe('features:', () => {
     })
     test('testThreeArrayRaises', () => {
       expect(() => features._to_point([32, 32, 32])).toThrow(Error)
+    })
+  })
+  describe('  DimensionsTest', () => {
+    test('testScreenSizeWithoutMinimapRaises', () => {
+      expect(() => new features.Dimensions(84)).toThrow(Error)
+    })
+    test('testScreenWidthWithoutHeightRaises', () => {
+      expect(() => new features.Dimensions([84, 0], 64)).toThrow(Error)
+    })
+    test('testScreenWidthHeightWithoutMinimapRaises', () => {
+      expect(() => new features.Dimensions([84, 80])).toThrow(Error)
+    })
+    test('testMinimapWidthAndHeightWithoutScreenRaises', () => {
+      expect(() => new features.Dimensions(undefined, [64, 67])).toThrow(Error)
+    })
+    test('testNullNullRaises', () => {
+      expect(() => new features.Dimensions(null, null)).toThrow(Error)
+    })
+    test('testSingularZeroesRaises', () => {
+      expect(() => new features.Dimensions(0, 0)).toThrow(Error)
+    })
+    test('testTwoZeroesRaises', () => {
+      expect(() => new features.Dimensions([0, 0], [0, 0])).toThrow(Error)
+    })
+    test('testThreeTupleScreenRaises', () => {
+      expect(() => new features.Dimensions([1, 2, 3], 32)).toThrow(Error)
+    })
+    test('testThreeTupleMinimapRaises', () => {
+      expect(() => new features.Dimensions(64, [1, 2, 3])).toThrow(Error)
+    })
+    test('testNegativeScreenRaises', () => {
+      expect(() => new features.Dimensions(-64, 32)).toThrow(Error)
+    })
+    test('testNegativeMinimapRaises', () => {
+      expect(() => new features.Dimensions(64, -32)).toThrow(Error)
+    })
+    test('testNegativeScreenTupleRaises', () => {
+      expect(() => new features.Dimensions([-64, -64], 32)).toThrow(Error)
+    })
+    test('testNegativeMinimapTupleRaises', () => {
+      expect(() => new features.Dimensions(64, [-32, -32])).toThrow(Error)
+    })
+    test('testEquality', () => {
+      expect(new features.Dimensions(64, 64)).toMatchObject(new features.Dimensions(64, 64))
+      expect(new features.Dimensions(64, 32)).not.toMatchObject(new features.Dimensions(64, 64))
+      expect(new features.Dimensions(64, 32)).not.toBe(null)
+    })
+  })
+  describe('  TestParseAgentInterfaceFormat', () => {
+    test('test_no_arguments_raises', () => {
+      expect(() => features.parse_agent_interface_format()).toThrow(Error)
+    })
+    test('test_invalid_feature_combinations_raise', () => {
+      expect(() => features.parse_agent_interface_format({
+        feature_screen: 32,
+        feature_minimap: null
+      })).toThrow(Error)
+      expect(() => features.parse_agent_interface_format({
+        feature_screen: 32,
+        feature_minimap: null
+      })).toThrow(Error)
+    })
+    test('test_valid_feature_specification_is_parsed', () =>{
+      const agent_interface_format = features.parse_agent_interface_format({
+        feature_screen: 32,
+        feature_minimap: [24, 24],
+      })
+      expect(agent_interface_format.feature_dimensions.screen).toMatchObject(new point.Point(32, 32))
+      expect(agent_interface_format.feature_dimensions.minimap).toMatchObject(new point.Point(24, 24))
+    })
+    test('test_invalid_minimap_combinations_raise', () => {
+      expect(() => features.parse_agent_interface_format({
+        rgb_screen: 32,
+        rgb_minimap: null
+      })).toThrow(Error)
+      expect(() => features.parse_agent_interface_format({
+        rgb_screen: null,
+        rgb_minimap: 32,
+      })).toThrow(Error)
+      expect(() => features.parse_agent_interface_format({
+        rgb_screen: 32,
+        rgb_minimap: 64,
+      })).toThrow(Error)
+    })
+    test('test_valid_minimap_specification_is_parsed', () => {
+      const agent_interface_format = features.parse_agent_interface_format({
+        rgb_screen: 32,
+        rgb_minimap: [24, 24],
+      })
+      expect(agent_interface_format.rgb_dimensions.screen).toMatchObject(new point.Point(32, 32))
+      expect(agent_interface_format.rgb_dimensions.minimap).toMatchObject(new point.Point(24, 24))
+    })
+    test('test_invalid_action_space_raises', () => {
+      expect(() => {
+        features.parse_agent_interface_format({
+          feature_screen: 64,
+          feature_minimap: 64,
+          action_space: "UNKNOWN_ACTION_SPACE",
+        })
+      }).toThrow(Error)
+    })
+    test('test_valid_action_space_is_parsed', () => {
+      actions.ActionSpace._keys.forEach((action_space) => {
+          const agent_interface_format = features.parse_agent_interface_format({
+          feature_screen: 32,
+          feature_minimap: [24, 24],
+          rgb_screen: 64,
+          rgb_minimap: [48, 48],
+          use_raw_units: true,
+          action_space,
+        })
+        expect(agent_interface_format.action_space).toMatchObject(actions.ActionSpace[action_space])
+      })
+    })
+    test('test_camera_width_world_units_are_parsed', () => {
+      const agent_interface_format = features.parse_agent_interface_format({
+        feature_screen: 32,
+        feature_minimap: [24, 24],
+        camera_width_world_units: 77
+      })
+      expect(agent_interface_format.camera_width_world_units).toBe(77)
+    })
+    test('test_use_feature_units_is_parsed', () => {
+      const agent_interface_format = features.parse_agent_interface_format({
+        feature_screen: 32,
+        feature_minimap: [24, 24],
+        use_feature_units: true,
+      })
+      expect(agent_interface_format.use_feature_units).toBe(true)
     })
   })
 })

@@ -546,7 +546,6 @@ class AgentInterfaceFormat {
     Raises:
       ValueError: if the parameters are inconsistent.
     */
-
     if (!(feature_dimensions || rgb_dimensions || use_raw_units)) {
       throw new Error(`Must set either the feature layer or rgb dimensions, or use raw units`)
     }
@@ -794,13 +793,17 @@ function parse_agent_interface_format({
     }
     return fn
   }
-  return AgentInterfaceFormat({
+  const usedArgs = {
     feature_dimensions,
     rgb_dimensions,
-    action_space: (action_space && actions.ActionSpace[action_space.upper()]),
+    action_space: (action_space && actions.ActionSpace[action_space.toUpperCase()]),
     action_delay_fn: _action_delay_fn(action_delays),
     kwargs,
+  }
+  Object.keys(arguments[0]).forEach((key) => {
+    usedArgs[key] = usedArgs[key] || arguments[0][key]
   })
+  return new AgentInterfaceFormat(usedArgs)
 }
 
 function features_from_game_info(game_info, agent_interface_format = null, map_name = null, kwargs) {
