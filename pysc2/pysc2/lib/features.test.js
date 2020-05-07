@@ -394,4 +394,39 @@ describe('features:', () => {
       expect(agent_interface_format.use_feature_units).toBe(true)
     })
   })
+  describe('  FeaturesTest', () => {
+    test('testFunctionsIdsAreConsistent', () => {
+      actions.FUNCTIONS.forEach((f, i) => {
+        expect(i).not.toBe(f.id)
+      })
+    })
+    test('testAllVersionsOfAnAbilityHaveTheSameGeneral', () => {
+      Object.keys(actions.ABILITY_IDS).forEach((ability_id) => {
+        const funcs = actions.ABILITY_IDS[ability_id]
+        const temp = {}
+        funcs.forEach((f) => {
+          temp[f.general_id] = temp[f.general_id] ? temp[f.general_id] + 1 : 1
+        })
+        expect(Object.keys(temp).length).toBe(1)
+      })
+    })
+    test('testValidFunctionsAreConsistent', () => {
+      const feats = new features.Features(new features.AgentInterfaceFormat({
+        feature_dimensions: RECTANGULAR_DIMENSIONS
+      }))
+      const valid_funcs = feats.action_spec()
+      valid_funcs.functions.forEach((func_def) => {
+        const func = actions.FUNCTIONS[func_def.id]
+        expect(func_def.id).toBe(func.id)
+        expect(func_def.name).toBe(func.name)
+        expect(func_def.args.length).toBe(func.args)
+      })
+    })
+    function gen_random_function_call(action_spec, func_id) {
+      
+    }
+    test('', () => {
+
+    })
+  })
 })

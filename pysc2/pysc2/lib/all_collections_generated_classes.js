@@ -218,20 +218,22 @@ class ValidActions {
 
   static get _fields() { return ["types", "functions"] }
 
-  constructor({ types, functions }) {
+  constructor(types, functions) {
     this.types = types;
     this.functions = functions;
   }
 
-  static _make(kwargs) {
-    return new this.prototype.constructor(kwargs);
+  static _make(types, functions) {
+    return new this.prototype.constructor(types, functions);
   }
 
   _replace(kwargs) {
-    this.constructor._fields.forEach((field) => {
-      kwargs[field] = kwargs[field] || this[field];
-    });
-    return this.constructor._make(kwargs);
+    if (Array.isArray(kwargs)) {
+      const [types, functions] = kwargs
+    } else {
+      const { types, functions } = kwargs
+    }
+    return this.constructor._make(types, functions)
   }
 
   __reduce__() {

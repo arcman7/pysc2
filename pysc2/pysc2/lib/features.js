@@ -914,12 +914,13 @@ function _init_valid_functions(action_dimensions) {
   }
   let args = Object.keys(actions.TYPES).map((key) => {
     const t = actions.TYPES[key]
+    //console.log(t)
     return actions.ArgumentType
       .spec(t.id, t.name, sizes[t.name] || t.sizes)
   })
+  //console.log('args: ', args)
   const types = new actions.Arguments(args)
   args = Object.keys(actions.FUNCTIONS).map((key) => {
-    console.log('key: ', key)
     const f = actions.FUNCTIONS[key]
     const tuple = []
     Object.keys(f.args).forEach((k) => {

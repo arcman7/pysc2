@@ -602,10 +602,6 @@ class AgentInterfaceFormat(object):
 
     if action_space:
       if not isinstance(action_space, actions.ActionSpace):
-        # print(action_space == actions.ActionSpace.FEATURES)
-        # print ('type action_space:')
-        # print(type(action_space))
-        # print('value : ', action_space)
         raise ValueError("action_space must be of type ActionSpace.")
 
       if action_space == actions.ActionSpace.RAW:
