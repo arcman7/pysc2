@@ -42,11 +42,11 @@ class TimeStep extends all_collections_generated_classes.TimeStep {
 class StepType extends Enum.IntEnum {
   /*Defines the status of a `TimeStep` within a sequence.*/
   // Denotes the first `TimeStep` in a sequence.
-  const FIRST = 0
+  FIRST = 0
   // Denotes any `TimeStep` in a sequence that is not FIRST or LAST.
-  const MID = 1
+  MID = 1
   // Denotes the last `TimeStep` in a sequence.
-  const LAST = 2
+  LAST = 2
 }
 
 class Base extends object {
