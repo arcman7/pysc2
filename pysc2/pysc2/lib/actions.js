@@ -340,6 +340,18 @@ class Arguments extends all_collections_generated_classes.Arguments {
     }
     super(kwargs)
   }
+  
+  get forEach() {
+    this._stateList = []
+    this.constructor._fields.forEach((field) => {
+      this._stateList.push(this[field])
+    })
+    return this._stateList.forEach.bind(this._stateList)
+  }
+
+  keys() {
+    return this.constructor._fields
+  }
 
   static types(kwargs) {
     const named = {}
@@ -368,6 +380,18 @@ class RawArguments extends all_collections_generated_classes.RawArguments {
       return
     }
     super(kwargs)
+  }
+  
+  get forEach() {
+    this._stateList = []
+    this.constructor._fields.forEach((field) => {
+      this._stateList.push(this[field])
+    })
+    return this._stateList.forEach.bind(this._stateList)
+  }
+
+  keys() {
+    return this.constructor._fields
   }
 
   static types(kwargs) {
@@ -609,7 +633,7 @@ class Function extends all_collections_generated_classes.Function {
 
   static spec(id_, name, args) {
     //Create a Function to be used in ValidActions.//
-    return this.prototype.constructor({
+    return new this.prototype.constructor({
       id: id_,
       name,
       ability_id: null,
@@ -631,9 +655,13 @@ class Function extends all_collections_generated_classes.Function {
 
   __call__() {
     //A convenient way to create a FunctionCall from this Function.//
-    return FunctionCall.init_with_validation({
-      function: this.id,
-      arguments: arguments,
+    let func = this.id
+    //if (typeof func !== 'string') {
+    //  func = func.key || func
+    //}
+    return FunctionCall.init_with_validation({ //eslint-disable-line
+      function: func, //this.id,
+      arguments: arguments, //eslint-disable-line
       raw: this.raw,
     })
   }
@@ -696,6 +724,8 @@ class Functions {
 
   _getProxy(thing) {
     const self = this //eslint-disable-line
+    //const keys = Object.keys(self._func_dict)
+    //console.log('keys: ', keys)
     return new Proxy(thing, {
       get: (target, name) => {
         if (name === Symbol.iterator) {
@@ -715,7 +745,13 @@ class Functions {
         }
         return target._func_dict[name]
       },
-      ownKeys: (target) => Object.keys(target._func_dict)
+      ownKeys: (target) => Object.keys(self._func_dict),
+      getOwnPropertyDescriptor(k) {
+        return {
+          enumerable: true,
+          configurable: true,
+        }
+      },
     })
   }
 }

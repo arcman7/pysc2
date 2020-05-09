@@ -219,8 +219,6 @@ class ToPointTest(absltest.TestCase):
 
   def testIntAsString(self):
     value = features._to_point("32")
-    print('value: ', value)
-    print('point: ', point.Point(32, 32))
     self.assertEqual(value, point.Point(32, 32))
 
   def testIntStringTwoTuple(self):
@@ -429,6 +427,7 @@ class FeaturesTest(absltest.TestCase):
     for func_index, func_def in enumerate(action_spec.functions):
       self.assertEqual(func_index, func_def.id)
     for type_index, type_def in enumerate(action_spec.types):
+      print(type_def)
       self.assertEqual(type_index, type_def.id)
 
   def testReversingUnknownAction(self):
@@ -446,7 +445,6 @@ class FeaturesTest(absltest.TestCase):
         feature_dimensions=RECTANGULAR_DIMENSIONS,
         hide_specific_actions=False))
     action_spec = feats.action_spec()
-
     for func_def in action_spec.functions:
       for _ in range(10):
         func_call = self.gen_random_function_call(action_spec, func_def.id)

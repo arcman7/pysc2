@@ -8,6 +8,7 @@ const features = require(path.resolve(__dirname, './features.js'))
 const point = require(path.resolve(__dirname, './point.js'))
 const pythonUtils = require(path.resolve(__dirname, './pythonUtils.js'))
 
+const { randomUniform } = pythonUtils
 const { sc2api_pb, raw_pb, ui_pb, common_pb } = s2clientprotocol
 const sc_raw = raw_pb
 const sc_pb = sc2api_pb
@@ -416,17 +417,80 @@ describe('features:', () => {
       }))
       const valid_funcs = feats.action_spec()
       valid_funcs.functions.forEach((func_def) => {
-        const func = actions.FUNCTIONS[func_def.id]
+        //console.log(func_def)
+        //console.log(func_def.id)
+        const func = actions.FUNCTIONS[func_def.id.key]
         expect(func_def.id).toBe(func.id)
         expect(func_def.name).toBe(func.name)
-        expect(func_def.args.length).toBe(func.args)
+        expect(func_def.args.length).toBe(func.args.length)
       })
     })
     function gen_random_function_call(action_spec, func_id) {
-      
+      const args = []
+      //console.log('action_spec.functions: ', action_spec.functions)
+      //console.log('func_id:', func_id)
+      action_spec.functions[func_id.key].args.forEach((arg) => {
+        const temp = []
+        arg.sizes.forEach((size) => {
+          temp.push(randomUniform(0, size))
+        })
+        args.push(temp)
+      })
+      return new actions.FunctionCall({ function: func_id, arguments: args })
     }
-    test('', () => {
+    test('testIdsMatchIndex', () => {
+      const feats = new features.Features(new features.AgentInterfaceFormat({
+        feature_dimensions: RECTANGULAR_DIMENSIONS,
+      }))
+      const action_spec = feats.action_spec()
+      //console.log('action_spec: ', action_spec)
+      action_spec.functions.forEach((func_def, func_index) => {
+        expect(func_index == func_def.id).toBe(true)
+      })
+      action_spec.types.forEach((type_def, type_index) => {
+        expect(type_index == type_def.id).toBe(true)
+      })
+    })
+    test('testReversingUnknownAction', () => {
 
+    })
+    test('testSpecificActionsAreReversible', () => {
+      const feats = new features.Features(new features.AgentInterfaceFormat({
+        feature_dimensions: RECTANGULAR_DIMENSIONS,
+        hide_specific_actions: false,
+      }))
+      const action_spec = feats.action_spec()
+      //console.log(action_spec.functions)
+      action_spec.functions.forEach((func_def) => {
+        let func_call
+        let sc2_action
+        let func_call2
+        let sc2_action2
+        for (let i = 0; i < 10; i++) {
+          func_call = gen_random_function_call(action_spec, func_def.id)
+          sc2_action = feats.transform_action(null, func_call, true)
+          func_call2 = feats.reverse_action(sc2_action)
+          sc2_action2 = feats.transform_action(null, func_call2, true)
+          //console.log(func_def.id == actions.FUNCTIONS.select_rect.id)
+          if (func_def.id == actions.FUNCTIONS.select_rect.id) {
+            // Need to check this one manually since the same rect can be
+            // defined in multiple ways.
+            function rect(a) {
+              return new point.Rect(
+                new point.Point(...a[1]).floor(),
+                new point.Point(...a[2]).floor(),
+              )
+            }
+            expect(func_call.function).toMatchObject(func_call2.function)
+            expect(func_call.arguments.length).toBe(func_call2.arguments.length)
+            expect(func_call.arguments[0]).toMatchObject(func_call2.arguments[0])
+            expect(rect(func_call.arguments)).toMatchObject(rect(func_call2.arguments))
+          } else {
+            expect(func_call).toMatchObject(func_call2)
+          }
+          expect(sc2_action).toMatchObject(sc2_action2)
+        }
+      })
     })
   })
 })

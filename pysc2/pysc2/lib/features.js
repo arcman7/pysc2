@@ -13,9 +13,10 @@ const all_collections_generated_classes = require(path.resolve(__dirname, './all
 const np = require(path.resolve(__dirname, './numpy.js'))
 
 const sw = stopwatch.sw
-const { sc2api_pb2, raw_pb2 } = s2clientprotocol
-const sc_raw = raw_pb2
-const sc_pb = sc2api_pb2
+const { sc2api_pb, raw_pb } = s2clientprotocol
+const sc_raw = raw_pb
+const sc_pb = sc2api_pb
+//console.log('sc_pb: ', sc_pb)
 const { Defaultdict, int, isinstance, len, map, pythonWith, sum, zip } = pythonUtils
 
 const EPSILON = 1e-5
@@ -914,11 +915,9 @@ function _init_valid_functions(action_dimensions) {
   }
   let args = Object.keys(actions.TYPES).map((key) => {
     const t = actions.TYPES[key]
-    //console.log(t)
     return actions.ArgumentType
       .spec(t.id, t.name, sizes[t.name] || t.sizes)
   })
-  //console.log('args: ', args)
   const types = new actions.Arguments(args)
   args = Object.keys(actions.FUNCTIONS).map((key) => {
     const f = actions.FUNCTIONS[key]
@@ -1826,7 +1825,7 @@ class Features {
     return results
   }
 
-  transform_action(self, obs, func_call, skip_available = false) {
+  transform_action(obs, func_call, skip_available = false) {
     /*Transform an agent-style action to one that SC2 can consume.
 
     Args:
@@ -1851,17 +1850,17 @@ class Features {
     let func
     try {
       if (this._raw) {
-        func = actions.RAW_FUNCTIONS[func_id]
+        func = actions.RAW_FUNCTIONS[func_id.key]
       } else {
-        func = actions.FUNCTIONS[func_id]
+        func = actions.FUNCTIONS[func_id.key]
       }
     } catch (err) {
-      throw new Error(`ValueError: Invalid function id: ${func_id}.`)
+      throw new Error(`ValueError: Invalid function id: ${func_id.key}.`)
     }
 
     // Available?
-    if (!(skip_available || this._raw || this.available_actions(obs).hasOwnProperty(func_id))) {
-      throw new Error(`ValueError: Function ${func_id} ${func.name} is currently not available`)
+    if (!skip_available && !this._raw && !this.available_actions(obs).hasOwnProperty(func_id.key)) {
+      throw new Error(`ValueError: Function ${func_id.key} ${func.name} is currently not available`)
     }
     // Right number of args?
     if (len(func_call.arguments) !== len(func.args)) {
@@ -1941,10 +1940,11 @@ class Features {
           return find_original_tag(t)
         })
       }
-      actions.RAW_FUNCTIONS[func_id].function_type(kwargs)
+      actions.RAW_FUNCTIONS[func_id.key].function_type(kwargs)
     } else {
       kwargs['action_space'] = aif.action_space
-      actions.FUNCTIONS[func_id].function_type(kwargs)
+      console.log(func_id)
+      actions.FUNCTIONS[func_id.key].function_type(kwargs)
     }
     return sc2_action
   }

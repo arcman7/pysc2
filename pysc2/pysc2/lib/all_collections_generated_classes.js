@@ -35,13 +35,8 @@ class ArgumentType {
   constructor(kwargs, id, name, sizes, fn, values, count) {
     if (kwargs) {
       var { id, name, sizes, fn, values, count } = kwargs;
-      this.name = name;
-      this.sizes = sizes;
-      this.fn = fn;
-      this.values = values;
-      this.count = count;
-      return
     }
+    this.id = id
     this.name = name;
     this.sizes = sizes;
     this.fn = fn;
