@@ -1711,6 +1711,9 @@ class Features(object):
       actions.RAW_FUNCTIONS[func_id].function_type(**kwargs)
     else:
       kwargs["action_space"] = aif.action_space
+      #if (func_id == actions.FUNCTION)
+      print('here****: ', func_id)
+      print(kwargs)
       actions.FUNCTIONS[func_id].function_type(**kwargs)
     return sc2_action
 

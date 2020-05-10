@@ -21,6 +21,13 @@ class Point extends all_collections_generated_classes.Point {
       this.x = x
       this.y = y
     }
+    this[0] = this.x
+    this[1] = this.y
+    this.length = 2
+  }
+
+  get map() {
+    return [this.x, this.y].map
   }
 
   static build(x, y) {
@@ -216,8 +223,6 @@ class Rect extends all_collections_generated_classes.Rect {
       if (arg[0] > arg[2] || arg[1] > arg[3]) {
         throw new Error(`TypeError:"Rect requires: t <= b and l <= r`)
       }
-      // TODO(b/117657518) { Remove the disable once the pytype bug is fixed.
-      // return super(Rect, cls).new(cls, *args)  // pytype: disable=missing-parameter
       super({
         t: arg[0],
         l: arg[1],

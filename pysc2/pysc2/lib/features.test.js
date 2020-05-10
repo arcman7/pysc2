@@ -181,15 +181,15 @@ describe('features:', () => {
     })
     test('testMany', () => {
       const add = [
-        [23, true],  // Attack
-        [318, true],  // Build_CommandCenter
-        [320, true],  // Build_Refinery
-        [319, true],  // Build_SupplyDepot
-        [316, true],  // Effect_Repair_SCV
-        [295, true],  // Harvest_Gather_SCV
-        [16, true],  // Move
-        [17, true],  // Patrol
-        [4, false],  // Stop
+        [23, true], // Attack
+        [318, true], // Build_CommandCenter
+        [320, true], // Build_Refinery
+        [319, true], // Build_SupplyDepot
+        [316, true], // Effect_Repair_SCV
+        [295, true], // Harvest_Gather_SCV
+        [16, true], // Move
+        [17, true], // Patrol
+        [4, false], // Stop
       ]
       add.forEach(([aId, reqP]) => {
         const ability = new common_pb.AvailableAbility()
@@ -427,10 +427,11 @@ describe('features:', () => {
     })
     function gen_random_function_call(action_spec, func_id) {
       const args = []
-      //console.log('action_spec.functions: ', action_spec.functions)
-      //console.log('func_id:', func_id)
+      // console.log('action_spec.functions: ', action_spec.functions)
+      // console.log('func_id:', func_id)
       action_spec.functions[func_id.key].args.forEach((arg) => {
         const temp = []
+        // console.log('arg: ', arg)
         arg.sizes.forEach((size) => {
           temp.push(randomUniform(0, size))
         })
@@ -443,7 +444,6 @@ describe('features:', () => {
         feature_dimensions: RECTANGULAR_DIMENSIONS,
       }))
       const action_spec = feats.action_spec()
-      //console.log('action_spec: ', action_spec)
       action_spec.functions.forEach((func_def, func_index) => {
         expect(func_index == func_def.id).toBe(true)
       })
@@ -468,14 +468,16 @@ describe('features:', () => {
         let sc2_action2
         for (let i = 0; i < 10; i++) {
           func_call = gen_random_function_call(action_spec, func_def.id)
+          // console.log('func_call: ', func_call)
           sc2_action = feats.transform_action(null, func_call, true)
+          // console.log('sc2_action: ', sc2_action)
           func_call2 = feats.reverse_action(sc2_action)
           sc2_action2 = feats.transform_action(null, func_call2, true)
           //console.log(func_def.id == actions.FUNCTIONS.select_rect.id)
           if (func_def.id == actions.FUNCTIONS.select_rect.id) {
             // Need to check this one manually since the same rect can be
             // defined in multiple ways.
-            function rect(a) {
+            function rect(a) { //eslint-disable-line
               return new point.Rect(
                 new point.Point(...a[1]).floor(),
                 new point.Point(...a[2]).floor(),
@@ -488,7 +490,7 @@ describe('features:', () => {
           } else {
             expect(func_call).toMatchObject(func_call2)
           }
-          expect(sc2_action).toMatchObject(sc2_action2)
+          expect(sc2_action.toObject()).toMatchObject(sc2_action2.toObject())
         }
       })
     })

@@ -77,6 +77,9 @@ def no_op(action, action_space):
 
 def move_camera(action, action_space, minimap):
   """Move the camera."""
+  print('minimap: ', minimap)
+  # print(**kwargs)
+  # import pdb; pdb.set_trace()
   minimap.assign_to(spatial(action, action_space).camera_move.center_minimap)
 
 

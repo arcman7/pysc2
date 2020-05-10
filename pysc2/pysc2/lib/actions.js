@@ -9,7 +9,7 @@ const numpy = require(path.resolve(__dirname, './numpy.js'))
 const { spatial_pb, ui_pb } = s2clientprotocol
 const sc_spatial = spatial_pb
 const sc_ui = ui_pb
-const { len, iter, isinstance, isObject } = pythonUtils
+const { len, isinstance, isObject } = pythonUtils
 
 const ActionSpace = Enum.IntEnum('ActionSpace', {
   FEATURES: 1, // Act in feature layer pixel space with FUNCTIONS below.
@@ -20,10 +20,10 @@ const ActionSpace = Enum.IntEnum('ActionSpace', {
 function spatial(action, action_space) {
   // Choose the action space for the action proto.//
   if (action_space === ActionSpace.FEATURES) {
-    return action.action_feature_layer;
+    return action.actionFeatureLayer;
   }
   if (action_space === ActionSpace.RGB) {
-    return action.action_render;
+    return action.actionRender;
   }
   throw new Error(`ValueError: Unexpected value for action_space: ${action_space}`);
 }
@@ -336,17 +336,47 @@ class Arguments extends all_collections_generated_classes.Arguments {
   constructor(kwargs) {
     if (Array.isArray(kwargs)) {
       super(null, ...kwargs)
-      return
+      this.setIndexValues()
+    } else {
+      super(kwargs)
+      this.setIndexValues()
     }
-    super(kwargs)
+    // return this._getProxy(this)
   }
-  
+
+  setIndexValues() {
+    this.constructor._fields.forEach((field, index) => {
+      this[index] = this[field]
+    })
+  }
+  // _getProxy(thing) {
+  //   const self = this
+  //   return new Proxy(thing, {
+  //     get: (target, name) => {
+  //       console.log('accessing key: ', name)
+  //       if (typeof name === 'string' && Number.isInteger(Number(name))) {
+  //         const usedName = self.constructor._fields[name]
+  //         return target[usedName]
+  //       }
+  //       return target[name]
+  //     },
+  //   })
+  // }
+
   get forEach() {
     this._stateList = []
     this.constructor._fields.forEach((field) => {
       this._stateList.push(this[field])
     })
     return this._stateList.forEach.bind(this._stateList)
+  }
+
+  get map() {
+    this._stateList = []
+    this.constructor._fields.map((field) => {
+      this._stateList.push(this[field])
+    })
+    return this._stateList.map.bind(this._stateList)
   }
 
   keys() {
@@ -381,13 +411,21 @@ class RawArguments extends all_collections_generated_classes.RawArguments {
     }
     super(kwargs)
   }
-  
+
   get forEach() {
     this._stateList = []
     this.constructor._fields.forEach((field) => {
       this._stateList.push(this[field])
     })
     return this._stateList.forEach.bind(this._stateList)
+  }
+
+  get map() {
+    this._stateList = []
+    this.constructor._fields.map((field) => {
+      this._stateList.push(this[field])
+    })
+    return this._stateList.map.bind(this._stateList)
   }
 
   keys() {
@@ -551,34 +589,43 @@ class Function extends all_collections_generated_classes.Function {
         valid.
     raw: Whether the function is raw or not.
   */
-  // constructor(kwargs) {
-  //   super(kwargs)
-  // }
+  constructor(kwargs) {
+    super(kwargs)
+    const func = this.__call__.bind(this)
+    return this._getProxy(func)
+  }
+
+  _getProxy(thing) {
+    const self = this
+    return new Proxy(thing, {
+      get: (target, name) => {
+        return self[name]
+      },
+    })
+  }
 
   static ui_func(id_, name, function_type, avail_fn = always) {
-    if (typeof function_type === 'function') {
-      function_type = function_type.name
-    }
     //Define a function representing a ui action.//
+    if (name === 'move_camera') {
+      // console.log('ui_func:')
+      // console.log(function_type)
+    }
     return new this.prototype.constructor({
       id: id_,
       name,
       ability_id: 0,
       general_id: 0,
       function_type,
-      args: FUNCTION_TYPES[function_type],
+      args: FUNCTION_TYPES[function_type.name],
       avail_fn,
       raw: false,
     })
   }
 
   static ability(id_, name, function_type, ability_id, general_id = 0) {
-    if (typeof function_type === 'function') {
-      function_type = function_type.name
-    }
     //Define a function represented as a game ability.//
     // assert function_type in ABILITY_FUNCTIONS
-    if (!ABILITY_FUNCTIONS[function_type]) {
+    if (!ABILITY_FUNCTIONS[function_type.name]) {
       console.warn('ability: Unknown function type: ', JSON.stringify(function_type))
     }
     return new this.prototype.constructor({
@@ -587,7 +634,7 @@ class Function extends all_collections_generated_classes.Function {
       ability_id,
       general_id,
       function_type,
-      args: FUNCTION_TYPES[function_type],
+      args: FUNCTION_TYPES[function_type.name],
       avail_fn: null,
       raw: false,
     })
@@ -595,11 +642,8 @@ class Function extends all_collections_generated_classes.Function {
 
   static raw_ability(id_, name, function_type, ability_id, general_id = 0,
     avail_fn = always) {
-    if (typeof function_type === 'function') {
-      function_type = function_type.name
-    }
     //Define a function represented as a game ability.//
-    if (!RAW_ABILITY_FUNCTIONS[function_type]) {
+    if (!RAW_ABILITY_FUNCTIONS[function_type.name]) {
       console.warn('raw_ability: Unknown function type: ', JSON.stringify(function_type))
     }
     return new this.prototype.constructor({
@@ -608,16 +652,13 @@ class Function extends all_collections_generated_classes.Function {
       ability_id,
       general_id,
       function_type,
-      args: FUNCTION_TYPES[function_type],
+      args: FUNCTION_TYPES[function_type.name],
       avail_fn,
       raw: true,
     })
   }
 
   static raw_ui_func(id_, name, function_type, avail_fn = always) {
-    if (typeof function_type === 'function') {
-      function_type = function_type.name
-    }
     //Define a function representing a ui action.//
     return new this.prototype.constructor({
       id: id_,
@@ -625,7 +666,7 @@ class Function extends all_collections_generated_classes.Function {
       ability_id: 0,
       general_id: 0,
       function_type,
-      args: FUNCTION_TYPES[function_type],
+      args: FUNCTION_TYPES[function_type.name],
       avail_fn,
       raw: true,
     })
@@ -649,21 +690,17 @@ class Function extends all_collections_generated_classes.Function {
     return this.id
   }
 
-  __str__() {
-    return this.str()
-  }
-
   __call__() {
     //A convenient way to create a FunctionCall from this Function.//
     let func = this.id
     //if (typeof func !== 'string') {
     //  func = func.key || func
     //}
-    return FunctionCall.init_with_validation({ //eslint-disable-line
-      function: func, //this.id,
-      arguments: arguments, //eslint-disable-line
-      raw: this.raw,
-    })
+    return FunctionCall.init_with_validation( //eslint-disable-line
+      func, //this.id,
+      arguments, //eslint-disable-line
+      this.raw,
+    )
   }
 
   str(self, space = false) {
@@ -724,8 +761,6 @@ class Functions {
 
   _getProxy(thing) {
     const self = this //eslint-disable-line
-    //const keys = Object.keys(self._func_dict)
-    //console.log('keys: ', keys)
     return new Proxy(thing, {
       get: (target, name) => {
         if (name === Symbol.iterator) {
@@ -739,6 +774,9 @@ class Functions {
         }
         if (name === 'forEach') {
           return target._func_list.forEach.bind(target._func_list)
+        }
+        if (name === 'map') {
+          return target._func_list.map.bind(target._func_list)
         }
         if (name === 'length') {
           return target._func_list.length
@@ -2011,9 +2049,18 @@ class FunctionCall extends all_collections_generated_classes.FunctionCall {
       KeyError: if the enum name doesn't exist.
       ValueError: if the enum id doesn't exist.
     */
-    const func = raw ? RAW_FUNCTIONS[_function] : FUNCTIONS[_function]
+    // console.log('_function: ', _function)
+    if (_function.key == 'move_camera') {
+      console.log("BULLSHIT ALERT:::::::::")
+      console.log('_arguments: ', _arguments)
+    }
+    const func = raw ? RAW_FUNCTIONS[_function.key] : FUNCTIONS[_function.key]
+    // console.log('func: ', func)
     const args = []
-    iter(_arguments).forEach((arg, index) => {
+    // console.log('_arguments:', _arguments)
+    for (let index = 0; index < _arguments.length; index++) {
+      let arg = _arguments[index]
+      arg = numpy_to_python(arg)
       arg = numpy_to_python(arg)
       const arg_type = func.args[index]
       if (arg_type.values) {
@@ -2041,7 +2088,7 @@ class FunctionCall extends all_collections_generated_classes.FunctionCall {
         throw new Error(`ValueError: "Unknown argument value type: ${typeof (arg)}, expected int or list of ints, or "
             "their numpy equivalents. Value: ${arg}`)
       }
-    })
+    }
     return this._make({ function: func.id, arguments: args })
   }
 

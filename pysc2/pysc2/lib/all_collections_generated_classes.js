@@ -161,7 +161,7 @@ class Function {
     this.ability_id = ability_id;
     this.general_id = general_id;
     this.function_type = function_type;
-    this.args = args;
+    this.args = args || [];
     this.avail_fn = avail_fn;
     this.raw = raw;
   }
