@@ -2,10 +2,9 @@
 
 const path = require('path')
 const all_collections_generated_classes = require(path.resolve(__dirname, './all_collections_generated_classes.jg'))
-const {abstractmethod, ABCMeta} = all_collections_generated_classes
 const Enum = require('python-enum')
-
-//import abc
+const pythonUtils = require(path.resolve(__dirname, '..', 'lib', 'pythonUtils.js'))
+const { ABCMeta } = pythonUtils
 
 class TimeStep extends all_collections_generated_classes.TimeStep {
   /*Returned with every call to `step` and `reset` on an environment.
@@ -48,10 +47,10 @@ class StepType extends Enum.IntEnum {
   // Denotes the last `TimeStep` in a sequence.
   LAST = 2
 }
-
+// Static abstractMethods = [‘names of the methods go here’ ... ]
 class Base extends object {
   //Abstract base class for javascript RL environments.
-    reset() {
+    static abstracMethods = ['reset'] 
     /* 
     Starts a new sequence and returns the first `TimeStep` of this sequence.
 
@@ -63,10 +62,8 @@ class Base extends object {
         observation: A NumPy array, or a dict, list or tuple of arrays
           corresponding to `observation_spec()`.
     */
-      throw new Error("Not implemented") 
-    }
 
-    step(action) {
+    static abstracMEthods = ['step']
     /* 
     Updates the environment according to the action and returns a `TimeStep`.
 
@@ -90,10 +87,8 @@ class Base extends object {
         observation: A NumPy array, or a dict, list or tuple of arrays
           corresponding to `observation_spec()`.
     */
-      throw new Error("Not implemented")
-    }
-
-    observation_spec() {
+   
+    static abstracMEthods = ['observation_spec']
     /*
     Defines the observations provided by the environment.
 
@@ -101,10 +96,8 @@ class Base extends object {
       A tuple of specs (one per agent), where each spec is a dict of shape
         tuples.
     */
-      throw new Error("Not implemented")
-    }
-
-    action_spec() {
+    
+    static abstracMEthods = ['action_spec']
     /*
     Defines the actions that should be provided to `step`.
 
@@ -112,8 +105,6 @@ class Base extends object {
       A tuple of specs (one per agent), where each spec is something that
         defines the shape of the actions.
     */
-      throw new Error("Not implemented")
-    }
 
     close() {
     /*
