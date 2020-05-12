@@ -117,7 +117,7 @@ class Arguments {
 class RawArguments {
   static get classname() { return 'RawArguments' }
 
-  static get _fields() { return ["world", "queued", "unit_tags", "target_unit_tag"] };
+  static get _fields() { return ["world", "queued", "unit_tags", "target_unit_tag"] }
 
   constructor(kwargs, world, queued, unit_tags, target_unit_tag) {
     if (kwargs) {

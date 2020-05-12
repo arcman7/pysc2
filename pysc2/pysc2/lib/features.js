@@ -13,12 +13,10 @@ const all_collections_generated_classes = require(path.resolve(__dirname, './all
 const np = require(path.resolve(__dirname, './numpy.js'))
 
 const sw = stopwatch.sw
-const { sc2api_pb, raw_pb } = s2clientprotocol
+const { common_pb, raw_pb, sc2api_pb, spatial_pb, ui_pb } = s2clientprotocol
 const sc_raw = raw_pb
 const sc_pb = sc2api_pb
-//console.log('sc_pb: ', sc_pb)
-const { Defaultdict, int, isinstance, len, map, pythonWith, sum, zip } = pythonUtils
-
+const { Defaultdict, int, isinstance, len, map, pythonWith, sum, zip, getArgsArray } = pythonUtils
 const EPSILON = 1e-5
 
 const FeatureType = Enum.Enum('FeatureType', {
@@ -899,13 +897,11 @@ function _init_valid_functions(action_dimensions) {
   const screen = []
   const screen2 = []
   const minimap = []
-  Object.keys(action_dimensions.screen).forEach((key) => {
-    const i = action_dimensions.screen[key]
+  action_dimensions.screen.forEach((i) => {
     screen.push(int(i))
     screen2.push(int(i))
   })
-  Object.keys(action_dimensions.minimap).forEach((key) => {
-    const i = action_dimensions.screen[key]
+  action_dimensions.minimap.forEach((i) => {
     minimap.push(int(i))
   })
   const sizes = {
@@ -921,6 +917,7 @@ function _init_valid_functions(action_dimensions) {
   args = actions.FUNCTIONS.map((f) => {
     const tuple = []
     // if (f.name == 'move_camera') {
+    //   console.log('f.args: ', f.args)
     // }
     f.args.forEach((t) => {
       // if (f.name == 'move_camera') {
@@ -951,14 +948,12 @@ function _init_valid_raw_functions(raw_resolution, max_selected_units) {
     world,
     unit_tags,
   }
-  let args = Object.keys(actions.RAW_TYPES).map((key) => {
-    const t = actions.RAW_TYPES[key]
+  let args = actions.RAW_TYPES.map((t) => {
     return actions.ArgumentType
       .spec(t.id, t.name, sizes[t.name] || t.sizes)
   })
   const types = new actions.RawArguments(args)
-  args = Object.keys(actions.RAW_FUNCTIONS).map((key) => {
-    const f = actions.RAW_FUNCTIONS[key]
+  args = actions.RAW_FUNCTIONS.map((f) => {
     const tuple = []
     Object.keys(f.args).forEach((k) => {
       const t = f.args[k]
@@ -1123,20 +1118,20 @@ class Features {
     const obs_spec = named_array.NamedDict({
       "action_result": [0], // See error.proto: ActionResult.
       "alerts": [0], // See sc2api.proto: Alert.
-      "build_queue": [0, len(UnitLayer)],
-      "cargo": [0, len(UnitLayer)],
+      "build_queue": [0, UnitLayer._keys.length],
+      "cargo": [0, UnitLayer._keys.length],
       "cargo_slots_available": [1],
       "control_groups": [10, 2],
       "game_loop": [1],
       "last_actions": [0],
       "map_name": [0],
-      "multi_select": [0, len(UnitLayer)],
-      "player": [len(Player)],
-      "production_queue": [0, len(ProductionQueue)],
-      "score_cumulative": [len(ScoreCumulative)],
-      "score_by_category": [len(ScoreByCategory), len(ScoreCategories)],
-      "score_by_vital": [len(ScoreByVital), len(ScoreVitals)],
-      "single_select": [0, len(UnitLayer)], // Only (n, 7) for n in (0, 1).
+      "multi_select": [0, UnitLayer._keys.length],
+      "player": [Player._keys.length],
+      "production_queue": [0, ProductionQueue._keys.length],
+      "score_cumulative": [ScoreCumulative._keys.length],
+      "score_by_category": [ScoreByCategory._keys.length, ScoreCategories._keys.length],
+      "score_by_vital": [ScoreByVital._keys.length, ScoreVitals._keys.length],
+      "single_select": [0, UnitLayer._keys.length], // Only (n, 7) for n in (0, 1).
     })
 
     if (!this._raw) {
@@ -1171,21 +1166,21 @@ class Features {
       ]
     }
     if (aif.use_feature_units) {
-      obs_spec["feature_units"] = [0, len(FeatureUnit)]
-      obs_spec["feature_effects"] = [0, len(EffectPos)]
+      obs_spec["feature_units"] = [0, FeatureUnit._keys.length]
+      obs_spec["feature_effects"] = [0, EffectPos._keys.length]
     }
     if (aif.use_raw_units) {
-      obs_spec["raw_units"] = [0, len(FeatureUnit)]
-      obs_spec["raw_effects"] = [0, len(EffectPos)]
+      obs_spec["raw_units"] = [0, FeatureUnit._keys.length]
+      obs_spec["raw_effects"] = [0, EffectPos._keys.length]
     }
     if (aif.use_feature_units || aif.use_raw_units) {
-      obs_spec["radar"] = [0, len(Radar)]
+      obs_spec["radar"] = [0, Radar._keys.length]
     }
 
     obs_spec["upgrades"] = [0]
 
     if (aif.use_unit_counts) {
-      obs_spec["unit_counts"] = [0, len(UnitCounts)]
+      obs_spec["unit_counts"] = [0, UnitCounts._keys.length]
     }
 
     if (aif.use_camera_position) {
@@ -1216,14 +1211,14 @@ class Features {
 
   transform_obs(obs) {
     //Render some SC2 observations into something an agent can handle.//
-    const empty_unit = np.array([], /*dtype=*/np.int32).reshape([0, len(UnitLayer)])
+    const empty_unit = np.array([], /*dtype=*/np.int32).reshape([0, UnitLayer._keys.length])
     const out = named_array.NamedDict({ // Fill out some that are sometimes empty.
       'single_select': empty_unit,
       'multi_select': empty_unit,
       'build_queue': empty_unit,
       'cargo': empty_unit,
       'production_queue': np.array([], /*dtype=*/np.int32).reshape(
-        [0, len(ProductionQueue)]
+        [0, ProductionQueue._keys.length]
       ),
       'last_actions': np.array([], /*dtype=*/np.int32),
       'cargo_slots_available': np.array([0], /*dtype=*/np.int32),
@@ -1445,7 +1440,10 @@ class Features {
       )
       const screen_radius = pos_transform.fwd_dist(u.radius)
       function raw_order(i) {
-        if (len(u.orders) > i) {
+        if (u.order.length === undefined) {
+          throw new Error('ValueError: u.order.length is undefined\nu.order: ', u.order)
+        }
+        if (u.orders.length > i) {
           // TODO(tewalds): Return a generalized func id.
           return actions.RAW_ABILITY_ID_TO_FUNC_ID.get(u.orders[i].ability_id, 0)
         }
@@ -1483,18 +1481,18 @@ class Features {
         u.assigned_harvesters,
         u.ideal_harvesters,
         u.weapon_cooldown,
-        len(u.orders),
+        u.orders.length,
         raw_order(0),
         raw_order(1),
         is_raw ? u.tag : 0,
         u.is_hallucination,
-        len(u.buff_ids) >= 1 ? u.buff_ids[0] : 0,
-        len(u.buff_ids) >= 2 ? u.buff_ids[1] : 0,
+        u.buff_ids.length >= 1 ? u.buff_ids[0] : 0,
+        u.buff_ids.length >= 2 ? u.buff_ids[1] : 0,
         u.add_on_tag ? get_addon_type(u.add_on_tag) : 0,
         u.is_active,
         u.is_on_screen,
-        len(u.orders) >= 1 ? int(u.orders[0].progress * 100) : 0,
-        len(u.orders) >= 2 ? int(u.orders[1].progress * 100) : 0,
+        u.orders.length >= 1 ? int(u.orders[0].progress * 100) : 0,
+        u.orders.length >= 2 ? int(u.orders[1].progress * 100) : 0,
         raw_order(2),
         raw_order(3),
         0,
@@ -1893,16 +1891,14 @@ class Features {
       } else {
         sizes = t.sizes
       }
-      console.log('sizes:', sizes)
-      console.log('arg:', arg)
+      // console.log('sizes:', sizes)
+      // console.log('arg:', arg)
       if (sizes.length !== arg.length) {
         throw new Error(`ValueError: Wrong number of values for argument of ${func}, got: ${func_call.arguments}`)
       }
       zip(sizes, arg).forEach((p) => {
         const [s, a] = p
-        // console.log('a: ', a)
-        // console.log('s: ', s)
-        if (!np.all(a >= 0) && np.all(a < s)) {
+        if (!(a >= 0) && (a < s)) {
           throw new Error(`ValueError: Argument is out of range for ${func}, got: ${func_call.arguments}`)
         }
       })
@@ -1910,14 +1906,61 @@ class Features {
 
     // Convert them to python types.
     const kwargs = {}
-    // console.log(func.args, func_call.arguments)
     zip(func.args, func_call.arguments).forEach((pair) => {
       const [type_, a] = pair
       kwargs[type_.name] = type_.fn(a)
     })
-
     // Call the right callback to get an SC2 action proto.
+    /**** set up proto ****/
+    /*     SPATIAL     */
     const sc2_action = new sc_pb.Action()
+    const actionSpatial = new spatial_pb.ActionSpatial()
+    // let camMove = new spatial_pb.ActionSpatialCameraMove()
+    // const unitSelectionRect = new spatial_pb.ActionSpatialUnitSelectionRect()
+    // const unitSelectionPoint = new spatial_pb.ActionSpatialUnitSelectionPoint()
+    // let unitCommand = new spatial_pb.ActionSpatialUnitCommand()
+    // const rect = new common_pb.RectangleI()
+    // unitSelectionRect.addSelectionScreenCoord(rect)
+    // unitSelectionPoint.setSelectionScreenCoord(new spatial_pb.PointI())
+    // camMove.setCenterMinimap(new spatial_pb.PointI())
+    // actionSpatial.setCameraMove(camMove)
+    // actionSpatial.setUnitSelectionRect(unitSelectionRect)
+    // actionSpatial.setUnitSelectionPoint(unitSelectionPoint)
+    // actionSpatial.setUnitCommand(unitCommand)
+    sc2_action.setActionFeatureLayer(actionSpatial)
+    sc2_action.setActionRender(actionSpatial)
+    /*     UI     */
+    const actionUI = new ui_pb.ActionUI()
+    // const controlGroup = new ui_pb.ActionControlGroup()
+    // const selectArmy = new ui_pb.ActionSelectArmy()
+    // const selectWarpGates = new ui_pb.ActionSelectWarpGates()
+    // const selectLarva = new ui_pb.ActionSelectLarva()
+    // const selectIdleWorker = new ui_pb.ActionSelectIdleWorker()
+    // const multiPanel = new ui_pb.ActionMultiPanel()
+    // const cargoPanel = new ui_pb.ActionCargoPanelUnload()
+    // const productionPanel = new ui_pb.ActionProductionPanelRemoveFromQueue()
+    // let toggleAutocast = new ui_pb.ActionToggleAutocast()
+    // actionUI.setControlGroup(controlGroup)
+    // actionUI.setSelectArmy(selectArmy)
+    // actionUI.setSelectWarpGates(selectWarpGates)
+    // actionUI.setSelectLarva(selectLarva)
+    // actionUI.setSelectIdleWorker(selectIdleWorker)
+    // actionUI.setMultiPanel(multiPanel)
+    // actionUI.setCargoPanel(cargoPanel)
+    // actionUI.setProductionPanel(productionPanel)
+    // actionUI.setToggleAutocast(toggleAutocast)
+    sc2_action.setActionUI(actionUI)
+    /*     RAW     */
+    const actionRaw = new raw_pb.ActionRaw()
+    // unitCommand = new raw_pb.ActionRawUnitCommand()
+    // camMove = new raw_pb.ActionRawCameraMove()
+    // toggleAutocast = new raw_pb.ActionRawCameraMove()
+    // camMove.setCenterWorldSpace(new common_pb.Point())
+    // actionRaw.setUnitCommand(unitCommand)
+    // actionRaw.setCameraMove(camMove)
+    // actionRaw.setToggleAutocast(toggleAutocast)
+    sc2_action.setActionRaw(actionRaw)
+
     kwargs['action'] = sc2_action
     if (func.ability_id) {
       kwargs['ability_id'] = func.ability_id
@@ -1948,21 +1991,22 @@ class Features {
           return find_original_tag(t)
         })
       }
-      actions.RAW_FUNCTIONS[func_id.key].function_type(kwargs)
+      const argArray = getArgsArray(actions.RAW_FUNCTIONS[func_id.key].function_type, kwargs)
+      actions.RAW_FUNCTIONS[func_id.key].function_type(...argArray)
     } else {
       kwargs['action_space'] = aif.action_space
       if (func_id.key === 'move_camera') {
-        console.log('here: **', func_id)
-        console.log(kwargs)
+        // console.log('here: **', func_id)
+        // console.log(kwargs)
       }
-
-      actions.FUNCTIONS[func_id.key].function_type(kwargs)
+      const argArray = getArgsArray(actions.FUNCTIONS[func_id.key].function_type, kwargs)
+      actions.FUNCTIONS[func_id.key].function_type(...argArray)
     }
     return sc2_action
   }
 
   reverse_action(action) {
-    action = action.toObject()
+    // action = action.toObject()
     /*Transform an SC2-style action into an agent-style action.
 
     This should be the inverse of `transform_action`.
@@ -2004,8 +2048,8 @@ class Features {
       throw new Error(`ValueError: Unknown ability_id: ${ability_id}, type: ${cmd_type.__name__}. Likely a bug.`)
     }
 
-    if (action.actionUi) {
-      const actUi = action.actionUi
+    if (action.getActionUi()) {
+      const actUi = action.getActionUi().toObject()
       if (actUi.multiPanel) {
         return FUNCTIONS.select_unit(
           actUi.multiPanel.type - 1,
@@ -2040,7 +2084,7 @@ class Features {
       }
       if (actUi.toggleAutocast) {
         return func_call_ability(
-          actUi.toggle_autocast.ability_id,
+          actUi.toggleAutocast.ability_id,
           actions.autocast
         )
       }

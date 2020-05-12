@@ -30,6 +30,10 @@ class Point extends all_collections_generated_classes.Point {
     return [this.x, this.y].map
   }
 
+  get forEach() {
+    return [this.x, this.y].forEach
+  }
+
   static build(x, y) {
     //Build a Point from an object that has properties `x` and `y`.//
     return this._make({ x, y })
@@ -236,6 +240,10 @@ class Rect extends all_collections_generated_classes.Rect {
 
   str() {
     return `${this.l},${this.r},${this.t},${this.b},`
+  }
+
+  toString() {
+    return this.str()
   }
 
   get center() {

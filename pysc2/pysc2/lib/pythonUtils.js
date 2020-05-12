@@ -33,6 +33,28 @@ Array.prototype.extend = function(array) {
     this.push(array[i])
   }
 }
+function getArgNames(func) {
+  // First match everything inside the function argument parens.
+  const args = func.toString().match(/function\s.*?\(([^)]*)\)/)[1]
+
+  // Split the arguments string into an array comma delimited.
+  return args.split(',').map(function(arg) {
+    // Ensure no inline comments are parsed and trim the whitespace.
+    return arg.replace(/\/\*.*\*\//, '').trim()
+  }).filter(function(arg) {
+    // Ensure no undefined values are added.
+    return arg
+  })
+}
+function getArgsArray(func, kwargs) {
+  if (getArgsArray.argSignatures[func.name]) {
+    return getArgsArray.argSignatures[func.name].map((argName) => kwargs[argName])
+  }
+  getArgsArray.argSignatures[func.name] = getArgNames(func)
+  return getArgsArray.argSignatures[func.name].map((argName) => kwargs[argName])
+}
+getArgsArray.argSignatures = {}
+getArgsArray.getArgNames = getArgNames
 //eslint-disable-next-line
 String.prototype.splitlines = function() {
   return this.split(/\r?\n/)
@@ -95,6 +117,7 @@ function map(func, collection) {
     collection[key] = func(collection[key])
   })
 }
+
 function randomUniform(min, max) {
   return Math.random() * (max - min) + min;
 }
@@ -231,6 +254,7 @@ module.exports = {
   Array,
   DefaultDict,
   eq,
+  getArgsArray,
   len,
   int,
   iter,

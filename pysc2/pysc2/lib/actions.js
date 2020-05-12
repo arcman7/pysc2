@@ -20,114 +20,114 @@ const ActionSpace = Enum.IntEnum('ActionSpace', {
 function spatial(action, action_space) {
   // Choose the action space for the action proto.//
   if (action_space === ActionSpace.FEATURES) {
-    return action.actionFeatureLayer;
+    return action.getActionFeatureLayer()
   }
   if (action_space === ActionSpace.RGB) {
-    return action.actionRender;
+    return action.getActionRender()
   }
   throw new Error(`ValueError: Unexpected value for action_space: ${action_space}`);
 }
-function no_op(action, action_space) {
+function no_op(action = {}, action_space) {
   delete action[action_space]
 }
 function move_camera(action, action_space, minimap) {
   // Move the camera.//
-  minimap.assign_to(spatial(action, action_space).camera_move.center_minimap);
+  minimap.assign_to(spatial(action, action_space).getCameraMove().getCenterMinimap());
 }
 function select_point(action, action_space, select_point_act, screen) {
   // Select a unit at a point.//
-  const select = spatial(action, action_space).unit_selection_point
-  screen.assign_to(select.selection_screen_coord)
-  select.type = select_point_act
+  const select = spatial(action, action_space).getUnitSelectionPoint()
+  screen.assign_to(select.selectionScreenCoord)
+  select.setType(select_point_act)
 }
 function select_rect(action, action_space, select_add, screen, screen2) {
   // Select units within a rectangle.//
-  const select = spatial(action, action_space).unit_selection_rect
-  const out_rect = select.selection_screen_coord.add()
-  const screen_rect = point.Rect(screen, screen2)
+  const select = spatial(action, action_space).getUnitSelectionRect()
+  const out_rect = select.addSelectionScreenCoord(new spatial_pb.ActionSpatialUnitSelectionRect())
+  const screen_rect = new point.Rect(screen, screen2)
   screen_rect.tl.assign_to(out_rect.p0)
   screen_rect.br.assign_to(out_rect.p1)
-  select.selection_add = Boolean(select_add)
+  select.setSelectionAdd(Boolean(select_add))
 }
 function select_idle_worker(action, action_space, select_worker) {
   // Select an idle worker.//
   /* delete action_space has no equivalent in js */
-  action.action_ui.select_idle_worker.type = select_worker
+  action.getActionUI().getSelectIdleWorker().setType(select_worker)
 }
 
 function select_army(action, action_space, select_add) {
   // Select the entire army.//
   /* delete action_space has no equivalent in js */
-  action.action_ui.select_army.selection_add = select_add
+  action.getActionUI().getSelectArmy().setSelectionAdd(select_add)
 }
 
 function select_warp_gates(action, action_space, select_add) {
   // Select all warp gates.//
   /* delete action_space has no equivalent in js */
-  action.action_ui.select_warp_gates.selection_add = select_add
+  action.getActionUI().getSelectWarpGates().setSelectionAdd(select_add)
 }
 
 function select_larva(action, /*action_space*/) {
   // Select all larva.//
   /* delete action_space has no equivalent in js */
-  action.action_ui.select_larva.SetInParent() // Adds the empty proto field.
+  action.getActionUI().setSelectLarva(new ui_pb.ActionSelectLarva()) // Adds the empty proto field.
 }
 
 function select_unit(action, action_space, select_unit_act, select_unit_id) {
   // Select a specific unit from the multi-unit selection.//
   /* delete action_space has no equivalent in js */
-  const select = action.action_ui.multi_panel
-  select.type = select_unit_act
-  select.unit_index = select_unit_id
+  const select = action.getActionUI().getMultiPanel()
+  select.setType(select_unit_act)
+  select.setUnitIndex(select_unit_id)
 }
 
 function control_group(action, action_space, control_group_act, control_group_id) {
   // Act on a control group, selecting, setting, etc.//
   /* delete action_space has no equivalent in js */
-  const select = action.action_ui.control_group
-  select.action = control_group_act
-  select.control_group_index = control_group_id
+  const select = action.getActionUI().getControlGroup()
+  select.setAction(control_group_act)
+  select.setControlGroupIndex(control_group_id)
 }
 
 function unload(action, action_space, unload_id) {
   // Unload a unit from a transport/bunker/nydus/etc.//
   /* delete action_space has no equivalent in js */
-  action.action_ui.cargo_panel.unit_index = unload_id
+  action.getActionUI().getCargoPanel().setUnitIndex(unload_id)
 }
 
 function build_queue(action, action_space, build_queue_id) {
   // Cancel a unit in the build queue.//
   /* delete action_space has no equivalent in js */
-  action.action_ui.production_panel.unit_index = build_queue_id
+  action.getActionUI().getProductionPanel().setUnitIndex(build_queue_id)
 }
 
 function cmd_quick(action, action_space, ability_id, queued) {
   // Do a quick command like 'Stop' or 'Stim'.//
-  const action_cmd = spatial(action, action_space).unit_command
-  action_cmd.ability_id = ability_id
-  action_cmd.queue_command = queued
+  const action_cmd = spatial(action, action_space).getUnitCommand()
+  action_cmd.setAbilityId(ability_id)
+  action_cmd.setQueueCommand(queued)
 }
 
 function cmd_screen(action, action_space, ability_id, queued, screen) {
   // Do a command that needs a point on the screen.//
-  const action_cmd = spatial(action, action_space).unit_command
-  action_cmd.ability_id = ability_id
-  action_cmd.queue_command = queued
-  screen.assign_to(action_cmd.target_screen_coord)
+  const action_cmd = spatial(action, action_space).getUnitCommand()
+  action_cmd.setAbilityId(ability_id)
+  action_cmd.setQueueCommand(queued)
+  screen.assign_to(action_cmd.getTargetScreenCoord())
 }
 
 function cmd_minimap(action, action_space, ability_id, queued, minimap) {
   // Do a command that needs a point on the minimap.//
-  const action_cmd = spatial(action, action_space).unit_command
-  action_cmd.ability_id = ability_id
-  action_cmd.queue_command = queued
-  minimap.assign_to(action_cmd.target_minimap_coord)
+  const action_cmd = spatial(action, action_space).getUnitCommand()
+  action_cmd.setAbilityId(ability_id)
+  action_cmd.setQueueCommand(queued)
+  minimap.assign_to(action_cmd.getTargetMinimapCoord())
 }
 
 function autocast(action, action_space, ability_id) {
   // Toggle autocast.//
   /* delete action_space has no equivalent in js */
-  action.action_ui.toggle_autocast.ability_id = ability_id
+  action.getActionUI().getToggleAutocast().setAbilityId(ability_id)
 }
 
 function raw_no_op(/*action*/) {
@@ -136,54 +136,58 @@ function raw_no_op(/*action*/) {
 
 function raw_move_camera(action, world) {
   // Move the camera.//
-  const action_cmd = action.action_raw.camera_move
+  const action_cmd = action.getActionRaw().getCameraMove()
   world.assign_to(action_cmd.center_world_space)
 }
 
 function raw_cmd(action, ability_id, queued, unit_tags) {
   // Do a raw command to another unit.//
-  const action_cmd = action.action_raw.unit_command
-  action_cmd.ability_id = ability_id
-  action_cmd.queue_command = queued
-  if (!isinstance(unit_tags, [Array])) {
-    unit_tags = [unit_tags]
-  }
-  action_cmd.unit_tags.extend(unit_tags)
+  const action_cmd = action.getActionRaw().getUnitCommand()
+  action_cmd.setAbilityId(ability_id)
+  action_cmd.setQueueCommand(queued)
+  // if (!isinstance(unit_tags, [Array])) {
+  //   unit_tags = [unit_tags]
+  // }
+  // action_cmd.getUnitTags.extend(unit_tags)
+  action_cmd.addUnitTags(unit_tags)
 }
 
 function raw_cmd_pt(action, ability_id, queued, unit_tags, world) {
   // Do a raw command to another unit towards a point.//
-  const action_cmd = action.action_raw.unit_command
-  action_cmd.ability_id = ability_id
-  action_cmd.queue_command = queued
-  if (!isinstance(unit_tags, [Array])) {
-    unit_tags = [unit_tags]
-  }
-  action_cmd.unit_tags.extend(unit_tags)
-  world.assign_to(action_cmd.target_world_space_pos)
+  const action_cmd = action.getActionRaw().getUnitCommand()
+  action_cmd.setAbilityId(ability_id)
+  action_cmd.setQueueCommand(queued)
+  // if (!isinstance(unit_tags, [Array])) {
+  //   unit_tags = [unit_tags]
+  // }
+  // action_cmd.unit_tags.extend(unit_tags)
+  action_cmd.addUnitTags(unit_tags)
+  world.assign_to(action_cmd.getTargetWorldSpacePos())
 }
 
 function raw_cmd_unit(action, ability_id, queued, unit_tags,
   target_unit_tag) {
   // Do a raw command to another unit towards a unit.//
-  const action_cmd = action.action_raw.unit_command
-  action_cmd.ability_id = ability_id
-  action_cmd.queue_command = queued
-  if (!isinstance(unit_tags, [Array])) {
-    unit_tags = [unit_tags]
-  }
-  action_cmd.unit_tags.extend(unit_tags)
-  action_cmd.target_unit_tag = target_unit_tag
+  const action_cmd = action.getActionRaw().getUnitCommand()
+  action_cmd.setAbilityId(ability_id)
+  action_cmd.setQueueCommand(queued)
+  // if (!isinstance(unit_tags, [Array])) {
+  //   unit_tags = [unit_tags]
+  // }
+  // action_cmd.unit_tags.extend(unit_tags)
+  action_cmd.addUnitTags(unit_tags)
+  action_cmd.setTargetUnitTag(target_unit_tag)
 }
 
 function raw_autocast(action, ability_id, unit_tags) {
   // Toggle autocast.//
-  const action_cmd = action.action_raw.toggle_autocast
-  action_cmd.ability_id = ability_id
-  if (!isinstance(unit_tags, [Array])) {
-    unit_tags = [unit_tags]
-  }
-  action_cmd.unit_tags.extend(unit_tags)
+  const action_cmd = action.getActionRaw().getToggleAutocast()
+  action_cmd.setAbilityId(ability_id)
+  // if (!isinstance(unit_tags, [Array])) {
+  //   unit_tags = [unit_tags]
+  // }
+  // action_cmd.unit_tags.extend(unit_tags)
+  action_cmd.addUnitTags(unit_tags)
 }
 
 function numpy_to_python(val) {
@@ -240,8 +244,8 @@ class ArgumentType extends all_collections_generated_classes.ArgumentType {
       return new self.prototype.constructor({
         id: i,
         name,
-        sizes: [len(real)],
-        fn: a => real[a[0]],
+        sizes: [real.length],
+        fn: (a) => real[a[0]],
         values,
         count: null,
       })
@@ -270,7 +274,7 @@ class ArgumentType extends all_collections_generated_classes.ArgumentType {
         id: i,
         name,
         sizes: [0, 0],
-        fn: (a) => point.Point(...a).floor(),
+        fn: (a) => new point.Point(...a).floor(),
         values: null,
         count: null,
       })
@@ -341,7 +345,6 @@ class Arguments extends all_collections_generated_classes.Arguments {
       super(kwargs)
       this.setIndexValues()
     }
-    // return this._getProxy(this)
   }
 
   setIndexValues() {
@@ -349,33 +352,16 @@ class Arguments extends all_collections_generated_classes.Arguments {
       this[index] = this[field]
     })
   }
-  // _getProxy(thing) {
-  //   const self = this
-  //   return new Proxy(thing, {
-  //     get: (target, name) => {
-  //       console.log('accessing key: ', name)
-  //       if (typeof name === 'string' && Number.isInteger(Number(name))) {
-  //         const usedName = self.constructor._fields[name]
-  //         return target[usedName]
-  //       }
-  //       return target[name]
-  //     },
-  //   })
-  // }
+
+  get _stateList() {
+    return [this['screen'], this['minimap'], this['screen2'], this['queued'], this['control_group_act'], this['control_group_id'], this['select_point_act'], this['select_add'], this['select_unit_act'], this['select_unit_id'], this['select_worker'], this['build_queue_id'], this['unload_id']]
+  }
 
   get forEach() {
-    this._stateList = []
-    this.constructor._fields.forEach((field) => {
-      this._stateList.push(this[field])
-    })
     return this._stateList.forEach.bind(this._stateList)
   }
 
   get map() {
-    this._stateList = []
-    this.constructor._fields.map((field) => {
-      this._stateList.push(this[field])
-    })
     return this._stateList.map.bind(this._stateList)
   }
 
@@ -412,19 +398,15 @@ class RawArguments extends all_collections_generated_classes.RawArguments {
     super(kwargs)
   }
 
+  get _stateList() {
+    return [this['world'], this['queued'], this['unit_tags'], this['target_unit_tag']]
+  }
+
   get forEach() {
-    this._stateList = []
-    this.constructor._fields.forEach((field) => {
-      this._stateList.push(this[field])
-    })
     return this._stateList.forEach.bind(this._stateList)
   }
 
   get map() {
-    this._stateList = []
-    this.constructor._fields.map((field) => {
-      this._stateList.push(this[field])
-    })
     return this._stateList.map.bind(this._stateList)
   }
 
@@ -616,7 +598,7 @@ class Function extends all_collections_generated_classes.Function {
       ability_id: 0,
       general_id: 0,
       function_type,
-      args: FUNCTION_TYPES[function_type.name],
+      args: FUNCTION_TYPES[function_type.name || function_type.name],
       avail_fn,
       raw: false,
     })
@@ -703,10 +685,14 @@ class Function extends all_collections_generated_classes.Function {
     )
   }
 
-  str(self, space = false) {
+  str(space = false) {
     //String version. Set space=True to line them all up nicely.//
-    const val1 = (String(Math.floor(self.id))).rjust(space && 4)
+    const val1 = (String(Math.floor(this.id))).rjust(space && 4)
     return `${val1} ${this.name.ljust(space && 50)} (${this.args.join('; ')})`
+  }
+
+  toString(space = false) {
+    return this.str(space)
   }
 }
 

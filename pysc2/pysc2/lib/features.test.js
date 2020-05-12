@@ -9,7 +9,7 @@ const point = require(path.resolve(__dirname, './point.js'))
 const pythonUtils = require(path.resolve(__dirname, './pythonUtils.js'))
 
 const { randomUniform } = pythonUtils
-const { sc2api_pb, raw_pb, ui_pb, common_pb } = s2clientprotocol
+const { common_pb, raw_pb, sc2api_pb, spatial_pb, ui_pb } = s2clientprotocol
 const sc_raw = raw_pb
 const sc_pb = sc2api_pb
 const RECTANGULAR_DIMENSIONS = new features.Dimensions([84, 80], [64, 67])
@@ -367,7 +367,7 @@ describe('features:', () => {
     })
     test('test_valid_action_space_is_parsed', () => {
       actions.ActionSpace._keys.forEach((action_space) => {
-          const agent_interface_format = features.parse_agent_interface_format({
+        const agent_interface_format = features.parse_agent_interface_format({
           feature_screen: 32,
           feature_minimap: [24, 24],
           rgb_screen: 64,
@@ -417,8 +417,6 @@ describe('features:', () => {
       }))
       const valid_funcs = feats.action_spec()
       valid_funcs.functions.forEach((func_def) => {
-        //console.log(func_def)
-        //console.log(func_def.id)
         const func = actions.FUNCTIONS[func_def.id.key]
         expect(func_def.id).toBe(func.id)
         expect(func_def.name).toBe(func.name)
@@ -428,10 +426,13 @@ describe('features:', () => {
     function gen_random_function_call(action_spec, func_id) {
       const args = []
       // console.log('action_spec.functions: ', action_spec.functions)
-      // console.log('func_id:', func_id)
+      if (func_id.key == 'move_camera') {
+        // console.log('func_id:', func_id)
+        // console.log('action_spec.functions[func_id.key]: ', action_spec.functions[func_id.key].toString())
+        // console.log('action_spec.functions[func_id.key].args: ', action_spec.functions[func_id.key].args)
+      }
       action_spec.functions[func_id.key].args.forEach((arg) => {
         const temp = []
-        // console.log('arg: ', arg)
         arg.sizes.forEach((size) => {
           temp.push(randomUniform(0, size))
         })
@@ -452,7 +453,18 @@ describe('features:', () => {
       })
     })
     test('testReversingUnknownAction', () => {
-
+      const feats = new features.Features(new features.AgentInterfaceFormat({
+        feature_dimensions: RECTANGULAR_DIMENSIONS,
+        hide_specific_actions: false,
+      }))
+      const sc2_action = new sc_pb.Action()
+      const actionSpatial = new spatial_pb.ActionSpatial()
+      const unitCommand = new spatial_pb.ActionSpatialUnitCommand()
+      unitCommand.setAbilityId(6) // Cheer
+      actionSpatial.setUnitCommand(unitCommand)
+      sc2_action.setActionFeatureLayer(actionSpatial)
+      const func_call = feats.reverse_action(sc2_action)
+      expect(func_call.function == 0).toBe(true) // No-op
     })
     test('testSpecificActionsAreReversible', () => {
       const feats = new features.Features(new features.AgentInterfaceFormat({
@@ -461,6 +473,167 @@ describe('features:', () => {
       }))
       const action_spec = feats.action_spec()
       //console.log(action_spec.functions)
+      function setUpProto(action, name) {
+        if (name === 'no_op') {
+          return action
+        }
+        if (name === 'move_camera') {
+          const actionSpatial = new spatial_pb.ActionSpatial()
+          const camMove = new spatial_pb.ActionSpatialCameraMove()
+          camMove.setCenterMinimap(new spatial_pb.PointI())
+          actionSpatial.setCameraMove(camMove)
+          action.setActionFeatureLayer(actionSpatial)
+          action.setActionRender(actionSpatial)
+          return action
+        }
+        if (name === 'select_point') {
+          const actionSpatial = new spatial_pb.ActionSpatial()
+          const unitSelectionPoint = new spatial_pb.ActionSpatialUnitSelectionPoint()
+          unitSelectionPoint.setSelectionScreenCoord(new spatial_pb.PointI())
+          actionSpatial.setUnitSelectionPoint(unitSelectionPoint)
+          action.setActionFeatureLayer(actionSpatial)
+          action.setActionRender(actionSpatial)
+          return action
+        }
+        if (name === 'select_rect') {
+          const actionSpatial = new spatial_pb.ActionSpatial()
+          const unitSelectionPoint = new spatial_pb.ActionSpatialUnitSelectionPoint()
+          unitSelectionPoint.setSelectionScreenCoord(new spatial_pb.PointI())
+          actionSpatial.setUnitSelectionPoint(unitSelectionPoint)
+          action.setActionFeatureLayer(actionSpatial)
+          action.setActionRender(actionSpatial)
+          return action
+        }
+        if (name === 'select_idle_worker') {
+          const actionUI = new ui_pb.ActionUI()
+          const selectIdleWorker = new ui_pb.ActionSelectIdleWorker()
+          actionUI.setSelectIdleWorker(selectIdleWorker)
+          action.setActionUi(actionUI)
+          return action
+        }
+        if (name === 'select_army') {
+          const actionUI = new ui_pb.ActionUI()
+          const selectArmy = new ui_pb.ActionSelectArmy()
+          actionUI.setSelectArmy(selectArmy)
+          action.setActionUi(actionUI)
+          return action
+        }
+        if (name === 'select_warp_gates') {
+          const actionUI = new ui_pb.ActionUI()
+          const selectWarpGates = new ui_pb.ActionSelectWarpGates()
+          actionUI.setSelectWarpGates(selectWarpGates)
+          action.setActionUi(actionUI)
+          return action
+        }
+        if (name === 'select_larva') {
+          const actionUI = new ui_pb.ActionUI()
+          // const selectLarva = new ui_pb.ActionSelectLarva()
+          // actionUI.setSelectLarva(selectLarva)
+          action.setActionUi(actionUI)
+          return action
+        }
+        if (name === 'select_unit') {
+          const actionUI = new ui_pb.ActionUI()
+          const multiPanel = new ui_pb.ActionMultiPanel()
+          actionUI.setMultiPanel(multiPanel)
+          action.setActionUi(actionUI)
+          return action
+        }
+        if (name === 'control_group') {
+          const actionUI = new ui_pb.ActionUI()
+          const controlGroup = new ui_pb.ActionControlGroup()
+          actionUI.setControlGroup(controlGroup)
+          action.setActionUi(actionUI)
+          return action
+        }
+        if (name === 'unload') {
+          const actionUI = new ui_pb.ActionUI()
+          const cargoPanel = new ui_pb.ActionCargoPanelUnload()
+          actionUI.setCargoPanel(cargoPanel)
+          action.setActionUi(actionUI)
+          return action
+        }
+        if (name === 'build_queue') {
+          const actionUI = new ui_pb.ActionUI()
+          const productionPanel = new ui_pb.ActionProductionPanelRemoveFromQueue()
+          actionUI.setProductionPanel(productionPanel)
+          action.setActionUi(actionUI)
+          return action
+        }
+        if (name === 'cmd_quick') {
+          const unitCommand = new spatial_pb.ActionSpatialUnitCommand()
+          const actionSpatial = new spatial_pb.ActionSpatial()
+          actionSpatial.setUnitCommand(unitCommand)
+          action.setActionFeatureLayer(actionSpatial)
+          action.setActionRender(actionSpatial)
+          return action
+        }
+        if (name === 'cmd_screen') {
+          const unitCommand = new spatial_pb.ActionSpatialUnitCommand()
+          unitCommand.setTargetScreenCoord(new spatial_pb.PointI())
+          const actionSpatial = new spatial_pb.ActionSpatial()
+          actionSpatial.setUnitCommand(unitCommand)
+          action.setActionFeatureLayer(actionSpatial)
+          action.setActionRender(actionSpatial)
+          return action
+        }
+        if (name === 'cmd_minimap') {
+          const unitCommand = new spatial_pb.ActionSpatialUnitCommand()
+          unitCommand.setTargetMinimapCoord(new spatial_pb.PointI())
+          const actionSpatial = new spatial_pb.ActionSpatial()
+          actionSpatial.setUnitCommand(unitCommand)
+          action.setActionFeatureLayer(actionSpatial)
+          action.setActionRender(actionSpatial)
+          return action
+        }
+        if (name === 'autocast') {
+          const actionUI = new ui_pb.ActionUI()
+          const toggleAutocast = new ui_pb.ActionToggleAutocast()
+          actionUI.setToggleAutocast(toggleAutocast)
+          action.setActionUi(actionUI)
+          return action
+        }
+        if (name === 'raw_no_op') {
+          return action
+        }
+        if (name === 'raw_move_camera') {
+          const actionRaw = new raw_pb.ActionRaw()
+          const camMove = new raw_pb.ActionRawCameraMove()
+          camMove.setCenterWorldSpace(new common_pb.Point())
+          actionRaw.setCameraMove(camMove)
+          action.setActionRaw(actionRaw)
+          return action
+        }
+        if (name === 'raw_cmd') {
+          const actionRaw = new raw_pb.ActionRaw()
+          const unitCommand = new raw_pb.ActionRawUnitCommand()
+          actionRaw.setUnitCommand(unitCommand)
+          action.setActionRaw(actionRaw)
+          return action
+        }
+        if (name === 'raw_cmd_pt') {
+          const actionRaw = new raw_pb.ActionRaw()
+          const unitCommand = new raw_pb.ActionRawUnitCommand()
+          unitCommand.setTargetWorldSpacePos(new common_pb.Point2D())
+          actionRaw.setUnitCommand(unitCommand)
+          action.setActionRaw(actionRaw)
+          return action
+        }
+        if (name === 'raw_cmd_unit') {
+          const actionRaw = new raw_pb.ActionRaw()
+          const unitCommand = new raw_pb.ActionRawUnitCommand()
+          actionRaw.setUnitCommand(unitCommand)
+          action.setActionRaw(actionRaw)
+          return action
+        }
+        if (name === 'raw_autocast') {
+          const actionRaw = new raw_pb.ActionRaw()
+          const toggleAutocast = new raw_pb.ActionRawCameraMove()
+          actionRaw.setToggleAutocast(toggleAutocast)
+          action.setActionRaw(actionRaw)
+          return action
+        }
+      }
       action_spec.functions.forEach((func_def) => {
         let func_call
         let sc2_action

@@ -352,11 +352,7 @@ class ScreenFeatures(all_collections_generated_classes.ScreenFeatures):
 
   def __new__(cls, **kwargs):
     feats = {}
-    # print('***************** kwargs ***********************')
-    # print(kwargs)
     for name, (scale, type_, palette, clip) in iteritems(kwargs):
-      # print('name: ', name)
-      # print(scale, type_, palette, clip)
       feats[name] = Feature(
           index=ScreenFeatures._fields.index(name),
           name=name,
@@ -825,8 +821,6 @@ def parse_agent_interface_format(
     else:
       total = sum(delays)
       cumulative_sum = np.cumsum([delay / total for delay in delays])
-      print('******************** cumulative_sum : ')
-      print(cumulative_sum)
       def fn():
         sample = random.uniform(0, 1) - EPSILON
         for i, cumulative in enumerate(cumulative_sum):
@@ -928,7 +922,6 @@ def _init_valid_functions(action_dimensions):
       "screen2": tuple(int(i) for i in action_dimensions.screen),
       "minimap": tuple(int(i) for i in action_dimensions.minimap),
   }
-
   types = actions.Arguments(*[
       actions.ArgumentType.spec(t.id, t.name, sizes.get(t.name, t.sizes))
       for t in actions.TYPES])
@@ -1711,9 +1704,6 @@ class Features(object):
       actions.RAW_FUNCTIONS[func_id].function_type(**kwargs)
     else:
       kwargs["action_space"] = aif.action_space
-      #if (func_id == actions.FUNCTION)
-      print('here****: ', func_id)
-      print(kwargs)
       actions.FUNCTIONS[func_id].function_type(**kwargs)
     return sc2_action
 
@@ -1908,6 +1898,3 @@ class Features(object):
         return actions.RAW_FUNCTIONS.raw_move_camera(coord)
 
     return actions.RAW_FUNCTIONS.no_op()
-
-# print('len(SCREEN_FEATURES):')
-# print(len(SCREEN_FEATURES))

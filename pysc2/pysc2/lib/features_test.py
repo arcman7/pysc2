@@ -55,10 +55,8 @@ player_common {
 game_loop: 20
 """
 
-
 RECTANGULAR_DIMENSIONS = features.Dimensions(screen=(84, 80), minimap=(64, 67))
 SQUARE_DIMENSIONS = features.Dimensions(screen=84, minimap=64)
-
 
 class AvailableActionsTest(absltest.TestCase):
 
@@ -416,8 +414,19 @@ class FeaturesTest(absltest.TestCase):
       self.assertEqual(len(func_def.args), len(func.args))  # pylint: disable=g-generic-assert
 
   def gen_random_function_call(self, action_spec, func_id):
-    args = [[numpy.random.randint(0, size) for size in arg.sizes]  # pylint: disable=g-complex-comprehension
-            for arg in action_spec.functions[func_id].args]
+    # args = [[numpy.random.randint(0, size) for size in arg.sizes]  # pylint: disable=g-complex-comprehension
+    #         for arg in action_spec.functions[func_id].args]
+
+    args = []
+    for arg in action_spec.functions[func_id].args:
+      # if (func_id.value == 1):
+      #   print('func_id:', func_id)
+      #   print('action_spec.functions[func_id.key]: ', action_spec.functions[func_id])
+      #   print('action_spec.functions[func_id.key].args: ', action_spec.functions[func_id].args)
+      temp = []
+      for size in arg.sizes:
+        temp.append(numpy.random.randint(0, size))
+      args.append(temp)
     return actions.FunctionCall(func_id, args)
 
   def testIdsMatchIndex(self):
@@ -427,7 +436,6 @@ class FeaturesTest(absltest.TestCase):
     for func_index, func_def in enumerate(action_spec.functions):
       self.assertEqual(func_index, func_def.id)
     for type_index, type_def in enumerate(action_spec.types):
-      print(type_def)
       self.assertEqual(type_index, type_def.id)
 
   def testReversingUnknownAction(self):
@@ -448,7 +456,7 @@ class FeaturesTest(absltest.TestCase):
     for func_def in action_spec.functions:
       for _ in range(10):
         func_call = self.gen_random_function_call(action_spec, func_def.id)
-
+        print('func_call: ', func_call)
         sc2_action = feats.transform_action(
             None, func_call, skip_available=True)
         func_call2 = feats.reverse_action(sc2_action)

@@ -77,7 +77,7 @@ def no_op(action, action_space):
 
 def move_camera(action, action_space, minimap):
   """Move the camera."""
-  print('minimap: ', minimap)
+  # print('minimap: ', minimap)
   # print(**kwargs)
   # import pdb; pdb.set_trace()
   minimap.assign_to(spatial(action, action_space).camera_move.center_minimap)
@@ -525,7 +525,6 @@ class Function(all_collections_generated_classes.Function):
   @classmethod
   def ability(cls, id_, name, function_type, ability_id, general_id=0):
     """Define a function represented as a game ability."""
-    # print(id_, name, function_type)
     assert function_type in ABILITY_FUNCTIONS
     return cls(id_, name, ability_id, general_id, function_type,
                FUNCTION_TYPES[function_type], None, False)
@@ -1799,8 +1798,6 @@ RAW_ABILITY_IDS = {k: frozenset(v) for k, v in iteritems(RAW_ABILITY_IDS)}
 RAW_FUNCTIONS_AVAILABLE = {f.id: f for f in RAW_FUNCTIONS if f.avail_fn}
 RAW_ABILITY_ID_TO_FUNC_ID = {k: min(f.id for f in v)  # pylint: disable=g-complex-comprehension
                              for k, v in iteritems(RAW_ABILITY_IDS)}
-# print('stuff: ********************')
-# print(RAW_ABILITY_ID_TO_FUNC_ID)
 
 # class FunctionCall(collections.namedtuple(
 #     "FunctionCall", ["function", "arguments"])):
@@ -1833,10 +1830,7 @@ class FunctionCall(all_collections_generated_classes.FunctionCall):
     """
     func = RAW_FUNCTIONS[function] if raw else FUNCTIONS[function]
     args = []
-    #print('arguments: ', arguments)
-    #print('func.args: ', func.args)
     for arg, arg_type in zip(arguments, func.args):
-      #print('arg: ', arg, ' arg_type: ', arg_type)
       arg = numpy_to_python(arg)
       if arg_type.values:  # Allow enum values by name or int.
         if isinstance(arg, str):
