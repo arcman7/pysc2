@@ -1,3 +1,7 @@
+const s2clientprotocol = require('s2clientprotocol') //eslint-disable-line
+
+const { common_pb, raw_pb, sc2api_pb, spatial_pb, ui_pb } = s2clientprotocol
+
 function assert(cond, errMsg) {
   if (cond === false) {
     throw new Error(errMsg)
@@ -120,6 +124,167 @@ function map(func, collection) {
 
 function randomUniform(min, max) {
   return Math.random() * (max - min) + min;
+}
+function setUpProtoAction(action, name) {
+  if (name === 'no_op') {
+    return action
+  }
+  if (name === 'move_camera') {
+    const actionSpatial = new spatial_pb.ActionSpatial()
+    const camMove = new spatial_pb.ActionSpatialCameraMove()
+    camMove.setCenterMinimap(new spatial_pb.PointI())
+    actionSpatial.setCameraMove(camMove)
+    action.setActionFeatureLayer(actionSpatial)
+    action.setActionRender(actionSpatial)
+    return action
+  }
+  if (name === 'select_point') {
+    const actionSpatial = new spatial_pb.ActionSpatial()
+    const unitSelectionPoint = new spatial_pb.ActionSpatialUnitSelectionPoint()
+    unitSelectionPoint.setSelectionScreenCoord(new spatial_pb.PointI())
+    actionSpatial.setUnitSelectionPoint(unitSelectionPoint)
+    action.setActionFeatureLayer(actionSpatial)
+    action.setActionRender(actionSpatial)
+    return action
+  }
+  if (name === 'select_rect') {
+    const actionSpatial = new spatial_pb.ActionSpatial()
+    const unitSelectionPoint = new spatial_pb.ActionSpatialUnitSelectionPoint()
+    unitSelectionPoint.setSelectionScreenCoord(new spatial_pb.PointI())
+    actionSpatial.setUnitSelectionPoint(unitSelectionPoint)
+    action.setActionFeatureLayer(actionSpatial)
+    action.setActionRender(actionSpatial)
+    return action
+  }
+  if (name === 'select_idle_worker') {
+    const actionUI = new ui_pb.ActionUI()
+    const selectIdleWorker = new ui_pb.ActionSelectIdleWorker()
+    actionUI.setSelectIdleWorker(selectIdleWorker)
+    action.setActionUi(actionUI)
+    return action
+  }
+  if (name === 'select_army') {
+    const actionUI = new ui_pb.ActionUI()
+    const selectArmy = new ui_pb.ActionSelectArmy()
+    actionUI.setSelectArmy(selectArmy)
+    action.setActionUi(actionUI)
+    return action
+  }
+  if (name === 'select_warp_gates') {
+    const actionUI = new ui_pb.ActionUI()
+    const selectWarpGates = new ui_pb.ActionSelectWarpGates()
+    actionUI.setSelectWarpGates(selectWarpGates)
+    action.setActionUi(actionUI)
+    return action
+  }
+  if (name === 'select_larva') {
+    const actionUI = new ui_pb.ActionUI()
+    // const selectLarva = new ui_pb.ActionSelectLarva()
+    // actionUI.setSelectLarva(selectLarva)
+    action.setActionUi(actionUI)
+    return action
+  }
+  if (name === 'select_unit') {
+    const actionUI = new ui_pb.ActionUI()
+    const multiPanel = new ui_pb.ActionMultiPanel()
+    actionUI.setMultiPanel(multiPanel)
+    action.setActionUi(actionUI)
+    return action
+  }
+  if (name === 'control_group') {
+    const actionUI = new ui_pb.ActionUI()
+    const controlGroup = new ui_pb.ActionControlGroup()
+    actionUI.setControlGroup(controlGroup)
+    action.setActionUi(actionUI)
+    return action
+  }
+  if (name === 'unload') {
+    const actionUI = new ui_pb.ActionUI()
+    const cargoPanel = new ui_pb.ActionCargoPanelUnload()
+    actionUI.setCargoPanel(cargoPanel)
+    action.setActionUi(actionUI)
+    return action
+  }
+  if (name === 'build_queue') {
+    const actionUI = new ui_pb.ActionUI()
+    const productionPanel = new ui_pb.ActionProductionPanelRemoveFromQueue()
+    actionUI.setProductionPanel(productionPanel)
+    action.setActionUi(actionUI)
+    return action
+  }
+  if (name === 'cmd_quick') {
+    const unitCommand = new spatial_pb.ActionSpatialUnitCommand()
+    const actionSpatial = new spatial_pb.ActionSpatial()
+    actionSpatial.setUnitCommand(unitCommand)
+    action.setActionFeatureLayer(actionSpatial)
+    action.setActionRender(actionSpatial)
+    return action
+  }
+  if (name === 'cmd_screen') {
+    const unitCommand = new spatial_pb.ActionSpatialUnitCommand()
+    unitCommand.setTargetScreenCoord(new spatial_pb.PointI())
+    const actionSpatial = new spatial_pb.ActionSpatial()
+    actionSpatial.setUnitCommand(unitCommand)
+    action.setActionFeatureLayer(actionSpatial)
+    action.setActionRender(actionSpatial)
+    return action
+  }
+  if (name === 'cmd_minimap') {
+    const unitCommand = new spatial_pb.ActionSpatialUnitCommand()
+    unitCommand.setTargetMinimapCoord(new spatial_pb.PointI())
+    const actionSpatial = new spatial_pb.ActionSpatial()
+    actionSpatial.setUnitCommand(unitCommand)
+    action.setActionFeatureLayer(actionSpatial)
+    action.setActionRender(actionSpatial)
+    return action
+  }
+  if (name === 'autocast') {
+    const actionUI = new ui_pb.ActionUI()
+    const toggleAutocast = new ui_pb.ActionToggleAutocast()
+    actionUI.setToggleAutocast(toggleAutocast)
+    action.setActionUi(actionUI)
+    return action
+  }
+  if (name === 'raw_no_op') {
+    return action
+  }
+  if (name === 'raw_move_camera') {
+    const actionRaw = new raw_pb.ActionRaw()
+    const camMove = new raw_pb.ActionRawCameraMove()
+    camMove.setCenterWorldSpace(new common_pb.Point())
+    actionRaw.setCameraMove(camMove)
+    action.setActionRaw(actionRaw)
+    return action
+  }
+  if (name === 'raw_cmd') {
+    const actionRaw = new raw_pb.ActionRaw()
+    const unitCommand = new raw_pb.ActionRawUnitCommand()
+    actionRaw.setUnitCommand(unitCommand)
+    action.setActionRaw(actionRaw)
+    return action
+  }
+  if (name === 'raw_cmd_pt') {
+    const actionRaw = new raw_pb.ActionRaw()
+    const unitCommand = new raw_pb.ActionRawUnitCommand()
+    unitCommand.setTargetWorldSpacePos(new common_pb.Point2D())
+    actionRaw.setUnitCommand(unitCommand)
+    action.setActionRaw(actionRaw)
+    return action
+  }
+  if (name === 'raw_cmd_unit') {
+    const actionRaw = new raw_pb.ActionRaw()
+    const unitCommand = new raw_pb.ActionRawUnitCommand()
+    actionRaw.setUnitCommand(unitCommand)
+    action.setActionRaw(actionRaw)
+    return action
+  }
+  if (name === 'raw_autocast') {
+    const actionRaw = new raw_pb.ActionRaw()
+    const toggleAutocast = new raw_pb.ActionRawCameraMove()
+    actionRaw.setToggleAutocast(toggleAutocast)
+    action.setActionRaw(actionRaw)
+    return action
+  }
 }
 function sum(collection) {
   let total = 0
@@ -263,6 +428,7 @@ module.exports = {
   map,
   NotImplementedError,
   randomUniform,
+  setUpProtoAction,
   String,
   sum,
   ValueError,

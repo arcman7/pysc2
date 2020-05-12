@@ -13,7 +13,7 @@ const all_collections_generated_classes = require(path.resolve(__dirname, './all
 const np = require(path.resolve(__dirname, './numpy.js'))
 
 const sw = stopwatch.sw
-const { common_pb, raw_pb, sc2api_pb, spatial_pb, ui_pb } = s2clientprotocol
+const { common_pb, raw_pb, sc2api_pb, setUpProtoAction, spatial_pb, ui_pb } = s2clientprotocol
 const sc_raw = raw_pb
 const sc_pb = sc2api_pb
 const { Defaultdict, int, isinstance, len, map, pythonWith, sum, zip, getArgsArray } = pythonUtils
@@ -1914,7 +1914,8 @@ class Features {
     /**** set up proto ****/
     /*     SPATIAL     */
     const sc2_action = new sc_pb.Action()
-    const actionSpatial = new spatial_pb.ActionSpatial()
+    setUpProtoAction(sc2_action, func_id)
+    // const actionSpatial = new spatial_pb.ActionSpatial()
     // let camMove = new spatial_pb.ActionSpatialCameraMove()
     // const unitSelectionRect = new spatial_pb.ActionSpatialUnitSelectionRect()
     // const unitSelectionPoint = new spatial_pb.ActionSpatialUnitSelectionPoint()
@@ -1927,10 +1928,10 @@ class Features {
     // actionSpatial.setUnitSelectionRect(unitSelectionRect)
     // actionSpatial.setUnitSelectionPoint(unitSelectionPoint)
     // actionSpatial.setUnitCommand(unitCommand)
-    sc2_action.setActionFeatureLayer(actionSpatial)
-    sc2_action.setActionRender(actionSpatial)
+    // sc2_action.setActionFeatureLayer(actionSpatial)
+    // sc2_action.setActionRender(actionSpatial)
     /*     UI     */
-    const actionUI = new ui_pb.ActionUI()
+    // const actionUI = new ui_pb.ActionUI()
     // const controlGroup = new ui_pb.ActionControlGroup()
     // const selectArmy = new ui_pb.ActionSelectArmy()
     // const selectWarpGates = new ui_pb.ActionSelectWarpGates()
@@ -1949,9 +1950,9 @@ class Features {
     // actionUI.setCargoPanel(cargoPanel)
     // actionUI.setProductionPanel(productionPanel)
     // actionUI.setToggleAutocast(toggleAutocast)
-    sc2_action.setActionUI(actionUI)
+    // sc2_action.setActionUI(actionUI)
     /*     RAW     */
-    const actionRaw = new raw_pb.ActionRaw()
+    // const actionRaw = new raw_pb.ActionRaw()
     // unitCommand = new raw_pb.ActionRawUnitCommand()
     // camMove = new raw_pb.ActionRawCameraMove()
     // toggleAutocast = new raw_pb.ActionRawCameraMove()
@@ -1959,7 +1960,7 @@ class Features {
     // actionRaw.setUnitCommand(unitCommand)
     // actionRaw.setCameraMove(camMove)
     // actionRaw.setToggleAutocast(toggleAutocast)
-    sc2_action.setActionRaw(actionRaw)
+    // sc2_action.setActionRaw(actionRaw)
 
     kwargs['action'] = sc2_action
     if (func.ability_id) {
