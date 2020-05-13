@@ -9,7 +9,7 @@ const numpy = require(path.resolve(__dirname, './numpy.js'))
 const { spatial_pb, ui_pb } = s2clientprotocol
 const sc_spatial = spatial_pb
 const sc_ui = ui_pb
-const { len, isinstance, isObject } = pythonUtils
+const { len, isinstance, isObject, zip } = pythonUtils
 
 const ActionSpace = Enum.IntEnum('ActionSpace', {
   FEATURES: 1, // Act in feature layer pixel space with FUNCTIONS below.
@@ -32,6 +32,9 @@ function no_op(action = {}, action_space) {
 }
 function move_camera(action, action_space, minimap) {
   // Move the camera.//
+  if (!minimap.assign_to) {
+    console.log('minimap: ', minimap)
+  }
   minimap.assign_to(spatial(action, action_space).getCameraMove().getCenterMinimap());
 }
 function select_point(action, action_space, select_point_act, screen) {
@@ -192,20 +195,31 @@ function raw_autocast(action, ability_id, unit_tags) {
 
 function numpy_to_python(val) {
   // Convert numpy types to their corresponding python types.//
-  if (isinstance(val, [Number])) {
+  // if (isinstance(val, point.Point))
+  if (isinstance(val, Number)) {
     return val
   }
   if (isinstance(val, String)) {
     return val
   }
-  if (isinstance(val, numpy.number) || isinstance(val, numpy.ndarray) && !(val.shape)) { // numpy.array(1)
+  if (/*isinstance(val, numpy.number) ||*/ isinstance(val, numpy.ndarray) && !(val.shape)) { // numpy.array(1)
     return val.item()
   }
-  if (isinstance(val, [Array, numpy.ndarray])) {
+  if (isinstance(val, [Array, numpy.ndarray, point.Point])) {
     const result = [];
-    Object.keys(val).forEach((key) => {
-      result.push(numpy_to_python(val[key]))
-    })
+    if (isinstance(val, Array)) {
+      val.forEach((ele) => {
+        result.push(numpy_to_python(ele))
+      })
+    } else if (isinstance(val, point.Point)) {
+      result.push(numpy_to_python(val.x))
+      result.push(numpy_to_python(val.y))
+    } else {
+      val = val.arraySync()
+      val.forEach((ele) => {
+        result.push(numpy_to_python(ele))
+      })
+    }
     return result
   }
   throw new Error(`ValueError: Unknown value. Type:${typeof (val)}, repr: ${JSON.stringify(val)}`)
@@ -678,6 +692,7 @@ class Function extends all_collections_generated_classes.Function {
     //if (typeof func !== 'string') {
     //  func = func.key || func
     //}
+    console.log('__call__ arguments: ', arguments)
     return FunctionCall.init_with_validation( //eslint-disable-line
       func, //this.id,
       arguments, //eslint-disable-line
@@ -2029,26 +2044,38 @@ class FunctionCall extends all_collections_generated_classes.FunctionCall {
       raw: Whether this is a raw function call.
 
     Returns:
-      A new `FunctionCall` instance.
+      A new `FunctionCall` instance.``
 
     Raises:
       KeyError: if the enum name doesn't exist.
       ValueError: if the enum id doesn't exist.
     */
     // console.log('_function: ', _function)
-    if (_function.key == 'move_camera') {
-      console.log("BULLSHIT ALERT:::::::::")
-      console.log('_arguments: ', _arguments)
-    }
+    // console.log('_arguments: ', _arguments)
+    // if (_arguments[0] && _arguments[0].x) {
+    //   console.log('looks like point: ', _arguments[0])
+    // }
     const func = raw ? RAW_FUNCTIONS[_function.key] : FUNCTIONS[_function.key]
     // console.log('func: ', func)
     const args = []
-    // console.log('_arguments:', _arguments)
-    for (let index = 0; index < _arguments.length; index++) {
-      let arg = _arguments[index]
+    console.log('_arguments:', _arguments)
+    const zipped = zip(_arguments, func.args)
+    // for (let index = 0; index < _arguments.length; index++) {
+    zipped.forEach(([arg, arg_type]) => {
+      // let arg = _arguments[index]
+      if (func.id.key === 'move_camera') {
+        console.log('arg: ', arg)
+        console.log('arg_type: ', arg_type)
+      }
+
       arg = numpy_to_python(arg)
       arg = numpy_to_python(arg)
-      const arg_type = func.args[index]
+      // const arg_type = func.args[index]
+      if (func.id.key === 'move_camera') {
+        console.log('arg: ', arg)
+        console.log('arg_type: ', arg_type)
+        console.log('func.args: ', func.args)
+      }
       if (arg_type.values) {
         if (typeof (arg) === 'string') {
           try {
@@ -2069,12 +2096,12 @@ class FunctionCall extends all_collections_generated_classes.FunctionCall {
       } else if (typeof (arg) === 'number') {
         args.push([arg])
       } else if (isinstance(arg, Array)) {
-        args.append(arg)
+        args.push(arg)
       } else {
         throw new Error(`ValueError: "Unknown argument value type: ${typeof (arg)}, expected int or list of ints, or "
             "their numpy equivalents. Value: ${arg}`)
       }
-    }
+    })
     return this._make({ function: func.id, arguments: args })
   }
 
@@ -2110,14 +2137,20 @@ class ValidActions extends all_collections_generated_classes.ValidActions {
 }
 
 module.exports = {
+  autocast,
   ActionSpace,
   ABILITY_FUNCTIONS,
   ABILITY_IDS,
   always,
   ArgumentType,
   Arguments,
+  build_queue,
+  cmd_quick,
+  control_group,
   ControlGroupAct,
   CONTROL_GROUP_ACT_OPTIONS,
+  cmd_screen,
+  cmd_minimap,
   Function,
   FunctionCall,
   Functions,
@@ -2126,20 +2159,37 @@ module.exports = {
   FUNCTION_TYPES,
   Queued,
   QUEUED_OPTIONS,
+  move_camera,
+  no_op,
   POINT_REQUIRED_FUNCS,
   RawArguments,
   RAW_ABILITY_FUNCTIONS,
   RAW_ABILITY_IDS,
   RAW_ABILITY_ID_TO_FUNC_ID,
+  raw_autocast,
+  raw_cmd,
+  raw_cmd_pt,
+  raw_cmd_unit,
   RAW_FUNCTIONS,
   RAW_FUNCTIONS_AVAILABLE,
+  raw_move_camera,
+  raw_no_op,
   RAW_TYPES,
-  SelectUnitAct,
+  select_army,
   SELECT_ADD_OPTIONS,
+  select_idle_worker,
+  select_larva,
+  select_point,
   SELECT_POINT_ACT_OPTIONS,
+  select_rect,
+  select_unit,
+  SelectUnitAct,
   SELECT_UNIT_ACT_OPTIONS,
+  select_warp_gates,
   SELECT_WORKER_OPTIONS,
   SelectWorker,
+  spatial,
   TYPES,
+  unload,
   ValidActions,
 }

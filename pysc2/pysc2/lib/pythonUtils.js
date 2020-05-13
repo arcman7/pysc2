@@ -1,6 +1,6 @@
 const s2clientprotocol = require('s2clientprotocol') //eslint-disable-line
 
-const { common_pb, raw_pb, sc2api_pb, spatial_pb, ui_pb } = s2clientprotocol
+const { common_pb, raw_pb, spatial_pb, ui_pb } = s2clientprotocol
 
 function assert(cond, errMsg) {
   if (cond === false) {
@@ -293,16 +293,6 @@ function sum(collection) {
   })
   return total
 }
-function zip() {
-  var args = [].slice.call(arguments); //eslint-disable-line
-  var shortest = args.length === 0 ? [] : args.reduce(function(a, b) {
-    return a.length < b.length ? a : b
-  });
-
-  return shortest.map(function(_, i) {
-    return args.map(function(array) { return array[i] })
-  });
-}
 
 class DefaultDict {
   constructor(DefaultInit) {
@@ -391,6 +381,18 @@ function ValueError(value) {
 
   this.message = str;
 }
+
+function zip() {
+  var args = [].slice.call(arguments); //eslint-disable-line
+  var shortest = args.length === 0 ? [] : args.reduce(function(a, b) {
+    return a.length < b.length ? a : b
+  });
+
+  return shortest.map(function(_, i) {
+    return args.map(function(array) { return array[i] })
+  });
+}
+
 function randomChoice(arr) {
   // This function does not support "size" of output shape.
   if (Array.isArray(arr)) {

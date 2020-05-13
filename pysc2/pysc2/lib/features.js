@@ -13,10 +13,10 @@ const all_collections_generated_classes = require(path.resolve(__dirname, './all
 const np = require(path.resolve(__dirname, './numpy.js'))
 
 const sw = stopwatch.sw
-const { common_pb, raw_pb, sc2api_pb, setUpProtoAction, spatial_pb, ui_pb } = s2clientprotocol
+const { raw_pb, sc2api_pb } = s2clientprotocol
 const sc_raw = raw_pb
 const sc_pb = sc2api_pb
-const { Defaultdict, int, isinstance, len, map, pythonWith, sum, zip, getArgsArray } = pythonUtils
+const { Defaultdict, int, isinstance, len, map, pythonWith, setUpProtoAction, sum, zip, getArgsArray } = pythonUtils
 const EPSILON = 1e-5
 
 const FeatureType = Enum.Enum('FeatureType', {
@@ -1914,53 +1914,7 @@ class Features {
     /**** set up proto ****/
     /*     SPATIAL     */
     const sc2_action = new sc_pb.Action()
-    setUpProtoAction(sc2_action, func_id)
-    // const actionSpatial = new spatial_pb.ActionSpatial()
-    // let camMove = new spatial_pb.ActionSpatialCameraMove()
-    // const unitSelectionRect = new spatial_pb.ActionSpatialUnitSelectionRect()
-    // const unitSelectionPoint = new spatial_pb.ActionSpatialUnitSelectionPoint()
-    // let unitCommand = new spatial_pb.ActionSpatialUnitCommand()
-    // const rect = new common_pb.RectangleI()
-    // unitSelectionRect.addSelectionScreenCoord(rect)
-    // unitSelectionPoint.setSelectionScreenCoord(new spatial_pb.PointI())
-    // camMove.setCenterMinimap(new spatial_pb.PointI())
-    // actionSpatial.setCameraMove(camMove)
-    // actionSpatial.setUnitSelectionRect(unitSelectionRect)
-    // actionSpatial.setUnitSelectionPoint(unitSelectionPoint)
-    // actionSpatial.setUnitCommand(unitCommand)
-    // sc2_action.setActionFeatureLayer(actionSpatial)
-    // sc2_action.setActionRender(actionSpatial)
-    /*     UI     */
-    // const actionUI = new ui_pb.ActionUI()
-    // const controlGroup = new ui_pb.ActionControlGroup()
-    // const selectArmy = new ui_pb.ActionSelectArmy()
-    // const selectWarpGates = new ui_pb.ActionSelectWarpGates()
-    // const selectLarva = new ui_pb.ActionSelectLarva()
-    // const selectIdleWorker = new ui_pb.ActionSelectIdleWorker()
-    // const multiPanel = new ui_pb.ActionMultiPanel()
-    // const cargoPanel = new ui_pb.ActionCargoPanelUnload()
-    // const productionPanel = new ui_pb.ActionProductionPanelRemoveFromQueue()
-    // let toggleAutocast = new ui_pb.ActionToggleAutocast()
-    // actionUI.setControlGroup(controlGroup)
-    // actionUI.setSelectArmy(selectArmy)
-    // actionUI.setSelectWarpGates(selectWarpGates)
-    // actionUI.setSelectLarva(selectLarva)
-    // actionUI.setSelectIdleWorker(selectIdleWorker)
-    // actionUI.setMultiPanel(multiPanel)
-    // actionUI.setCargoPanel(cargoPanel)
-    // actionUI.setProductionPanel(productionPanel)
-    // actionUI.setToggleAutocast(toggleAutocast)
-    // sc2_action.setActionUI(actionUI)
-    /*     RAW     */
-    // const actionRaw = new raw_pb.ActionRaw()
-    // unitCommand = new raw_pb.ActionRawUnitCommand()
-    // camMove = new raw_pb.ActionRawCameraMove()
-    // toggleAutocast = new raw_pb.ActionRawCameraMove()
-    // camMove.setCenterWorldSpace(new common_pb.Point())
-    // actionRaw.setUnitCommand(unitCommand)
-    // actionRaw.setCameraMove(camMove)
-    // actionRaw.setToggleAutocast(toggleAutocast)
-    // sc2_action.setActionRaw(actionRaw)
+    setUpProtoAction(sc2_action, func_id.key)
 
     kwargs['action'] = sc2_action
     if (func.ability_id) {
@@ -1997,8 +1951,8 @@ class Features {
     } else {
       kwargs['action_space'] = aif.action_space
       if (func_id.key === 'move_camera') {
-        // console.log('here: **', func_id)
-        // console.log(kwargs)
+        console.log('here: **', func_id)
+        console.log(kwargs)
       }
       const argArray = getArgsArray(actions.FUNCTIONS[func_id.key].function_type, kwargs)
       actions.FUNCTIONS[func_id.key].function_type(...argArray)
@@ -2026,6 +1980,8 @@ class Features {
     const aif = this._agent_interface_format
 
     function func_call_ability(ability_id, cmd_type, args) {
+      console.log('action: ', action.toObject())
+      console.log('reverse_action.func_call_ability: ability_id: ', ability_id)
       //Get the function id for a specific ability id and action type.//
       if (actions.ABILITY_IDS.hasOwnProperty(ability_id)) {
         console.warn(`Unknown ability_id: ${ability_id}. This is probably dance or cheer, or some unknown new or map specific ability. Treating it as a no-op.", ability_id`)
@@ -2051,82 +2007,83 @@ class Features {
 
     if (action.getActionUi()) {
       const actUi = action.getActionUi().toObject()
-      if (actUi.multiPanel) {
+      if (actUi.getmultiPanel()) {
         return FUNCTIONS.select_unit(
-          actUi.multiPanel.type - 1,
-          actUi.multiPanel.unitIndex
+          actUi.getmultiPanel().getType() - 1,
+          actUi.getmultiPanel().getUnitIndex()
         )
       }
-      if (actUi.controlGroup) {
+      if (actUi.getControlGroup()) {
         return FUNCTIONS.select_control_group(
-          actUi.controlGroup.action - 1,
-          actUi.controlGroup.controlGroupIndex
+          actUi.getcontrolGroup().getAction() - 1,
+          actUi.getcontrolGroup().getControlGroupIndex()
         )
       }
-      if (actUi.selectIdleWorker) {
-        return FUNCTIONS.select_idle_worker(actUi.selectIdleWorker.type - 1)
+      if (actUi.getSelectIdleWorker()) {
+        return FUNCTIONS.select_idle_worker(actUi.getselectIdleWorker.getType() - 1)
       }
-      if (actUi.selectArmy) {
-        return FUNCTIONS.select_army(actUi.selectArmy.selectionAdd)
+      if (actUi.getSelectArmy()) {
+        return FUNCTIONS.select_army(actUi.getSelectArmy().selectionAdd())
       }
-      if (actUi.selectWarpGates) {
+      if (actUi.getSelectWarpGates()) {
         return FUNCTIONS.select_warp_gates(
-          actUi.selectWarpGates.selectionAdd
+          actUi.getSelectWarpGates().selectionAdd()
         )
       }
-      if (actUi.selectLarva) {
+      if (actUi.getSelectLarva()) {
         return FUNCTIONS.select_larva()
       }
-      if (actUi.cargoPanel) {
-        return FUNCTIONS.unload(actUi.cargoPanel.unitInPdex)
+      if (actUi.getCargoPanel()) {
+        return FUNCTIONS.unload(actUi.getCargoPanel().unitIndex())
       }
-      if (actUi.productionPanel) {
-        return FUNCTIONS.build_queue(actUi.productionPanel.unitIndex)
+      if (actUi.getProductionPanel()) {
+        return FUNCTIONS.build_queue(actUi.getProductionPanel().unitIndex())
       }
-      if (actUi.toggleAutocast) {
+      if (actUi.getToggleAutocast()) {
         return func_call_ability(
-          actUi.toggleAutocast.ability_id,
-          actions.autocast
+          actUi.getToggleAutocast().getAbilityId(),
+          actions.getAutocast()
         )
       }
     }
-    if (action.actionFeatureLayer || action.actionRender) {
+    if (action.getActionFeatureLayer() || action.getActionRender()) {
       const act_sp = actions.spatial(action, aif.action_space)
-      if (act_sp.cameraMove) {
-        const coord = point.Point.build(act_sp.cameraMove.centerMinimap)
+      if (act_sp.getCameraMove()) {
+        const coord = point.Point.build(act_sp.getCameraMove().getCenterMinimap())
+        console.log('line 2053 features.js')
         return FUNCTIONS.move_camera(coord)
       }
-      if (act_sp.unitSelectionPoint) {
-        const select_point = act_sp.unitSelectionPoint
-        const coord = point.Point.build(select_point.selectionScreenCoord)
-        return FUNCTIONS.select_point(select_point.type - 1, coord)
+      if (act_sp.getUnitSelectionPoint()) {
+        const select_point = act_sp.getUnitSelectionPoint()
+        const coord = point.Point.build(select_point.getSelectionScreenCoord())
+        return FUNCTIONS.select_point(select_point.getType() - 1, coord)
       }
-      if (act_sp.unitSelectionRect) {
-        const select_rect = act_sp.unitSelectionRect
+      if (act_sp.getUnitSelectionRect()) {
+        const select_rect = act_sp.getUnitSelectionRect()
         // TODO(tewalds) {} After looking at some replays we should decide if
         // this is good enough. Maybe we need to simulate multiple actions or
         // merge the selection rects into a bigger one.
-        const tl = point.Point.build(select_rect.selectionScreenCoord[0].p0)
-        const br = point.Point.build(select_rect.selectionScreenCoord[0].p1)
-        return FUNCTIONS.select_rect(select_rect.selectionAdd, tl, br)
+        const tl = point.Point.build(select_rect.getSelectionScreenCoord()[0].p0)
+        const br = point.Point.build(select_rect.getSelectionScreenCoord()[0].p1)
+        return FUNCTIONS.select_rect(select_rect.getSelectionAdd(), tl, br)
       }
-      if (act_sp.unitCommand) {
-        const cmd = act_sp.unitCommand
-        const queue = int(cmd.queueCommand)
-        if (cmd.targetScreenCoord) {
-          const coord = point.Point.build(cmd.targetScreenCoord)
-          return func_call_ability(cmd.abilityId, actions.cmdScreen,
+      if (act_sp.getUnitCommand()) {
+        const cmd = act_sp.getUnitCommand()
+        const queue = int(cmd.getQueueCommand())
+        if (cmd.getTargetScreenCoord()) {
+          const coord = point.Point.build(cmd.getTargetScreenCoord())
+          return func_call_ability(cmd.getAbilityId(), actions.cmd_screen,
             queue, coord)
         }
-        if (cmd.targetMinimapCoord) {
-          const coord = point.Point.build(cmd.targetMinimapCoord)
-          return func_call_ability(cmd.abilityId, actions.cmdMinimap,
+        if (cmd.getTargetMinimapCoord()) {
+          const coord = point.Point.build(cmd.getTargetMinimapCoord())
+          return func_call_ability(cmd.getAbilityId(), actions.cmd_minimap,
             queue, coord)
         }
-        return func_call_ability(cmd.abilityId, actions.cmdQuick, queue)
+        return func_call_ability(cmd.getAbilityId(), actions.cmd_quick, queue)
       }
     }
-    if (action.actionRaw || action.actionRender) {
+    if (action.getActionRaw() || action.getActionRender()) {
       throw new Error(`ValueError: Unknown action:\n${action}`)
     }
 
@@ -2187,14 +2144,13 @@ class Features {
       }
       throw new Error(`ValueError: Unknown ability_id: ${ability_id}, type:${cmd_type.__name__}. Likely a bug.`)
     }
-    if (action.has('action_raw')) {
-      const raw_act = action.action_raw
-      if (raw_act.has('unit_command')) {
-        const uc = raw_act.unit_command
-        const ability_id = uc.ability_id
-        const queue_command = uc.queue_command
-        let unit_tags = Object.keys(uc.unit_tags).map((key) => {
-          const t = uc.unit_tags[key]
+    if (action.getRawAction()) {
+      const raw_act = action.getRawAction()
+      if (raw_act.getUnitCommand()) {
+        const uc = raw_act.getUnitCommand()
+        const ability_id = uc.getAbilityId()
+        const queue_command = uc.getQueueCommand()
+        let unit_tags = uc.getUnitTagsList().map((t) => {
           return find_tag_position(t)
         })
         // Remove invalid units.
@@ -2203,16 +2159,16 @@ class Features {
           return actions.RAW_FUNCTIONS.no_op()
         }
 
-        if (uc.has('target_unit_tag')) {
-          const target_unit_tag = find_tag_position(uc.target_unit_tag)
+        if (uc.getTargetUnitTag()) {
+          const target_unit_tag = find_tag_position(uc.getTargetUnitTag())
           if (target_unit_tag == -1) {
             return actions.RAW_FUNCTIONS.no_op()
           }
           return func_call_ability(ability_id, actions.raw_cmd_unit,
             queue_command, unit_tags, target_unit_tag)
         }
-        if (uc.has('target_world_space_pos')) {
-          let coord = point.Point.build(uc.target_world_space_pos)
+        if (uc.getTargetWorldSpacePos()) {
+          let coord = point.Point.build(uc.getTargetWorldSpacePos())
           coord = this._world_to_minimap_px.fwd_pt(coord)
           return func_call_ability(ability_id, actions.raw_cmd_pt,
             queue_command, unit_tags, coord)
@@ -2220,11 +2176,10 @@ class Features {
         return func_call_ability(ability_id, actions.raw_cmd,
           queue_command, unit_tags)
       }
-      if (raw_act.has('toggle_autocast')) {
-        const uc = raw_act.toggle_autocast
-        const ability_id = uc.ability_id
-        let unit_tags = Object.keys(uc.unit_tags).map((key) => {
-          const t = uc.unit_tags[key]
+      if (raw_act.getToggleAutocast()) {
+        const uc = raw_act.getToggleAutocast()
+        const ability_id = uc.getAbilityId()
+        let unit_tags = uc.getUnitTags().map((t) => {
           return find_tag_position(t)
         })
         // Remove invalid units.
@@ -2234,12 +2189,12 @@ class Features {
         }
         return func_call_ability(ability_id, actions.raw_autocast, unit_tags)
       }
-      if (raw_act.has('unit_command')) {
+      if (raw_act.getUnitCommand()) {
         throw new Error(`ValueError: 'Unknown action:\n${action}`)
       }
 
-      if (raw_act.has('camera_move')) {
-        let coord = point.Point.build(raw_act.camera_move.center_world_space)
+      if (raw_act.getCameraMove()) {
+        let coord = point.Point.build(raw_act.getCameraMove().getCenterWorldSpace())
         coord = this._world_to_minimap_px.fwd_pt(coord)
         return actions.RAW_FUNCTIONS.raw_move_camera(coord)
       }

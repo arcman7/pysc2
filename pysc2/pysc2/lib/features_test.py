@@ -422,7 +422,7 @@ class FeaturesTest(absltest.TestCase):
       # if (func_id.value == 1):
       #   print('func_id:', func_id)
       #   print('action_spec.functions[func_id.key]: ', action_spec.functions[func_id])
-      #   print('action_spec.functions[func_id.key].args: ', action_spec.functions[func_id].args)
+      print('action_spec.functions[func_id.key].args: ', action_spec.functions[func_id].args)
       temp = []
       for size in arg.sizes:
         temp.append(numpy.random.randint(0, size))

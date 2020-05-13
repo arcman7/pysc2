@@ -1,4 +1,6 @@
-const path = require('path');
+const path = require('path')
+const s2clientprotocol = require('s2clientprotocol') //eslint-disable-line
+const { common_pb, spatial_pb } = s2clientprotocol
 const all_collections_generated_classes = require(path.resolve(__dirname, './all_collections_generated_classes.js'))
 const pythonUtils = require(path.resolve(__dirname, './pythonUtils.js'))
 const { isinstance, len, randomUniform } = pythonUtils
@@ -14,13 +16,18 @@ class Point extends all_collections_generated_classes.Point {
   //A basic Point class.//
   constructor(x, y) {
     super({})
-    if (x && x.x && x.y) {
+    // if x is a proto point class
+    if (isinstance(x.x, [common_pb.Point, spatial_pb.PointI, common_pb.Point2D])) {
+      this.x = x.x.getX() || 0.0
+      this.y = x.x.getY() || 0.0
+    } else if (x && x.x && x.y) {
       this.x = x.x //x is an object { x, y }
       this.y = x.y
     } else {
       this.x = x
       this.y = y
     }
+
     this[0] = this.x
     this[1] = this.y
     this.length = 2
@@ -44,7 +51,7 @@ class Point extends all_collections_generated_classes.Point {
     return this._make({ x: Math.random(), y: Math.random() })
   }
 
-  asssign_to(obj) {
+  assign_to(obj) {
     //Assign `x` and `y` to an object that has properties `x` and `y`.//
     obj.x = this.x
     obj.y = this.y

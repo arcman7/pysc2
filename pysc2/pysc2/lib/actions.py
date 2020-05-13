@@ -556,6 +556,7 @@ class Function(all_collections_generated_classes.Function):
 
   def __call__(self, *args):
     """A convenient way to create a FunctionCall from this Function."""
+    print('__call__  args:', args)
     return FunctionCall.init_with_validation(self.id, args, raw=self.raw)
 
   def __reduce__(self):
@@ -1828,9 +1829,14 @@ class FunctionCall(all_collections_generated_classes.FunctionCall):
       KeyError: if the enum name doesn't exist.
       ValueError: if the enum id doesn't exist.
     """
+    print('_arguments', arguments)
     func = RAW_FUNCTIONS[function] if raw else FUNCTIONS[function]
     args = []
+    print('zip:', zip(arguments, func.args))
     for arg, arg_type in zip(arguments, func.args):
+      print('arg: ', arg)
+      print('arg_type', arg_type)
+      print('func.args: ', func.args)
       arg = numpy_to_python(arg)
       if arg_type.values:  # Allow enum values by name or int.
         if isinstance(arg, str):

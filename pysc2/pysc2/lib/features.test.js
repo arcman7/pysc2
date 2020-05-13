@@ -427,8 +427,8 @@ describe('features:', () => {
       // console.log('action_spec.functions: ', action_spec.functions)
       if (func_id.key == 'move_camera') {
         // console.log('func_id:', func_id)
-        // console.log('action_spec.functions[func_id.key]: ', action_spec.functions[func_id.key].toString())
-        // console.log('action_spec.functions[func_id.key].args: ', action_spec.functions[func_id.key].args)
+        console.log('action_spec.functions[func_id.key]: ', action_spec.functions[func_id.key].toString())
+        console.log('action_spec.functions[func_id.key].args: ', action_spec.functions[func_id.key].args)
       }
       action_spec.functions[func_id.key].args.forEach((arg) => {
         const temp = []
@@ -437,6 +437,7 @@ describe('features:', () => {
         })
         args.push(temp)
       })
+      console.log('arguments: ', args) // right before
       return new actions.FunctionCall({ function: func_id, arguments: args })
     }
     test('testIdsMatchIndex', () => {
@@ -480,11 +481,22 @@ describe('features:', () => {
         let sc2_action2
         for (let i = 0; i < 10; i++) {
           func_call = gen_random_function_call(action_spec, func_def.id)
-          // console.log('func_call: ', func_call)
+          if (func_def.id.key == 'move_camera') {
+            console.log('func_call: ', func_call)
+            console.log('step between')
+          }
           sc2_action = feats.transform_action(null, func_call, true)
-          // console.log('sc2_action: ', sc2_action)
+          if (func_def.id.key == 'move_camera') {
+            console.log('next one')
+            console.log('sc2_action: ', sc2_action.toObject().actionFeatureLayer)
+          }
           func_call2 = feats.reverse_action(sc2_action)
+          if (func_def.id.key == 'move_camera') {
+            console.log('after reverse')
+            console.log('func_call2: ', func_call2)
+          }
           sc2_action2 = feats.transform_action(null, func_call2, true)
+          // console.log('sc2_action2: ', sc2_action2.toObject())
           //console.log(func_def.id == actions.FUNCTIONS.select_rect.id)
           if (func_def.id == actions.FUNCTIONS.select_rect.id) {
             // Need to check this one manually since the same rect can be
