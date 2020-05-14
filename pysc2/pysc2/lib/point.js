@@ -1,4 +1,4 @@
-const path = require('path')
+const path = require('path') //eslint-disable-line
 const s2clientprotocol = require('s2clientprotocol') //eslint-disable-line
 const { common_pb, spatial_pb } = s2clientprotocol
 const all_collections_generated_classes = require(path.resolve(__dirname, './all_collections_generated_classes.js'))
@@ -53,6 +53,11 @@ class Point extends all_collections_generated_classes.Point {
 
   assign_to(obj) {
     //Assign `x` and `y` to an object that has properties `x` and `y`.//
+    if (isinstance(obj, [common_pb.Point, spatial_pb.PointI, common_pb.Point2D])) {
+      obj.setX(this.x)
+      obj.setY(this.y)
+      return
+    }
     obj.x = this.x
     obj.y = this.y
   }

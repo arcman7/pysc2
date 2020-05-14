@@ -1681,6 +1681,8 @@ class Features(object):
 
     # Call the right callback to get an SC2 action proto.
     sc2_action = sc_pb.Action()
+    if (func.name == 'select_point'):
+      print('0 transform_action - sc2_action:', sc2_action)
     kwargs["action"] = sc2_action
     if func.ability_id:
       kwargs["ability_id"] = func.ability_id
@@ -1704,7 +1706,11 @@ class Features(object):
       actions.RAW_FUNCTIONS[func_id].function_type(**kwargs)
     else:
       kwargs["action_space"] = aif.action_space
+      if (func.name == 'select_point'):
+        print('1 transform_action - sc2_action: ', sc2_action)
       actions.FUNCTIONS[func_id].function_type(**kwargs)
+      if (func.name == 'select_point'):
+        print('2 transform_action - sc2_action: ', sc2_action)
     return sc2_action
 
   @sw.decorate

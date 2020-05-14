@@ -425,19 +425,21 @@ describe('features:', () => {
     function gen_random_function_call(action_spec, func_id) {
       const args = []
       // console.log('action_spec.functions: ', action_spec.functions)
-      if (func_id.key == 'move_camera') {
+      if (func_id.key == 'select_point') {
         // console.log('func_id:', func_id)
-        console.log('action_spec.functions[func_id.key]: ', action_spec.functions[func_id.key].toString())
-        console.log('action_spec.functions[func_id.key].args: ', action_spec.functions[func_id.key].args)
+        // console.log('action_spec.functions[func_id.key]: ', action_spec.functions[func_id.key].toString())
+        // console.log('action_spec.functions[func_id.key].args: ', action_spec.functions[func_id.key].args)
       }
       action_spec.functions[func_id.key].args.forEach((arg) => {
         const temp = []
         arg.sizes.forEach((size) => {
-          temp.push(randomUniform(0, size))
+          temp.push(randomUniform.int(0, size))
         })
         args.push(temp)
       })
-      console.log('arguments: ', args) // right before
+      if (func_id.key == 'select_point') {
+        console.log('arguments: ', args, '\nfunc_id: ', func_id)
+      }
       return new actions.FunctionCall({ function: func_id, arguments: args })
     }
     test('testIdsMatchIndex', () => {
@@ -481,23 +483,30 @@ describe('features:', () => {
         let sc2_action2
         for (let i = 0; i < 10; i++) {
           func_call = gen_random_function_call(action_spec, func_def.id)
-          if (func_def.id.key == 'move_camera') {
-            console.log('func_call: ', func_call)
-            console.log('step between')
+          if (func_def.id.key == 'select_point') {
+            console.log('STEP 0 ********* func_call: ', func_call)
           }
           sc2_action = feats.transform_action(null, func_call, true)
-          if (func_def.id.key == 'move_camera') {
-            console.log('next one')
-            console.log('sc2_action: ', sc2_action.toObject().actionFeatureLayer)
+          if (func_def.id.key == 'select_point') {
+            console.log('STEP 1 ********* sc2_action: ', sc2_action.toObject().actionFeatureLayer)
           }
           func_call2 = feats.reverse_action(sc2_action)
-          if (func_def.id.key == 'move_camera') {
-            console.log('after reverse')
-            console.log('func_call2: ', func_call2)
-          }
+          // if (func_def.id.key == 'select_point') {
+          //   console.log('STEP 2 ********* after reverse func_call2: ', func_call2)
+          // }
           sc2_action2 = feats.transform_action(null, func_call2, true)
-          // console.log('sc2_action2: ', sc2_action2.toObject())
-          //console.log(func_def.id == actions.FUNCTIONS.select_rect.id)
+          // console.log('test func_call2.arguments[0]: ', func_call2.arguments[0], func_call2.arguments[0]._init)
+          if (func_def.id.key == 'select_point' && func_call2.arguments[0] && func_call2.arguments[0]) {
+            console.log('test func_call2.arguments[0]: ', func_call2.arguments[0], func_call2.arguments[0][0].val)
+            func_call2.arguments[0][0] = func_call2.arguments[0][0].val
+          }
+          if (func_def.id.key == 'select_point') {
+            console.log('STEP 2 ********* after reverse func_call2: ', func_call2)
+          }
+          if (func_def.id.key == 'select_point') {
+            console.log('STEP 3 *********  sc2_action2: ', sc2_action2.toObject().actionFeatureLayer)
+          }
+
           if (func_def.id == actions.FUNCTIONS.select_rect.id) {
             // Need to check this one manually since the same rect can be
             // defined in multiple ways.
@@ -512,9 +521,15 @@ describe('features:', () => {
             expect(func_call.arguments[0]).toMatchObject(func_call2.arguments[0])
             expect(rect(func_call.arguments)).toMatchObject(rect(func_call2.arguments))
           } else {
+            if (func_def.id.key == 'select_point') {
+              console.log('STEP 3.5 \n', func_call, '\n', func_call2)
+            }
             expect(func_call).toMatchObject(func_call2)
           }
           expect(sc2_action.toObject()).toMatchObject(sc2_action2.toObject())
+          if (func_def.id.key == 'select_point') {
+            console.log('STEP 4 ********* passed')
+          }
         }
       })
     })

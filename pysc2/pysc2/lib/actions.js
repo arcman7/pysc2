@@ -1,6 +1,6 @@
-const path = require('path');
-const s2clientprotocol = require('s2clientprotocol')
-const Enum = require('python-enum')
+const path = require('path') //eslint-disable-line
+const s2clientprotocol = require('s2clientprotocol') //eslint-disable-line
+const Enum = require('python-enum') //eslint-disable-line
 const point = require(path.resolve(__dirname, './point.js'))
 const pythonUtils = require(path.resolve(__dirname, './pythonUtils.js'))
 const all_collections_generated_classes = require(path.resolve(__dirname, './all_collections_generated_classes.js'))
@@ -32,15 +32,13 @@ function no_op(action = {}, action_space) {
 }
 function move_camera(action, action_space, minimap) {
   // Move the camera.//
-  if (!minimap.assign_to) {
-    console.log('minimap: ', minimap)
-  }
   minimap.assign_to(spatial(action, action_space).getCameraMove().getCenterMinimap());
 }
 function select_point(action, action_space, select_point_act, screen) {
   // Select a unit at a point.//
+  console.log('select_point_act: isEnumOrArray:', isinstance(select_point_act, [Enum, Array]), ' ', select_point_act)
   const select = spatial(action, action_space).getUnitSelectionPoint()
-  screen.assign_to(select.selectionScreenCoord)
+  screen.assign_to(select.getSelectionScreenCoord())
   select.setType(select_point_act)
 }
 function select_rect(action, action_space, select_add, screen, screen2) {
@@ -440,26 +438,25 @@ class RawArguments extends all_collections_generated_classes.RawArguments {
 
 function _define_position_based_enum(name, options) {
   const dict = {}
-  options.forEach((tuple, index) => {
-    const funcName = [0]
-    dict[funcName] = index
+  options.forEach(([opt_name], i) => {
+    dict[opt_name] = i
   })
   return Enum(name, dict)
 }
 
 const QUEUED_OPTIONS = [
-  ["now", false],
-  ["queued", true],
+  ["now", Number(false)],
+  ["queued", Number(true)],
 ]
 
 const Queued = _define_position_based_enum("Queued", QUEUED_OPTIONS)
 
 const CONTROL_GROUP_ACT_OPTIONS = [
-  ["recall", sc_ui.ActionControlGroup.RECALL],
-  ["set", sc_ui.ActionControlGroup.SET],
-  ["append", sc_ui.ActionControlGroup.APPEND],
-  ["set_and_steal", sc_ui.ActionControlGroup.SETANDSTEAL],
-  ["append_and_steal", sc_ui.ActionControlGroup.APPENDANDSTEAL],
+  ["recall", sc_ui.ActionControlGroup.ControlGroupAction.RECALL],
+  ["set", sc_ui.ActionControlGroup.ControlGroupAction.SET],
+  ["append", sc_ui.ActionControlGroup.ControlGroupAction.APPEND],
+  ["set_and_steal", sc_ui.ActionControlGroup.ControlGroupAction.SETANDSTEAL],
+  ["append_and_steal", sc_ui.ActionControlGroup.ControlGroupAction.APPENDANDSTEAL],
 ]
 
 const ControlGroupAct = _define_position_based_enum(
@@ -477,18 +474,18 @@ const SelectPointAct = _define_position_based_enum(
 )
 
 const SELECT_ADD_OPTIONS = [
-  ["select", false],
-  ["add", true],
+  ["select", Number(false)],
+  ["add", Number(true)],
 ]
 const SelectAdd = _define_position_based_enum(
   "SelectAdd", SELECT_ADD_OPTIONS
 )
 
 const SELECT_UNIT_ACT_OPTIONS = [
-  ["select", sc_ui.ActionMultiPanel.SINGLESELECT],
-  ["deselect", sc_ui.ActionMultiPanel.DESELECTUNIT],
-  ["select_all_type", sc_ui.ActionMultiPanel.SELECTALLOFTYPE],
-  ["deselect_all_type", sc_ui.ActionMultiPanel.DESELECTALLOFTYPE],
+  ["select", sc_ui.ActionMultiPanel.Type.SINGLESELECT],
+  ["deselect", sc_ui.ActionMultiPanel.Type.DESELECTUNIT],
+  ["select_all_type", sc_ui.ActionMultiPanel.Type.SELECTALLOFTYPE],
+  ["deselect_all_type", sc_ui.ActionMultiPanel.Type.DESELECTALLOFTYPE],
 ]
 const SelectUnitAct = _define_position_based_enum(
   "SelectUnitAct", SELECT_UNIT_ACT_OPTIONS
@@ -602,9 +599,10 @@ class Function extends all_collections_generated_classes.Function {
 
   static ui_func(id_, name, function_type, avail_fn = always) {
     //Define a function representing a ui action.//
-    if (name === 'move_camera') {
-      // console.log('ui_func:')
+    if (name === 'select_point') {
+      console.log('ui_func:')
       // console.log(function_type)
+      // console.log('args: ', FUNCTION_TYPES[function_type.name])
     }
     return new this.prototype.constructor({
       id: id_,
@@ -612,7 +610,7 @@ class Function extends all_collections_generated_classes.Function {
       ability_id: 0,
       general_id: 0,
       function_type,
-      args: FUNCTION_TYPES[function_type.name || function_type.name],
+      args: FUNCTION_TYPES[function_type.name],
       avail_fn,
       raw: false,
     })
@@ -692,7 +690,9 @@ class Function extends all_collections_generated_classes.Function {
     //if (typeof func !== 'string') {
     //  func = func.key || func
     //}
-    console.log('__call__ arguments: ', arguments)
+    if (this.id.key == 'select_point') {
+      console.log('__call__ arguments: ', arguments)
+    }
     return FunctionCall.init_with_validation( //eslint-disable-line
       func, //this.id,
       arguments, //eslint-disable-line
@@ -2016,8 +2016,8 @@ RAW_FUNCTIONS.forEach((f) => {
 const RAW_ABILITY_ID_TO_FUNC_ID = {}
 Object.keys(RAW_ABILITY_IDS).forEach((key) => {
   const set = RAW_ABILITY_IDS[key]
-  const minIndex = Math.min(...(set.map((f) => f.id)))
-  const minF = set[minIndex]
+  const minIndex = Math.min(...set.map((f) => f.id))
+  const minF = set.find((f) => f.id == minIndex)
   RAW_ABILITY_ID_TO_FUNC_ID[key] = minF
 })
 
@@ -2052,30 +2052,24 @@ class FunctionCall extends all_collections_generated_classes.FunctionCall {
     */
     // console.log('_function: ', _function)
     // console.log('_arguments: ', _arguments)
-    // if (_arguments[0] && _arguments[0].x) {
-    //   console.log('looks like point: ', _arguments[0])
-    // }
     const func = raw ? RAW_FUNCTIONS[_function.key] : FUNCTIONS[_function.key]
-    // console.log('func: ', func)
     const args = []
-    console.log('_arguments:', _arguments)
+    if (func.id.key === 'select_point') {
+      console.log('init_with_validation _arguments:', _arguments)
+    }
     const zipped = zip(_arguments, func.args)
-    // for (let index = 0; index < _arguments.length; index++) {
     zipped.forEach(([arg, arg_type]) => {
-      // let arg = _arguments[index]
-      if (func.id.key === 'move_camera') {
-        console.log('arg: ', arg)
-        console.log('arg_type: ', arg_type)
+      if (func.id.key === 'select_point') {
+        console.log('init_with_validation arg: ', arg, '\ninit_with_validation arg_type: ', arg_type)
       }
 
       arg = numpy_to_python(arg)
       arg = numpy_to_python(arg)
-      // const arg_type = func.args[index]
-      if (func.id.key === 'move_camera') {
-        console.log('arg: ', arg)
-        console.log('arg_type: ', arg_type)
-        console.log('func.args: ', func.args)
-      }
+      // if (func.id.key === 'select_point') {
+      //   console.log('arg: ', arg)
+      //   console.log('arg_type: ', arg_type)
+      //   console.log('func.args: ', func.args)
+      // }
       if (arg_type.values) {
         if (typeof (arg) === 'string') {
           try {
@@ -2090,7 +2084,7 @@ class FunctionCall extends all_collections_generated_classes.FunctionCall {
           try {
             args.push([arg_type.values(arg)])
           } catch (err) {
-            throw new Error(`ValueError: Unknown argument value: ${arg}, valid values: ${JSON.stringify(arg_type.values)}`)
+            throw new Error(`ValueError: Unknown argument value: ${arg}, valid values: ${JSON.stringify(arg_type.values) || arg_type.values}`)
           }
         }
       } else if (typeof (arg) === 'number') {
@@ -2180,6 +2174,7 @@ module.exports = {
   select_idle_worker,
   select_larva,
   select_point,
+  SelectPointAct,
   SELECT_POINT_ACT_OPTIONS,
   select_rect,
   select_unit,

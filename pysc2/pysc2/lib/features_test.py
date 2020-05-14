@@ -422,7 +422,7 @@ class FeaturesTest(absltest.TestCase):
       # if (func_id.value == 1):
       #   print('func_id:', func_id)
       #   print('action_spec.functions[func_id.key]: ', action_spec.functions[func_id])
-      print('action_spec.functions[func_id.key].args: ', action_spec.functions[func_id].args)
+      # print('action_spec.functions[func_id.key].args: ', action_spec.functions[func_id].args)
       temp = []
       for size in arg.sizes:
         temp.append(numpy.random.randint(0, size))
@@ -456,10 +456,14 @@ class FeaturesTest(absltest.TestCase):
     for func_def in action_spec.functions:
       for _ in range(10):
         func_call = self.gen_random_function_call(action_spec, func_def.id)
-        print('func_call: ', func_call)
+        if (func_def.id.name == 'select_point'):
+          print(' STEP 0 *********func_call: ', func_call)
         sc2_action = feats.transform_action(
             None, func_call, skip_available=True)
         func_call2 = feats.reverse_action(sc2_action)
+        if (func_def.id.name == 'select_point'):
+          print(' STEP 1 *********func_call2: ', func_call2)
+
         sc2_action2 = feats.transform_action(
             None, func_call2, skip_available=True)
         if func_def.id == actions.FUNCTIONS.select_rect.id:

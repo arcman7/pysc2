@@ -1,6 +1,6 @@
-const path = require('path');
-const s2clientprotocol = require('s2clientprotocol')
-const Enum = require('python-enum')
+const path = require('path') //eslint-disable-line
+const s2clientprotocol = require('s2clientprotocol') //eslint-disable-line
+const Enum = require('python-enum') //eslint-disable-line
 const actions = require(path.resolve(__dirname, './actions.js'))
 const colors = require(path.resolve(__dirname, './colors.js'))
 const named_array = require(path.resolve(__dirname, './named_array.js'))
@@ -1891,8 +1891,8 @@ class Features {
       } else {
         sizes = t.sizes
       }
-      // console.log('sizes:', sizes)
-      // console.log('arg:', arg)
+      console.log('transform_actions sizes:', sizes)
+      console.log('transform_actions arg:', arg)
       if (sizes.length !== arg.length) {
         throw new Error(`ValueError: Wrong number of values for argument of ${func}, got: ${func_call.arguments}`)
       }
@@ -1950,9 +1950,8 @@ class Features {
       actions.RAW_FUNCTIONS[func_id.key].function_type(...argArray)
     } else {
       kwargs['action_space'] = aif.action_space
-      if (func_id.key === 'move_camera') {
-        console.log('here: **', func_id)
-        console.log(kwargs)
+      if (func_id.key === 'select_point') {
+        console.log('transform_action func_id:', func_id, '\n kwargs: ', kwargs)
       }
       const argArray = getArgsArray(actions.FUNCTIONS[func_id.key].function_type, kwargs)
       actions.FUNCTIONS[func_id.key].function_type(...argArray)
@@ -1980,7 +1979,7 @@ class Features {
     const aif = this._agent_interface_format
 
     function func_call_ability(ability_id, cmd_type, args) {
-      console.log('action: ', action.toObject())
+      console.log('reverse_action.func_call_ability: action: ', action.toObject())
       console.log('reverse_action.func_call_ability: ability_id: ', ability_id)
       //Get the function id for a specific ability id and action type.//
       if (actions.ABILITY_IDS.hasOwnProperty(ability_id)) {
@@ -2050,7 +2049,6 @@ class Features {
       const act_sp = actions.spatial(action, aif.action_space)
       if (act_sp.getCameraMove()) {
         const coord = point.Point.build(act_sp.getCameraMove().getCenterMinimap())
-        console.log('line 2053 features.js')
         return FUNCTIONS.move_camera(coord)
       }
       if (act_sp.getUnitSelectionPoint()) {

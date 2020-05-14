@@ -188,7 +188,7 @@ class FunctionCall {
   static get _fields() { return ['function', 'arguments'] }
 
   constructor(kwargs) {
-    console.log('FunctionCall constructor: arguments: ', kwargs.arguments)
+    // console.log('FunctionCall constructor: arguments: ', kwargs.arguments)
     this.function = kwargs.function;
     this.arguments = kwargs.arguments;
   }

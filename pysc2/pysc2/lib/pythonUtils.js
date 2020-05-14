@@ -125,6 +125,9 @@ function map(func, collection) {
 function randomUniform(min, max) {
   return Math.random() * (max - min) + min;
 }
+randomUniform.int = function (min, max) {
+  return Math.round(randomUniform(min, max))
+}
 function setUpProtoAction(action, name) {
   if (name === 'no_op') {
     return action

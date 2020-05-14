@@ -77,14 +77,13 @@ def no_op(action, action_space):
 
 def move_camera(action, action_space, minimap):
   """Move the camera."""
-  # print('minimap: ', minimap)
-  # print(**kwargs)
   # import pdb; pdb.set_trace()
   minimap.assign_to(spatial(action, action_space).camera_move.center_minimap)
 
 
 def select_point(action, action_space, select_point_act, screen):
   """Select a unit at a point."""
+  print('select_point_act: ', select_point_act)
   select = spatial(action, action_space).unit_selection_point
   screen.assign_to(select.selection_screen_coord)
   select.type = select_point_act
@@ -411,10 +410,10 @@ SelectAdd = _define_position_based_enum(  # pylint: disable=invalid-name
     "SelectAdd", SELECT_ADD_OPTIONS)
 
 SELECT_UNIT_ACT_OPTIONS = [
-    ("select", sc_ui.ActionMultiPanel.SingleSelect),
-    ("deselect", sc_ui.ActionMultiPanel.DeselectUnit),
-    ("select_all_type", sc_ui.ActionMultiPanel.SelectAllOfType),
-    ("deselect_all_type", sc_ui.ActionMultiPanel.DeselectAllOfType),
+    ("select", sc_ui.ActionMultiPanel.Type.SingleSelect),
+    ("deselect", sc_ui.ActionMultiPanel.Type.DeselectUnit),
+    ("select_all_type", sc_ui.ActionMultiPanel.Type.SelectAllOfType),
+    ("deselect_all_type", sc_ui.ActionMultiPanel.Type.DeselectAllOfType),
 ]
 SelectUnitAct = _define_position_based_enum(  # pylint: disable=invalid-name
     "SelectUnitAct", SELECT_UNIT_ACT_OPTIONS)
@@ -556,7 +555,7 @@ class Function(all_collections_generated_classes.Function):
 
   def __call__(self, *args):
     """A convenient way to create a FunctionCall from this Function."""
-    print('__call__  args:', args)
+    # print('__call__  args:', args)
     return FunctionCall.init_with_validation(self.id, args, raw=self.raw)
 
   def __reduce__(self):
@@ -1829,14 +1828,16 @@ class FunctionCall(all_collections_generated_classes.FunctionCall):
       KeyError: if the enum name doesn't exist.
       ValueError: if the enum id doesn't exist.
     """
-    print('_arguments', arguments)
+    if function.name == 'select_point':
+      print('_arguments', arguments)
     func = RAW_FUNCTIONS[function] if raw else FUNCTIONS[function]
     args = []
-    print('zip:', zip(arguments, func.args))
+    # print('zip:', zip(arguments, func.args))
     for arg, arg_type in zip(arguments, func.args):
-      print('arg: ', arg)
-      print('arg_type', arg_type)
-      print('func.args: ', func.args)
+      if (function.name == 'select_point'):
+        print('arg: ', arg, '\narg_type: ', arg_type)
+        print('arg_type.values: ', arg_type.values)
+      
       arg = numpy_to_python(arg)
       if arg_type.values:  # Allow enum values by name or int.
         if isinstance(arg, str):
