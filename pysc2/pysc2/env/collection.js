@@ -1,8 +1,49 @@
-function _eq(a, b) {
-  return a == b
-}
+function namedtuple(name, fields) { //eslint-disable-line
+  let consLogic = '';
+  let consArgs = '';
+  fields.forEach((field, i) => {
+    consArgs += i < fields.length - 1 ? `${field}, ` : `${field}`;
+    consLogic += i < fields.length - 1 ? `this.${field} = ${field};\n    ` : `this.${field} = ${field};`;
+  });
+  const classStr = `return class ${name} extends Array {
+  static get classname() { return '${name}' }
 
-class _itemgetter
+  static get _fields() { return ${JSON.stringify(fields)} }
+
+  constructor(${consArgs}) {
+    super(...arguments)
+    ${consLogic}
+  }
+
+  static _make(kwargs) {
+    return new this.prototype.constructor(kwargs);
+  }
+
+  _replace(kwargs) {
+    this.constructor._fields.forEach((field) => {
+        kwargs[field] = kwargs[field] || this[field];
+    });
+    return this.constructor._make(kwargs);
+  }
+
+  __reduce__() {
+    return [this.constructor, this.constructor._fields.map((field) => this[field])];
+  }
+
+${fields.map((field, index) => { //eslint-disable-line
+    return `  get ${field}() {\n    return this[${index}]\n  }\n  set ${field}(val) {\n    this[${index}] = val; return val\n  }`
+  }).join('\n')}
+}`;
+  // console.log(classStr)
+  return Function(classStr)() //eslint-disable-line
+}
+// var TimeStep = namedtuple('TimeStep', ['step_type', 'reward', 'discount', 'observation'])
+
+// function _eq(a, b) {
+//   return a == b
+// }
+
+// class _itemgetter {}
 
 
 /*def abstractmethod(funcobj):
@@ -21,10 +62,10 @@ class _itemgetter
     """
     funcobj.__isabstractmethod__ = True
     return funcobj*/
-function abstractmethod(funcobj) {
-  funcobj.__isabstractmethod__ = True
-  return funcobj
-}
+// function abstractmethod(funcobj) {
+//   funcobj.__isabstractmethod__ = True
+//   return funcobj
+// }
 
 /*def get_cache_token():
     """Returns the current ABC cache token.
@@ -33,10 +74,10 @@ function abstractmethod(funcobj) {
     with every call to ``register()`` on any ABC.
     """
     return ABCMeta._abc_invalidation_counter*/
-function get_cache_token() {
-  return ABCMeta._abc_invalidation_counter
-}
+// function get_cache_token() {
+//   return ABCMeta._abc_invalidation_counter
+// }
 
-class ABCMeta  type {
-
+module.exports = {
+  namedtuple
 }
