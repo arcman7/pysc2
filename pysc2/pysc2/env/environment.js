@@ -1,12 +1,12 @@
 /*Javascript Reinforcement Learning Environment API.*/
 
 const path = require('path')
-const all_collections_generated_classes = require(path.resolve(__dirname, './all_collections_generated_classes.jg'))
+const collections = require(path.resolve(__dirname, './collections.js'))
 const Enum = require('python-enum')
 const pythonUtils = require(path.resolve(__dirname, '..', 'lib', 'pythonUtils.js'))
 const { ABCMeta } = pythonUtils
 
-class TimeStep extends all_collections_generated_classes.TimeStep {
+class TimeStep extends collections.namedtuple('TimeStep', ['step_type', 'reward', 'discount', 'observation']) {
   /*Returned with every call to `step` and `reset` on an environment.
 
   A `TimeStep` contains the data emitted by an environment at each step of
@@ -38,97 +38,105 @@ class TimeStep extends all_collections_generated_classes.TimeStep {
   }
 }
 
-class StepType extends Enum.IntEnum {
+const StepType = Enum.IntEnum('StepType', {
   /*Defines the status of a `TimeStep` within a sequence.*/
   // Denotes the first `TimeStep` in a sequence.
-  FIRST = 0
+  FIRST: 0,
   // Denotes any `TimeStep` in a sequence that is not FIRST or LAST.
-  MID = 1
+  MID: 1,
   // Denotes the last `TimeStep` in a sequence.
-  LAST = 2
-}
+  LAST: 2
+})
 // Static abstractMethods = [‘names of the methods go here’ ... ]
-class Base extends object {
+class Base extends ABCMeta {
   //Abstract base class for javascript RL environments.
-    static abstracMethods = ['reset'] 
-    /* 
-    Starts a new sequence and returns the first `TimeStep` of this sequence.
+  static get abstracMethods() {
+    return ['reset', 'step', 'observation_spec', 'action_spec']
+  }
 
-    Returns:
-      A `TimeStep` namedtuple containing:
-        step_type: A `StepType` of `FIRST`.
-        reward: Zero.
-        discount: Zero.
-        observation: A NumPy array, or a dict, list or tuple of arrays
-          corresponding to `observation_spec()`.
-    */
+  reset() { //eslint-disable-line
+  /*
+  Starts a new sequence and returns the first `TimeStep` of this sequence.
 
-    static abstracMEthods = ['step']
-    /* 
-    Updates the environment according to the action and returns a `TimeStep`.
+  Returns:
+    A `TimeStep` namedtuple containing:
+      step_type: A `StepType` of `FIRST`.
+      reward: Zero.
+      discount: Zero.
+      observation: A NumPy array, or a dict, list or tuple of arrays
+        corresponding to `observation_spec()`.
+  */
+  }
 
-    If the environment returned a `TimeStep` with `StepType.LAST` at the
-    previous step, this call to `step` will start a new sequence and `action`
-    will be ignored.
+  step(action) { //eslint-disable-line
+  /*
+  Updates the environment according to the action and returns a `TimeStep`.
 
-    This method will also start a new sequence if called after the environment
-    has been constructed and `restart` has not been called. Again, in this case
-    `action` will be ignored.
+  If the environment returned a `TimeStep` with `StepType.LAST` at the
+  previous step, this call to `step` will start a new sequence and `action`
+  will be ignored.
 
-    Args:
-      action: A NumPy array, or a dict, list or tuple of arrays corresponding to
-        `action_spec()`.
+  This method will also start a new sequence if called after the environment
+  has been constructed and `restart` has not been called. Again, in this case
+  `action` will be ignored.
 
-    Returns:
-      A `TimeStep` namedtuple containing:
-        step_type: A `StepType` value.
-        reward: Reward at this timestep.
-        discount: A discount in the range [0, 1].
-        observation: A NumPy array, or a dict, list or tuple of arrays
-          corresponding to `observation_spec()`.
-    */
-   
-    static abstracMEthods = ['observation_spec']
-    /*
-    Defines the observations provided by the environment.
+  Args:
+    action: A NumPy array, or a dict, list or tuple of arrays corresponding to
+      `action_spec()`.
 
-    Returns:
-      A tuple of specs (one per agent), where each spec is a dict of shape
-        tuples.
-    */
-    
-    static abstracMEthods = ['action_spec']
-    /*
-    Defines the actions that should be provided to `step`.
+  Returns:
+    A `TimeStep` namedtuple containing:
+      step_type: A `StepType` value.
+      reward: Reward at this timestep.
+      discount: A discount in the range [0, 1].
+      observation: A NumPy array, or a dict, list or tuple of arrays
+        corresponding to `observation_spec()`.
+  */
+  }
 
-    Returns:
-      A tuple of specs (one per agent), where each spec is something that
-        defines the shape of the actions.
-    */
+  observation_spec() { //eslint-disable-line
+  /*
+  Defines the observations provided by the environment.
 
-    close() {
-    /*
-    Frees any resources used by the environment.
+  Returns:
+    A tuple of specs (one per agent), where each spec is a dict of shape
+      tuples.
+  */
+  }
 
-    Implement this method for an environment backed by an external process.
+  action_spec() { //eslint-disable-line
+  /*
+  Defines the actions that should be provided to `step`.
 
-    This method be used directly
-    */
-    }
+  Returns:
+    A tuple of specs (one per agent), where each spec is something that
+      defines the shape of the actions.
+  */
+  }
 
-    __enter__() {
-      //Allows the environment to be used in a with-statement context.
-      return this
-    }
+  close() { //eslint-disable-line
+  /*
+  Frees any resources used by the environment.
 
-    __exit__(unused_exception_type, unused_exc_value, unused_traceback) {
-      //Allows the environment to be used in a with-statement context.
-      this.close()
-    }
+  Implement this method for an environment backed by an external process.
 
-    __del__() {
-      this.close()
-    }
+  This method be used directly
+  */
+  }
+
+  __enter__() {
+    //Allows the environment to be used in a with-statement context.
+    return this
+  }
+
+  __exit__(unused_exception_type, unused_exc_value, unused_traceback) { //eslint-disable-line
+    //Allows the environment to be used in a with-statement context.
+    this.close()
+  }
+
+  __del__() {
+    this.close()
+  }
 }
 
 module.exports = {
