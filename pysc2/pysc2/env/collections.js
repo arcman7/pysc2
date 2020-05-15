@@ -5,12 +5,25 @@ function namedtuple(name, fields) { //eslint-disable-line
     consArgs += i < fields.length - 1 ? `${field}, ` : `${field}`;
     consLogic += i < fields.length - 1 ? `this.${field} = ${field};\n    ` : `this.${field} = ${field};`;
   });
-  const classStr = `return class ${name} extends Array {
+  const classStr = `const _fields = ${JSON.stringify(fields)}; return class ${name} extends Array {
   static get classname() { return '${name}' }
 
   static get _fields() { return ${JSON.stringify(fields)} }
 
   constructor(${consArgs}) {
+    if (typeof arguments[0] === 'object' && arguments.length === 1 && _fields.length > 1) {
+      const args = []
+      const kwargs = arguments[0]
+      _fields.forEach((field, index) => {
+        args[index] = kwargs[field]
+      })
+      super(...args)
+      _fields.forEach((field, index) => {
+        args[index] = kwargs[field]
+        this[field] = kwargs[field]
+      })
+      return
+    }
     super(...arguments)
     ${consLogic}
   }
@@ -34,11 +47,12 @@ ${fields.map((field, index) => { //eslint-disable-line
     return `  get ${field}() {\n    return this[${index}]\n  }\n  set ${field}(val) {\n    this[${index}] = val; return val\n  }`
   }).join('\n')}
 }`;
-  // console.log(classStr)
   return Function(classStr)() //eslint-disable-line
 }
 // var TimeStep = namedtuple('TimeStep', ['step_type', 'reward', 'discount', 'observation'])
-
+// var TimeStep = namedtuple('TimeStep', ['a', 'b', 'c'])
+// var a = new TimeStep(1,2,3)
+// var b = new TimeStep({a: 1, b: 2, c: 3 })
 // function _eq(a, b) {
 //   return a == b
 // }
