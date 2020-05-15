@@ -555,7 +555,8 @@ class Function(all_collections_generated_classes.Function):
 
   def __call__(self, *args):
     """A convenient way to create a FunctionCall from this Function."""
-    # print('__call__  args:', args)
+    # if self.name == 'select_point':
+    #   print('__call__  args:', args)
     return FunctionCall.init_with_validation(self.id, args, raw=self.raw)
 
   def __reduce__(self):

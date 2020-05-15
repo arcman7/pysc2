@@ -1891,8 +1891,8 @@ class Features {
       } else {
         sizes = t.sizes
       }
-      console.log('transform_actions sizes:', sizes)
-      console.log('transform_actions arg:', arg)
+      // console.log('transform_actions sizes:', sizes)
+      // console.log('transform_actions arg:', arg)
       if (sizes.length !== arg.length) {
         throw new Error(`ValueError: Wrong number of values for argument of ${func}, got: ${func_call.arguments}`)
       }
@@ -1906,10 +1906,13 @@ class Features {
 
     // Convert them to python types.
     const kwargs = {}
+    // console.log('func.args: ', func.args, '\nfunc_call.arguments:', func_call.arguments)
     zip(func.args, func_call.arguments).forEach((pair) => {
       const [type_, a] = pair
       kwargs[type_.name] = type_.fn(a)
+      // console.log('type_:', type_, '\n a: ', a, 'isArray: ', Array.isArray(a))
     })
+    // console.log('zip:', zip(func.args, func_call.arguments))
     // Call the right callback to get an SC2 action proto.
     /**** set up proto ****/
     /*     SPATIAL     */
@@ -1950,9 +1953,9 @@ class Features {
       actions.RAW_FUNCTIONS[func_id.key].function_type(...argArray)
     } else {
       kwargs['action_space'] = aif.action_space
-      if (func_id.key === 'select_point') {
-        console.log('transform_action func_id:', func_id, '\n kwargs: ', kwargs)
-      }
+      // if (func_id.key === 'select_point') {
+      //   console.log('transform_action func_id:', func_id, '\n kwargs: ', kwargs)
+      // }
       const argArray = getArgsArray(actions.FUNCTIONS[func_id.key].function_type, kwargs)
       actions.FUNCTIONS[func_id.key].function_type(...argArray)
     }
@@ -1979,8 +1982,8 @@ class Features {
     const aif = this._agent_interface_format
 
     function func_call_ability(ability_id, cmd_type, args) {
-      console.log('reverse_action.func_call_ability: action: ', action.toObject())
-      console.log('reverse_action.func_call_ability: ability_id: ', ability_id)
+      // console.log('reverse_action.func_call_ability: action: ', action.toObject())
+      // console.log('reverse_action.func_call_ability: ability_id: ', ability_id)
       //Get the function id for a specific ability id and action type.//
       if (actions.ABILITY_IDS.hasOwnProperty(ability_id)) {
         console.warn(`Unknown ability_id: ${ability_id}. This is probably dance or cheer, or some unknown new or map specific ability. Treating it as a no-op.", ability_id`)

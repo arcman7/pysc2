@@ -19,10 +19,10 @@ const ActionSpace = Enum.IntEnum('ActionSpace', {
 
 function spatial(action, action_space) {
   // Choose the action space for the action proto.//
-  if (action_space === ActionSpace.FEATURES) {
+  if (action_space == ActionSpace.FEATURES) {
     return action.getActionFeatureLayer()
   }
-  if (action_space === ActionSpace.RGB) {
+  if (action_space == ActionSpace.RGB) {
     return action.getActionRender()
   }
   throw new Error(`ValueError: Unexpected value for action_space: ${action_space}`);
@@ -36,7 +36,8 @@ function move_camera(action, action_space, minimap) {
 }
 function select_point(action, action_space, select_point_act, screen) {
   // Select a unit at a point.//
-  console.log('select_point_act: isEnumOrArray:', isinstance(select_point_act, [Enum, Array]), ' ', select_point_act)
+  // console.log('select_point_act: isEnumOrArray:', isinstance(select_point_act, [Enum, Array]), ' ', select_point_act)
+  console.log('select_point: \n\taction:', action.toObject(), '\n\taction_space: ', action_space, '\n\tselect_point_act: ', select_point_act, '\n\tscreen:', screen)
   const select = spatial(action, action_space).getUnitSelectionPoint()
   screen.assign_to(select.getSelectionScreenCoord())
   select.setType(select_point_act)
@@ -246,18 +247,15 @@ class ArgumentType extends all_collections_generated_classes.ArgumentType {
 
   static enum(options, values) {
     // Create an ArgumentType where you choose one of a set of known values.//
-    const real = []
-    options.forEach(() => {
-      const thing = [1]
-      real.push(thing)
-    })
+    const [names, real] = zip(...options)
     const self = this
+    // console.log('options:', options, '\nnames: ', names, '\nreal: ', real)
     function factory(i, name) {
       return new self.prototype.constructor({
         id: i,
         name,
         sizes: [real.length],
-        fn: (a) => real[a[0]],
+        fn: (a) => real[Number(a[0])],
         values,
         count: null,
       })
@@ -494,8 +492,8 @@ const SelectUnitAct = _define_position_based_enum(
 const SELECT_WORKER_OPTIONS = [
   ["select", sc_ui.ActionSelectIdleWorker.Type.SET],
   ["add", sc_ui.ActionSelectIdleWorker.Type.ADD],
-  ["select_all", sc_ui.ActionSelectIdleWorker.Type.All],
-  ["add_all", sc_ui.ActionSelectIdleWorker.Type.ADDAll],
+  ["select_all", sc_ui.ActionSelectIdleWorker.Type.ALL],
+  ["add_all", sc_ui.ActionSelectIdleWorker.Type.ADDALL],
 ]
 const SelectWorker = _define_position_based_enum(
   "SelectWorker", SELECT_WORKER_OPTIONS
@@ -599,11 +597,11 @@ class Function extends all_collections_generated_classes.Function {
 
   static ui_func(id_, name, function_type, avail_fn = always) {
     //Define a function representing a ui action.//
-    if (name === 'select_point') {
-      console.log('ui_func:')
-      // console.log(function_type)
-      // console.log('args: ', FUNCTION_TYPES[function_type.name])
-    }
+    // if (name === 'select_point') {
+    //   // console.log('ui_func:')
+    //   // console.log(function_type)
+    //   // console.log('args: ', FUNCTION_TYPES[function_type.name])
+    // }
     return new this.prototype.constructor({
       id: id_,
       name,
@@ -690,9 +688,9 @@ class Function extends all_collections_generated_classes.Function {
     //if (typeof func !== 'string') {
     //  func = func.key || func
     //}
-    if (this.id.key == 'select_point') {
-      console.log('__call__ arguments: ', arguments)
-    }
+    // if (this.id.key == 'select_point') {
+    //   console.log('__call__ arguments: ', arguments)
+    // }
     return FunctionCall.init_with_validation( //eslint-disable-line
       func, //this.id,
       arguments, //eslint-disable-line
@@ -2054,14 +2052,14 @@ class FunctionCall extends all_collections_generated_classes.FunctionCall {
     // console.log('_arguments: ', _arguments)
     const func = raw ? RAW_FUNCTIONS[_function.key] : FUNCTIONS[_function.key]
     const args = []
-    if (func.id.key === 'select_point') {
-      console.log('init_with_validation _arguments:', _arguments)
-    }
+    // if (func.id.key === 'select_point') {
+    //   console.log('init_with_validation _arguments:', _arguments)
+    // }
     const zipped = zip(_arguments, func.args)
     zipped.forEach(([arg, arg_type]) => {
-      if (func.id.key === 'select_point') {
-        console.log('init_with_validation arg: ', arg, '\ninit_with_validation arg_type: ', arg_type)
-      }
+      // if (func.id.key === 'select_point') {
+      //   console.log('init_with_validation arg: ', arg, '\ninit_with_validation arg_type: ', arg_type)
+      // }
 
       arg = numpy_to_python(arg)
       arg = numpy_to_python(arg)

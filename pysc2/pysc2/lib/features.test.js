@@ -8,8 +8,8 @@ const features = require(path.resolve(__dirname, './features.js'))
 const point = require(path.resolve(__dirname, './point.js'))
 const pythonUtils = require(path.resolve(__dirname, './pythonUtils.js'))
 
-const { randomUniform, setUpProtoAction } = pythonUtils
-const { common_pb, raw_pb, sc2api_pb, spatial_pb, ui_pb } = s2clientprotocol
+const { randomUniform } = pythonUtils
+const { common_pb, sc2api_pb, spatial_pb, ui_pb } = s2clientprotocol
 const sc_pb = sc2api_pb
 const RECTANGULAR_DIMENSIONS = new features.Dimensions([84, 80], [64, 67])
 const SQUARE_DIMENSIONS = new features.Dimensions(84, 64)

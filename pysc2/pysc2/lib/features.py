@@ -1682,7 +1682,11 @@ class Features(object):
     # Call the right callback to get an SC2 action proto.
     sc2_action = sc_pb.Action()
     if (func.name == 'select_point'):
-      print('0 transform_action - sc2_action:', sc2_action)
+      print('****** TEST ****** zip:')
+      for type_, a in zip(func.args, func_call.arguments):
+        print('type_:', type_, ' type():', type(type_), '\na: ', a, ' type(a):', type(a))
+      
+      print('0 transform_action - sc2_action:', sc2_action, '\nkwargs: ', kwargs)
     kwargs["action"] = sc2_action
     if func.ability_id:
       kwargs["ability_id"] = func.ability_id
