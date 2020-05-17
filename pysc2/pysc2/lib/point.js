@@ -15,21 +15,30 @@ Math.degrees = function(radians) {
 class Point extends all_collections_generated_classes.Point {
   //A basic Point class.//
   constructor(x, y) {
+    // console.log('Point constructor -> x: ', x, 'y: ', y)
     super({})
+    // console.log('Point constructor ->', x.toObject ? x.toObject() : '')
     // if x is a proto point class
-    if (isinstance(x.x, [common_pb.Point, spatial_pb.PointI, common_pb.Point2D])) {
-      this.x = x.x.getX() || 0.0
-      this.y = x.x.getY() || 0.0
-    } else if (x && x.x && x.y) {
-      this.x = x.x //x is an object { x, y }
-      this.y = x.y
-    } else {
+    if (Number(x) == x) {
       this.x = x
       this.y = y
+    } else if (x && x.x && isinstance(x.x, [common_pb.Point, spatial_pb.PointI, common_pb.Point2D])) {
+      const point = x.x
+      this.x = point.getX() || 0.0
+      this.y = point.getY() || 0.0
+    } else if (isinstance(x, [common_pb.Point, spatial_pb.PointI, common_pb.Point2D])) {
+      const point = x
+      this.x = point.getX() || 0.0
+      this.y = point.getY() || 0.0
+    } else if (x && x.hasOwnProperty('x') && x.hasOwnProperty('y')) {
+      const point = x
+      this.x = point.x //x is an object { x, y }
+      this.y = point.y
     }
 
     this[0] = this.x
     this[1] = this.y
+    // console.log('this.x: ', this.x, ' this.y: ', this.y)
     this.length = 2
   }
 
@@ -41,9 +50,22 @@ class Point extends all_collections_generated_classes.Point {
     return [this.x, this.y].forEach
   }
 
-  static build(x, y) {
+  static build(obj) {
     //Build a Point from an object that has properties `x` and `y`.//
-    return this._make({ x, y })
+    // console.log('Point.build constructor -> obj: ', obj.toObject ? obj.toObject() : obj)
+    let usedObj = obj
+    if (isinstance(obj, [common_pb.Point, common_pb.PointI, common_pb.Point2D])) {
+      usedObj = {
+        x: obj.getX(),
+        y: obj.getY(),
+      }
+    } else if (Number(obj) == obj) { // is number
+      usedObj = {
+        x: obj,
+        y: arguments[1], //eslint-disable-line
+      }
+    }
+    return this._make(usedObj)
   }
 
   static unit_rand() {
@@ -53,7 +75,7 @@ class Point extends all_collections_generated_classes.Point {
 
   assign_to(obj) {
     //Assign `x` and `y` to an object that has properties `x` and `y`.//
-    if (isinstance(obj, [common_pb.Point, spatial_pb.PointI, common_pb.Point2D])) {
+    if (isinstance(obj, [common_pb.Point, common_pb.PointI, common_pb.Point2D])) {
       obj.setX(this.x)
       obj.setY(this.y)
       return
@@ -287,23 +309,23 @@ class Rect extends all_collections_generated_classes.Rect {
   }
 
   get tl() {
-    return this.constructor.build(this.l, this.t)
+    return new Point(this.l, this.t)
   }
 
   get br() {
-    return this.constructor.build(this.r, this.b)
+    return new Point(this.r, this.b)
   }
 
   get tr() {
-    return this.constructor.build(this.r, this.t)
+    return new Point(this.r, this.t)
   }
 
   get bl() {
-    return this.constructor.build(this.l, this.b)
+    return new Point(this.l, this.b)
   }
 
   get diagonal() {
-    return this.constructor.build(this.width, this.height)
+    return new Point(this.width, this.height)
   }
 
   get size() {
@@ -316,15 +338,15 @@ class Rect extends all_collections_generated_classes.Rect {
   }
 
   round() {
-    return this.constructor.build(this.tl.round(), this.br.round())
+    return new Rect(this.tl.round(), this.br.round())
   }
 
   floor() {
-    return this.constructor.build(this.tl.floor(), this.br.floor())
+    return new Rect(this.tl.floor(), this.br.floor())
   }
 
   ceil() {
-    return this.constructor.build(this.tl.ceil(), this.br.ceil())
+    return new Rect(this.tl.ceil(), this.br.ceil())
   }
 
   contains_point(pt) {
@@ -362,4 +384,5 @@ class Rect extends all_collections_generated_classes.Rect {
 
 module.exports = {
   Point,
+  Rect,
 }

@@ -55,8 +55,10 @@ player_common {
 game_loop: 20
 """
 
+
 RECTANGULAR_DIMENSIONS = features.Dimensions(screen=(84, 80), minimap=(64, 67))
 SQUARE_DIMENSIONS = features.Dimensions(screen=84, minimap=64)
+
 
 class AvailableActionsTest(absltest.TestCase):
 
@@ -66,6 +68,7 @@ class AvailableActionsTest(absltest.TestCase):
   }
 
   def setUp(self):
+    # super(AvailableActionsTest, self).setUp()
     super().setUp()
     self.obs = text_format.Parse(observation_text_proto, sc_pb.Observation())
     self.hideSpecificActions(True)
@@ -77,6 +80,7 @@ class AvailableActionsTest(absltest.TestCase):
 
   def assertAvail(self, expected):
     actual = self.features.available_actions(self.obs)
+    # print()
     actual_names = {actions.FUNCTIONS[i].name for i in actual}
     self.assertEqual(actual_names, set(expected) | self.always_expected)
 
@@ -414,19 +418,8 @@ class FeaturesTest(absltest.TestCase):
       self.assertEqual(len(func_def.args), len(func.args))  # pylint: disable=g-generic-assert
 
   def gen_random_function_call(self, action_spec, func_id):
-    # args = [[numpy.random.randint(0, size) for size in arg.sizes]  # pylint: disable=g-complex-comprehension
-    #         for arg in action_spec.functions[func_id].args]
-
-    args = []
-    for arg in action_spec.functions[func_id].args:
-      # if (func_id.value == 1):
-      #   print('func_id:', func_id)
-      #   print('action_spec.functions[func_id.key]: ', action_spec.functions[func_id])
-      # print('action_spec.functions[func_id.key].args: ', action_spec.functions[func_id].args)
-      temp = []
-      for size in arg.sizes:
-        temp.append(numpy.random.randint(0, size))
-      args.append(temp)
+    args = [[numpy.random.randint(0, size) for size in arg.sizes]  # pylint: disable=g-complex-comprehension
+            for arg in action_spec.functions[func_id].args]
     return actions.FunctionCall(func_id, args)
 
   def testIdsMatchIndex(self):
@@ -453,17 +446,15 @@ class FeaturesTest(absltest.TestCase):
         feature_dimensions=RECTANGULAR_DIMENSIONS,
         hide_specific_actions=False))
     action_spec = feats.action_spec()
+
     for func_def in action_spec.functions:
+      # print('func_def: ', func_def.name)
       for _ in range(10):
         func_call = self.gen_random_function_call(action_spec, func_def.id)
-        if (func_def.id.name == 'select_point'):
-          print(' STEP 0 *********func_call: ', func_call)
+
         sc2_action = feats.transform_action(
             None, func_call, skip_available=True)
         func_call2 = feats.reverse_action(sc2_action)
-        if (func_def.id.name == 'select_point'):
-          print(' STEP 1 *********func_call2: ', func_call2)
-
         sc2_action2 = feats.transform_action(
             None, func_call2, skip_available=True)
         if func_def.id == actions.FUNCTIONS.select_rect.id:

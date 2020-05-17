@@ -1,5 +1,3 @@
-// const googleProtobuf = require('google-protobuf')
-// const text_format = require('protobuf-textformat');
 const s2clientprotocol = require('s2clientprotocol') //eslint-disable-line
 const Enum = require('python-enum') //eslint-disable-line
 const path = require('path') //eslint-disable-line
@@ -8,7 +6,7 @@ const features = require(path.resolve(__dirname, './features.js'))
 const point = require(path.resolve(__dirname, './point.js'))
 const pythonUtils = require(path.resolve(__dirname, './pythonUtils.js'))
 
-const { randomUniform } = pythonUtils
+const { isinstance, randomUniform } = pythonUtils
 const { common_pb, sc2api_pb, spatial_pb, ui_pb } = s2clientprotocol
 const sc_pb = sc2api_pb
 const RECTANGULAR_DIMENSIONS = new features.Dimensions([84, 80], [64, 67])
@@ -433,13 +431,13 @@ describe('features:', () => {
       action_spec.functions[func_id.key].args.forEach((arg) => {
         const temp = []
         arg.sizes.forEach((size) => {
-          temp.push(randomUniform.int(0, size))
+          temp.push(randomUniform.int(0, size - 1))
         })
         args.push(temp)
       })
-      if (func_id.key == 'select_point') {
-        console.log('arguments: ', args, '\nfunc_id: ', func_id)
-      }
+      // if (func_id.key == 'select_point') {
+      //   console.log('arguments: ', args, '\nfunc_id: ', func_id)
+      // }
       return new actions.FunctionCall({ function: func_id, arguments: args })
     }
     test('testIdsMatchIndex', () => {
@@ -477,35 +475,40 @@ describe('features:', () => {
       //console.log(action_spec.functions)
 
       action_spec.functions.forEach((func_def) => {
+        console.log(func_def.id.key)
         let func_call
         let sc2_action
         let func_call2
         let sc2_action2
         for (let i = 0; i < 10; i++) {
           func_call = gen_random_function_call(action_spec, func_def.id)
-          if (func_def.id.key == 'select_point') {
-            console.log('STEP 0 ********* func_call: ', func_call)
-          }
+          // if (func_def.id.key == 'select_rect') {
+          //   console.log('STEP 0 ********* func_call: ', func_call)
+          // }
           sc2_action = feats.transform_action(null, func_call, true)
-          if (func_def.id.key == 'select_point') {
-            console.log('STEP 1 ********* sc2_action: ', sc2_action.toObject().actionFeatureLayer)
-          }
+          // if (func_def.id.key == 'select_rect') {
+          //   console.log('STEP 1 ********* sc2_action: ', sc2_action.toObject().actionFeatureLayer)
+          // }
           func_call2 = feats.reverse_action(sc2_action)
-          // if (func_def.id.key == 'select_point') {
+          // if (func_def.id.key == 'select_rect') {
           //   console.log('STEP 2 ********* after reverse func_call2: ', func_call2)
           // }
           sc2_action2 = feats.transform_action(null, func_call2, true)
           // console.log('test func_call2.arguments[0]: ', func_call2.arguments[0], func_call2.arguments[0]._init)
-          if (func_def.id.key == 'select_point' && func_call2.arguments[0] && func_call2.arguments[0]) {
-            console.log('test func_call2.arguments[0]: ', func_call2.arguments[0], func_call2.arguments[0][0].val)
+          // if (func_def.id.key == 'select_rect' && func_call2.arguments[0] && func_call2.arguments[0]) {
+          if (func_call2.arguments[0] && func_call2.arguments[0][0] && isinstance(func_call2.arguments[0][0], Enum.EnumMeta)) {
+            // console.log('test func_call2.arguments[0]: ', func_call2.arguments[0], func_call2.arguments[0][0].val)
             func_call2.arguments[0][0] = func_call2.arguments[0][0].val
           }
-          if (func_def.id.key == 'select_point') {
-            console.log('STEP 2 ********* after reverse func_call2: ', func_call2)
-          }
-          if (func_def.id.key == 'select_point') {
-            console.log('STEP 3 *********  sc2_action2: ', sc2_action2.toObject().actionFeatureLayer)
-          }
+          // else {
+          //   console.log('STEP 1.5 ********* after reverse func_call2: ', func_call2)
+          // }
+          // if (func_def.id.key == 'select_rect') {
+          //   console.log('STEP 2 ********* after reverse func_call2: ', func_call2)
+          // }
+          // if (func_def.id.key == 'select_rect') {
+          //   console.log('STEP 3 *********  sc2_action2: ', sc2_action2.toObject().actionFeatureLayer)
+          // }
 
           if (func_def.id == actions.FUNCTIONS.select_rect.id) {
             // Need to check this one manually since the same rect can be
@@ -521,15 +524,15 @@ describe('features:', () => {
             expect(func_call.arguments[0]).toMatchObject(func_call2.arguments[0])
             expect(rect(func_call.arguments)).toMatchObject(rect(func_call2.arguments))
           } else {
-            if (func_def.id.key == 'select_point') {
-              console.log('STEP 3.5 \n', func_call, '\n', func_call2)
-            }
+            // if (func_def.id.key == 'select_rect') {
+            //   console.log('STEP 3.5 \n', func_call, '\n', func_call2)
+            // }
             expect(func_call).toMatchObject(func_call2)
           }
           expect(sc2_action.toObject()).toMatchObject(sc2_action2.toObject())
-          if (func_def.id.key == 'select_point') {
-            console.log('STEP 4 ********* passed')
-          }
+          // if (func_def.id.key == 'select_rect') {
+          //   console.log('STEP 4 ********* passed')
+          // }
         }
       })
     })

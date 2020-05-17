@@ -352,7 +352,11 @@ class ScreenFeatures(all_collections_generated_classes.ScreenFeatures):
 
   def __new__(cls, **kwargs):
     feats = {}
+    # print('***************** kwargs ***********************')
+    # print(kwargs)
     for name, (scale, type_, palette, clip) in iteritems(kwargs):
+      # print('name: ', name)
+      # print(scale, type_, palette, clip)
       feats[name] = Feature(
           index=ScreenFeatures._fields.index(name),
           name=name,
@@ -598,6 +602,10 @@ class AgentInterfaceFormat(object):
 
     if action_space:
       if not isinstance(action_space, actions.ActionSpace):
+        # print(action_space == actions.ActionSpace.FEATURES)
+        # print ('type action_space:')
+        # print(type(action_space))
+        # print('value : ', action_space)
         raise ValueError("action_space must be of type ActionSpace.")
 
       if action_space == actions.ActionSpace.RAW:
@@ -821,6 +829,8 @@ def parse_agent_interface_format(
     else:
       total = sum(delays)
       cumulative_sum = np.cumsum([delay / total for delay in delays])
+      print('******************** cumulative_sum : ')
+      print(cumulative_sum)
       def fn():
         sample = random.uniform(0, 1) - EPSILON
         for i, cumulative in enumerate(cumulative_sum):
@@ -922,6 +932,7 @@ def _init_valid_functions(action_dimensions):
       "screen2": tuple(int(i) for i in action_dimensions.screen),
       "minimap": tuple(int(i) for i in action_dimensions.minimap),
   }
+
   types = actions.Arguments(*[
       actions.ArgumentType.spec(t.id, t.name, sizes.get(t.name, t.sizes))
       for t in actions.TYPES])
@@ -1681,12 +1692,6 @@ class Features(object):
 
     # Call the right callback to get an SC2 action proto.
     sc2_action = sc_pb.Action()
-    if (func.name == 'select_point'):
-      print('****** TEST ****** zip:')
-      for type_, a in zip(func.args, func_call.arguments):
-        print('type_:', type_, ' type():', type(type_), '\na: ', a, ' type(a):', type(a))
-      
-      print('0 transform_action - sc2_action:', sc2_action, '\nkwargs: ', kwargs)
     kwargs["action"] = sc2_action
     if func.ability_id:
       kwargs["ability_id"] = func.ability_id
@@ -1710,11 +1715,7 @@ class Features(object):
       actions.RAW_FUNCTIONS[func_id].function_type(**kwargs)
     else:
       kwargs["action_space"] = aif.action_space
-      if (func.name == 'select_point'):
-        print('1 transform_action - sc2_action: ', sc2_action)
       actions.FUNCTIONS[func_id].function_type(**kwargs)
-      if (func.name == 'select_point'):
-        print('2 transform_action - sc2_action: ', sc2_action)
     return sc2_action
 
   @sw.decorate
@@ -1908,3 +1909,6 @@ class Features(object):
         return actions.RAW_FUNCTIONS.raw_move_camera(coord)
 
     return actions.RAW_FUNCTIONS.no_op()
+
+# print('len(SCREEN_FEATURES):')
+# print(len(SCREEN_FEATURES))

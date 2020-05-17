@@ -254,6 +254,7 @@ class Feature extends all_collections_generated_classes.Feature {
 
   static unpack_layer(plane) {
     //Return a correctly shaped numpy array given the feature layer bytes.//
+    // console.log('plane.size: ', plane.size)
     const size = point.Point.build(plane.size)
     if (size[0] === 0 && size[1] === 0) {
       // New layer that isn't implemented in this SC2 version.
@@ -277,6 +278,7 @@ class Feature extends all_collections_generated_classes.Feature {
     if (plane.bits_per_pixel !== 24) {
       throw new Error(`ValueError: plane.bits_per_pixel ${plane.bits_per_pixel} !== 24`)
     }
+    // console.log('plane.size: ', plane.size)
     const size = point.Point.build(plane.size)
     const data = np.frombuffer(plane.data, np.uint8)
     return data.reshape(size.y, size.x, 3)
@@ -924,10 +926,10 @@ function _init_valid_functions(action_dimensions) {
       // }
       tuple.push(types[t.id])
     })
-    if (f.name == 'move_camera') {
-      // console.log('inside _init_valid_functions:')
-      // console.log(tuple)
-    }
+    // if (f.name == 'select_point') {
+    //   // console.log('inside _init_valid_functions:')
+    //   // console.log(tuple)
+    // }
     return actions.Function.spec(f.id, f.name, tuple)
   })
   const functions = new actions.Functions(args)
@@ -1001,6 +1003,7 @@ class Features {
     this._agent_interface_format = agent_interface_format
     const aif = this._agent_interface_format
     if (aif.raw_resolution && map_size) {
+      // console.log('plane.size: ', plane.size)
       aif.raw_resolution = point.Point.build(map_size)
     }
     this._map_size = map_size
@@ -1510,6 +1513,7 @@ class Features {
       pythonWith(sw('feature_units'), () => {
         // Update the camera location so we can calculate world to screen pos
         this._update_camera(point.Point.build(raw.player.camera))
+        // console.log('raw.player.camera: ', raw.player.camera)
         const feature_units = Object.keys(raw.units).filter((key) => {
           const u = raw.units[key]
           return u.is_on_screen
@@ -1985,7 +1989,7 @@ class Features {
       // console.log('reverse_action.func_call_ability: action: ', action.toObject())
       // console.log('reverse_action.func_call_ability: ability_id: ', ability_id)
       //Get the function id for a specific ability id and action type.//
-      if (actions.ABILITY_IDS.hasOwnProperty(ability_id)) {
+      if (!actions.ABILITY_IDS.hasOwnProperty(ability_id)) {
         console.warn(`Unknown ability_id: ${ability_id}. This is probably dance or cheer, or some unknown new or map specific ability. Treating it as a no-op.", ability_id`)
         return FUNCTIONS.no_op()
       }
@@ -2004,42 +2008,43 @@ class Features {
           return FUNCTIONS[func.id](...args)
         }
       }
+
       throw new Error(`ValueError: Unknown ability_id: ${ability_id}, type: ${cmd_type.__name__}. Likely a bug.`)
     }
 
     if (action.getActionUi()) {
-      const actUi = action.getActionUi().toObject()
-      if (actUi.getmultiPanel()) {
+      const actUi = action.getActionUi()
+      if (actUi.getMultiPanel()) {
         return FUNCTIONS.select_unit(
-          actUi.getmultiPanel().getType() - 1,
-          actUi.getmultiPanel().getUnitIndex()
+          actUi.getMultiPanel().getType() - 1,
+          actUi.getMultiPanel().getUnitIndex()
         )
       }
       if (actUi.getControlGroup()) {
         return FUNCTIONS.select_control_group(
-          actUi.getcontrolGroup().getAction() - 1,
-          actUi.getcontrolGroup().getControlGroupIndex()
+          actUi.getControlGroup().getAction() - 1,
+          actUi.getControlGroup().getControlGroupIndex()
         )
       }
       if (actUi.getSelectIdleWorker()) {
-        return FUNCTIONS.select_idle_worker(actUi.getselectIdleWorker.getType() - 1)
+        return FUNCTIONS.select_idle_worker(actUi.getSelectIdleWorker().getType() - 1)
       }
       if (actUi.getSelectArmy()) {
-        return FUNCTIONS.select_army(actUi.getSelectArmy().selectionAdd())
+        return FUNCTIONS.select_army(actUi.getSelectArmy().getSelectionAdd())
       }
       if (actUi.getSelectWarpGates()) {
         return FUNCTIONS.select_warp_gates(
-          actUi.getSelectWarpGates().selectionAdd()
+          actUi.getSelectWarpGates().getSelectionAdd()
         )
       }
       if (actUi.getSelectLarva()) {
         return FUNCTIONS.select_larva()
       }
       if (actUi.getCargoPanel()) {
-        return FUNCTIONS.unload(actUi.getCargoPanel().unitIndex())
+        return FUNCTIONS.unload(actUi.getCargoPanel().getUnitIndex())
       }
       if (actUi.getProductionPanel()) {
-        return FUNCTIONS.build_queue(actUi.getProductionPanel().unitIndex())
+        return FUNCTIONS.build_queue(actUi.getProductionPanel().getUnitIndex())
       }
       if (actUi.getToggleAutocast()) {
         return func_call_ability(
@@ -2064,8 +2069,8 @@ class Features {
         // TODO(tewalds) {} After looking at some replays we should decide if
         // this is good enough. Maybe we need to simulate multiple actions or
         // merge the selection rects into a bigger one.
-        const tl = point.Point.build(select_rect.getSelectionScreenCoord()[0].p0)
-        const br = point.Point.build(select_rect.getSelectionScreenCoord()[0].p1)
+        const tl = point.Point.build(select_rect.getSelectionScreenCoordList()[0].getP0())
+        const br = point.Point.build(select_rect.getSelectionScreenCoordList()[0].getP1())
         return FUNCTIONS.select_rect(select_rect.getSelectionAdd(), tl, br)
       }
       if (act_sp.getUnitCommand()) {

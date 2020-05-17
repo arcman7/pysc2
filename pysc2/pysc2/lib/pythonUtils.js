@@ -135,7 +135,7 @@ function setUpProtoAction(action, name) {
   if (name === 'move_camera') {
     const actionSpatial = new spatial_pb.ActionSpatial()
     const camMove = new spatial_pb.ActionSpatialCameraMove()
-    camMove.setCenterMinimap(new spatial_pb.PointI())
+    camMove.setCenterMinimap(new common_pb.PointI())
     actionSpatial.setCameraMove(camMove)
     action.setActionFeatureLayer(actionSpatial)
     action.setActionRender(actionSpatial)
@@ -144,7 +144,7 @@ function setUpProtoAction(action, name) {
   if (name === 'select_point') {
     const actionSpatial = new spatial_pb.ActionSpatial()
     const unitSelectionPoint = new spatial_pb.ActionSpatialUnitSelectionPoint()
-    unitSelectionPoint.setSelectionScreenCoord(new spatial_pb.PointI())
+    unitSelectionPoint.setSelectionScreenCoord(new common_pb.PointI())
     actionSpatial.setUnitSelectionPoint(unitSelectionPoint)
     action.setActionFeatureLayer(actionSpatial)
     action.setActionRender(actionSpatial)
@@ -152,9 +152,9 @@ function setUpProtoAction(action, name) {
   }
   if (name === 'select_rect') {
     const actionSpatial = new spatial_pb.ActionSpatial()
-    const unitSelectionPoint = new spatial_pb.ActionSpatialUnitSelectionPoint()
-    unitSelectionPoint.setSelectionScreenCoord(new spatial_pb.PointI())
-    actionSpatial.setUnitSelectionPoint(unitSelectionPoint)
+    const unitSelectionRect = new spatial_pb.ActionSpatialUnitSelectionRect()
+    // unitSelectionRect.addSelectionScreenCoord(new common_pb.RectangleI())
+    actionSpatial.setUnitSelectionRect(unitSelectionRect)
     action.setActionFeatureLayer(actionSpatial)
     action.setActionRender(actionSpatial)
     return action
@@ -194,7 +194,7 @@ function setUpProtoAction(action, name) {
     action.setActionUi(actionUI)
     return action
   }
-  if (name === 'control_group') {
+  if (name === 'select_control_group') {
     const actionUI = new ui_pb.ActionUI()
     const controlGroup = new ui_pb.ActionControlGroup()
     actionUI.setControlGroup(controlGroup)
@@ -225,7 +225,7 @@ function setUpProtoAction(action, name) {
   }
   if (name === 'cmd_screen') {
     const unitCommand = new spatial_pb.ActionSpatialUnitCommand()
-    unitCommand.setTargetScreenCoord(new spatial_pb.PointI())
+    unitCommand.setTargetScreenCoord(new common_pb.PointI())
     const actionSpatial = new spatial_pb.ActionSpatial()
     actionSpatial.setUnitCommand(unitCommand)
     action.setActionFeatureLayer(actionSpatial)
@@ -234,7 +234,7 @@ function setUpProtoAction(action, name) {
   }
   if (name === 'cmd_minimap') {
     const unitCommand = new spatial_pb.ActionSpatialUnitCommand()
-    unitCommand.setTargetMinimapCoord(new spatial_pb.PointI())
+    unitCommand.setTargetMinimapCoord(new common_pb.PointI())
     const actionSpatial = new spatial_pb.ActionSpatial()
     actionSpatial.setUnitCommand(unitCommand)
     action.setActionFeatureLayer(actionSpatial)
@@ -395,6 +395,11 @@ function zip() {
     return args.map(function(array) { return array[i] })
   });
 }
+// function zip(arrays) {
+//   return Array.apply(null,Array(arrays[0].length)).map(function(_, i) { //eslint-disable-line
+//     return arrays.map(function(array){ return array[i] }) //eslint-disable-line
+//   });
+// }
 
 function randomChoice(arr) {
   // This function does not support "size" of output shape.

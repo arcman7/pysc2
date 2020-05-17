@@ -6,7 +6,7 @@ const pythonUtils = require(path.resolve(__dirname, './pythonUtils.js'))
 const all_collections_generated_classes = require(path.resolve(__dirname, './all_collections_generated_classes.js'))
 const numpy = require(path.resolve(__dirname, './numpy.js'))
 
-const { spatial_pb, ui_pb } = s2clientprotocol
+const { spatial_pb, ui_pb, common_pb } = s2clientprotocol
 const sc_spatial = spatial_pb
 const sc_ui = ui_pb
 const { len, isinstance, isObject, zip } = pythonUtils
@@ -32,53 +32,65 @@ function no_op(action = {}, action_space) {
 }
 function move_camera(action, action_space, minimap) {
   // Move the camera.//
+  // console.log('minimap: ', minimap)
+  // console.log('assign_to -> point:', spatial(action, action_space).getCameraMove().getCenterMinimap().toObject())
   minimap.assign_to(spatial(action, action_space).getCameraMove().getCenterMinimap());
 }
 function select_point(action, action_space, select_point_act, screen) {
   // Select a unit at a point.//
   // console.log('select_point_act: isEnumOrArray:', isinstance(select_point_act, [Enum, Array]), ' ', select_point_act)
-  console.log('select_point: \n\taction:', action.toObject(), '\n\taction_space: ', action_space, '\n\tselect_point_act: ', select_point_act, '\n\tscreen:', screen)
+  // console.log('select_point: \n\taction:', action.toObject(), '\n\taction_space: ', action_space, '\n\tselect_point_act: ', select_point_act, '\n\tscreen:', screen)
   const select = spatial(action, action_space).getUnitSelectionPoint()
   screen.assign_to(select.getSelectionScreenCoord())
   select.setType(select_point_act)
 }
 function select_rect(action, action_space, select_add, screen, screen2) {
   // Select units within a rectangle.//
+  // console.log('select_rect - action: ', action.toObject())
   const select = spatial(action, action_space).getUnitSelectionRect()
-  const out_rect = select.addSelectionScreenCoord(new spatial_pb.ActionSpatialUnitSelectionRect())
+  // console.log('select_rect - select: ', select.toObject())
+  const out_rect = select.addSelectionScreenCoord(new common_pb.RectangleI())
+  out_rect.setP0(new common_pb.PointI())
+  out_rect.setP1(new common_pb.PointI())
+  // console.log('out_rect: ', out_rect.toObject())
+  // console.log('screen: ', screen, 'screen2: ', screen2)
   const screen_rect = new point.Rect(screen, screen2)
-  screen_rect.tl.assign_to(out_rect.p0)
-  screen_rect.br.assign_to(out_rect.p1)
+  // console.log('screen_rect: ', screen_rect)
+  // console.log('out_rect.getP0: ', out_rect.getP0().toObject())
+  screen_rect.tl.assign_to(out_rect.getP0())
+  // console.log('out_rect.getP0: ', out_rect.getP0().toObject())
+
+  screen_rect.br.assign_to(out_rect.getP1())
   select.setSelectionAdd(Boolean(select_add))
 }
 function select_idle_worker(action, action_space, select_worker) {
   // Select an idle worker.//
   /* delete action_space has no equivalent in js */
-  action.getActionUI().getSelectIdleWorker().setType(select_worker)
+  action.getActionUi().getSelectIdleWorker().setType(select_worker)
 }
 
 function select_army(action, action_space, select_add) {
   // Select the entire army.//
   /* delete action_space has no equivalent in js */
-  action.getActionUI().getSelectArmy().setSelectionAdd(select_add)
+  action.getActionUi().getSelectArmy().setSelectionAdd(select_add)
 }
 
 function select_warp_gates(action, action_space, select_add) {
   // Select all warp gates.//
   /* delete action_space has no equivalent in js */
-  action.getActionUI().getSelectWarpGates().setSelectionAdd(select_add)
+  action.getActionUi().getSelectWarpGates().setSelectionAdd(select_add)
 }
 
 function select_larva(action, /*action_space*/) {
   // Select all larva.//
   /* delete action_space has no equivalent in js */
-  action.getActionUI().setSelectLarva(new ui_pb.ActionSelectLarva()) // Adds the empty proto field.
+  action.getActionUi().setSelectLarva(new ui_pb.ActionSelectLarva()) // Adds the empty proto field.
 }
 
 function select_unit(action, action_space, select_unit_act, select_unit_id) {
   // Select a specific unit from the multi-unit selection.//
   /* delete action_space has no equivalent in js */
-  const select = action.getActionUI().getMultiPanel()
+  const select = action.getActionUi().getMultiPanel()
   select.setType(select_unit_act)
   select.setUnitIndex(select_unit_id)
 }
@@ -86,7 +98,7 @@ function select_unit(action, action_space, select_unit_act, select_unit_id) {
 function control_group(action, action_space, control_group_act, control_group_id) {
   // Act on a control group, selecting, setting, etc.//
   /* delete action_space has no equivalent in js */
-  const select = action.getActionUI().getControlGroup()
+  const select = action.getActionUi().getControlGroup()
   select.setAction(control_group_act)
   select.setControlGroupIndex(control_group_id)
 }
@@ -94,13 +106,13 @@ function control_group(action, action_space, control_group_act, control_group_id
 function unload(action, action_space, unload_id) {
   // Unload a unit from a transport/bunker/nydus/etc.//
   /* delete action_space has no equivalent in js */
-  action.getActionUI().getCargoPanel().setUnitIndex(unload_id)
+  action.getActionUi().getCargoPanel().setUnitIndex(unload_id)
 }
 
 function build_queue(action, action_space, build_queue_id) {
   // Cancel a unit in the build queue.//
   /* delete action_space has no equivalent in js */
-  action.getActionUI().getProductionPanel().setUnitIndex(build_queue_id)
+  action.getActionUi().getProductionPanel().setUnitIndex(build_queue_id)
 }
 
 function cmd_quick(action, action_space, ability_id, queued) {
@@ -129,7 +141,7 @@ function cmd_minimap(action, action_space, ability_id, queued, minimap) {
 function autocast(action, action_space, ability_id) {
   // Toggle autocast.//
   /* delete action_space has no equivalent in js */
-  action.getActionUI().getToggleAutocast().setAbilityId(ability_id)
+  action.getActionUi().getToggleAutocast().setAbilityId(ability_id)
 }
 
 function raw_no_op(/*action*/) {
@@ -194,23 +206,26 @@ function raw_autocast(action, ability_id, unit_tags) {
 
 function numpy_to_python(val) {
   // Convert numpy types to their corresponding python types.//
-  // if (isinstance(val, point.Point))
   if (isinstance(val, Number)) {
     return val
   }
   if (isinstance(val, String)) {
     return val
   }
+  if (isinstance(val, Boolean)) {
+    return val
+  }
   if (/*isinstance(val, numpy.number) ||*/ isinstance(val, numpy.ndarray) && !(val.shape)) { // numpy.array(1)
     return val.item()
   }
-  if (isinstance(val, [Array, numpy.ndarray, point.Point])) {
+  const isPointLikeObj = (val && val.hasOwnProperty('x') && val.hasOwnProperty('y'))
+  if (isinstance(val, [Array, numpy.ndarray, point.Point]) || isPointLikeObj) {
     const result = [];
     if (isinstance(val, Array)) {
       val.forEach((ele) => {
         result.push(numpy_to_python(ele))
       })
-    } else if (isinstance(val, point.Point)) {
+    } else if (isinstance(val, point.Point) || isPointLikeObj) {
       result.push(numpy_to_python(val.x))
       result.push(numpy_to_python(val.y))
     } else {
@@ -284,7 +299,10 @@ class ArgumentType extends all_collections_generated_classes.ArgumentType {
         id: i,
         name,
         sizes: [0, 0],
-        fn: (a) => new point.Point(...a).floor(),
+        fn: (a) => {
+          // console.log('a: ', a); return new point.Point(...a).floor()
+          return new point.Point(...a).floor()
+        },
         values: null,
         count: null,
       })
@@ -443,8 +461,8 @@ function _define_position_based_enum(name, options) {
 }
 
 const QUEUED_OPTIONS = [
-  ["now", Number(false)],
-  ["queued", Number(true)],
+  ["now", false],
+  ["queued", true],
 ]
 
 const Queued = _define_position_based_enum("Queued", QUEUED_OPTIONS)
@@ -472,8 +490,8 @@ const SelectPointAct = _define_position_based_enum(
 )
 
 const SELECT_ADD_OPTIONS = [
-  ["select", Number(false)],
-  ["add", Number(true)],
+  ["select", false],
+  ["add", true],
 ]
 const SelectAdd = _define_position_based_enum(
   "SelectAdd", SELECT_ADD_OPTIONS
@@ -2052,13 +2070,13 @@ class FunctionCall extends all_collections_generated_classes.FunctionCall {
     // console.log('_arguments: ', _arguments)
     const func = raw ? RAW_FUNCTIONS[_function.key] : FUNCTIONS[_function.key]
     const args = []
-    // if (func.id.key === 'select_point') {
-    //   console.log('init_with_validation _arguments:', _arguments)
+    // if (func.id.key === 'select_rect') {
+    //   console.log('init_with_validation\n\t _arguments:', _arguments, '\n\t_function:', _function)
     // }
     const zipped = zip(_arguments, func.args)
     zipped.forEach(([arg, arg_type]) => {
       // if (func.id.key === 'select_point') {
-      //   console.log('init_with_validation arg: ', arg, '\ninit_with_validation arg_type: ', arg_type)
+      // console.log('init_with_validation arg: ', arg, '\ninit_with_validation arg_type: ', arg_type)
       // }
 
       arg = numpy_to_python(arg)
@@ -2069,6 +2087,7 @@ class FunctionCall extends all_collections_generated_classes.FunctionCall {
       //   console.log('func.args: ', func.args)
       // }
       if (arg_type.values) {
+        // console.log('arg_type.values: ', arg_type.values)
         if (typeof (arg) === 'string') {
           try {
             args.push([arg_type.values[arg]])
@@ -2080,12 +2099,17 @@ class FunctionCall extends all_collections_generated_classes.FunctionCall {
             arg = arg[0]
           }
           try {
+            // console.log('using arg: ', arg, ' arg_type.values: ', arg_type.values)
+            if (isinstance(arg_type.values, Enum.EnumMeta)) {
+              arg = Number(arg)
+            }
             args.push([arg_type.values(arg)])
           } catch (err) {
-            throw new Error(`ValueError: Unknown argument value: ${arg}, valid values: ${JSON.stringify(arg_type.values) || arg_type.values}`)
+            // console.log('using arg: ', arg, '  err: ', err)
+            throw new Error(`ValueError: Unknown argument value: ${arg}, valid values: ${arg_type.values}`)
           }
         }
-      } else if (typeof (arg) === 'number') {
+      } else if (typeof (arg) === 'number' || typeof (arg) === 'boolean') {
         args.push([arg])
       } else if (isinstance(arg, Array)) {
         args.push(arg)
@@ -2167,6 +2191,7 @@ module.exports = {
   raw_move_camera,
   raw_no_op,
   RAW_TYPES,
+  SelectAdd,
   select_army,
   SELECT_ADD_OPTIONS,
   select_idle_worker,
