@@ -1123,7 +1123,7 @@ class Features {
       vary in length, for example the number of valid actions depends on which
       units you have selected.
     */
-    const obs_spec = named_array.NamedDict({
+    const obs_spec = new named_array.NamedDict({
       "action_result": [0], // See error.proto: ActionResult.
       "alerts": [0], // See sc2api.proto: Alert.
       "build_queue": [0, UnitLayer._keys.length],
@@ -1150,13 +1150,13 @@ class Features {
 
     if (aif.feature_dimensions) {
       obs_spec["feature_screen"] = [
-        len(SCREEN_FEATURES),
+        SCREEN_FEATURES.length,
         aif.feature_dimensions.screen.y,
         aif.feature_dimensions.screen.x
       ]
 
       obs_spec["feature_minimap"] = [
-        len(MINIMAP_FEATURES),
+        MINIMAP_FEATURES.length,
         aif.feature_dimensions.minimap.y,
         aif.feature_dimensions.minimap.x
       ]
@@ -2260,31 +2260,33 @@ class Features {
 }
 
 module.exports = {
-  FeatureType,
-  PlayerRelative,
-  Visibility,
+  AgentInterfaceFormat,
+  Dimensions,
+  Features,
+  EffectPos,
   Effects,
+  Feature,
+  FeatureType,
+  FeatureUnit,
+  features_from_game_info,
+  MinimapFeatures,
+  MINIMAP_FEATURES,
+  parse_agent_interface_format,
+  Player,
+  PlayerRelative,
+  ProductionQueue,
+  Radar,
   ScoreCumulative,
   ScoreByCategory,
   ScoreCategories,
   ScoreByVital,
   ScoreVitals,
-  Player,
+  ScreenFeatures,
+  SCREEN_FEATURES,
   UnitLayer,
   UnitCounts,
-  FeatureUnit,
-  EffectPos,
-  Radar,
-  ProductionQueue,
-  Feature,
-  ScreenFeatures,
-  MinimapFeatures,
-  Dimensions,
-  AgentInterfaceFormat,
-  Features,
+  Visibility,
   _to_point,
-  parse_agent_interface_format,
-  features_from_game_info,
   _init_valid_functions,
   _init_valid_raw_functions,
 }

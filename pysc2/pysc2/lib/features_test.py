@@ -524,9 +524,7 @@ class FeaturesTest(absltest.TestCase):
 
   def testCanDeepcopyNumpyFunctionCall(self):
     arguments = [numpy.float32] * len(actions.Arguments._fields)
-    dtypes = actions.FunctionCall(
-        function=numpy.float32,
-        arguments=actions.Arguments(*arguments))
+    dtypes = actions.FunctionCall(function=numpy.float32, arguments=actions.Arguments(*arguments))
     self.assertEqual(dtypes, copy.deepcopy(dtypes))
 
   def testSizeConstructors(self):
