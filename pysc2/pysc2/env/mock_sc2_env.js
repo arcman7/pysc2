@@ -1,4 +1,6 @@
-// Mocking the Starcraft II environment.
+/* Mocking the Starcraft II environment. */
+
+const s2clientprotocol = require('s2clientprotocol')
 const path = require('path')
 const environment = require(path.resolve(__dirname, 'environment.js'))
 const sc2_env = require(path.resolve(__dirname, 'sc2_env.js'))
@@ -7,7 +9,6 @@ const point = require(path.resolve(__dirname, '..', 'lib', 'point.js'))
 const units = require(path.resolve(__dirname, '..', 'lib', 'units.js'))
 const dummy_observation = require(path.resolve(__dirname, '..', 'tests', 'dummy_observation.js'))
 const np = require(path.resolve(__dirname, '..', 'lib', 'numpy.js'))
-const s2clientprotocol = require('s2clientprotocol')
 const { common_pb2 } = s2clientprotocol
 
 const DUMMY_MAP_SIZE = point.Point(256, 256)
@@ -35,7 +36,7 @@ class _TestEnvironment extends environment.Base {
       stub of a production environment to have end_episodes. Will be ignored if
       set to `float('inf')` (the default).
   */
-  constructor (num_agents, observation_spec, action_spec) {
+  constructor (num_agents, observation_spec, action_spec) { //eslint-disable-line
     /*
     Initializes the TestEnvironment.
 
@@ -58,12 +59,12 @@ class _TestEnvironment extends environment.Base {
     Object.keys(observation_spec.entries()).forEach((key) => {
       const agent_index = key
       const obs_spec = observation_spec.entries()[key]
-      this.next_timestep.push(environment.TimeStep(
-        step_type = environment.StepType.MID,
-        reward = 0.0,
-        discount = 1.0,
-        observation = this._default_observation(obs_spec, agent_index)
-      ))
+      this.next_timestep.push(environment.TimeStep({
+        step_type: environment.StepType.MID,
+        reward: 0.0,
+        discount: 1.0,
+        observation: this._default_observation(obs_spec, agent_index)
+      }))
     })
 
     this.episode_length = Infinity
@@ -227,14 +228,13 @@ class SC2TestEnv extends _TestEnvironment {
     if (!(players)) {
       num_agents = 1
     } else {
-      const num_collect = []
+      let num_agents = 0
       Object.keys(players).forEach((key) => {
         const p = players[key]
         if (p instanceof sc2_env.Agent) {
-          num_collect.push(1)
+          num_agents += 1
         }
       })
-      num_agents = num_collect.reduce((a, b) => a + b, 0)
     }
 
     if (agent_interface_format === null) {
@@ -250,15 +250,18 @@ class SC2TestEnv extends _TestEnvironment {
     }
 
     this._agent_interface_formats = agent_interface_format
-    this._features = Object.keys(agent_interface_format).forEach((key) => {
+    this._features = Object.keys(agent_interface_format).map((key) => {
       const interface_format = agent_interface_format[key]
-      features.Features(interface_format, map_size = DUMMY_MAP_SIZE)
+      return features.Features({ interface_format, map_size: DUMMY_MAP_SIZE })
     })
-    super(SC2TestEnv).constructor()
     // super(SC2TestEnv, self).__init__(
     //     num_agents=num_agents,
     //     action_spec=tuple(f.action_spec() for f in self._features),
     //     observation_spec=tuple(f.observation_spec() for f in self._features))
+    const action_spec = []
+    this._features.forEach()
+
+    super(SC2TestEnv)
     this.episode_length = 10
   }
 

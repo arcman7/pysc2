@@ -1,15 +1,14 @@
 //Creates SC2 processes and games for remote agents to connect into.
-
+const s2clientprotocol = require('s2clientprotocol')
 const path = require('path')
 const maps = require(path.resolve(__dirname, '..', 'maps'))
 const run_configs = require(path.resolve(__dirname, '..', 'run_configs'))
 const protspicker = require(path.resolve(__dirname, '..', 'lib', 'protspicker.js'))
 const protocol = require(path.resolve(__dirname, '..', 'lib', 'protocol.js'))
 const remote_controller = require(path.resolve(__dirname, '..', 'lib', 'remote_controller.js'))
-/*
-from s2clientprotocol import common_pb2 as sc_common
-from s2clientprotocol import sc2api_pb2 as sc_pb
-*/
+const sc_common = s2clientprotocol.common_pb2
+const sc_pb = s2clientprotocol.sc2api_pb2
+
 
 class VsAgent extends object {
 
