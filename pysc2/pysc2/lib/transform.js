@@ -1,4 +1,4 @@
-const path = require('path')
+const path = require('path') //eslint-disable-line
 const point = require(path.resolve(__dirname, './point.js'))
 const pythonUtils = require(path.resolve(__dirname, './pythonUtils.js'))
 
@@ -34,7 +34,6 @@ class Linear extends Transform {
     }
     assert(this.scale.x !== 0 && this.scale.y !== 0, ' new Linear.scale.x !== 0 && new Linear.scale.y !== 0')
     this.offset = offset || new point.Point(0, 0)
-    // console.log('this.scale: ', this.scale, 'scale value: ', scale)
   }
 
   fwd_dist(dist) {
@@ -50,9 +49,7 @@ class Linear extends Transform {
   }
 
   back_pt(pt) {
-    // console.log('this.offset: ', this.offset, 'this.scale: ', this.scale, '\nLinear BEFORE pt: ', pt)
     pt = pt.sub(this.offset).div(this.scale)
-    // console.log('Linear AFTER pt: ', pt)
     return pt
   }
 
@@ -64,7 +61,6 @@ class Linear extends Transform {
 class Chain extends Transform {
   constructor() {
     super(arguments) //eslint-disable-line
-    // console.log('Chain constructor:\narguments:', arguments)
     this.transforms = arguments //eslint-disable-line
   }
 
@@ -93,15 +89,9 @@ class Chain extends Transform {
   }
 
   back_pt(pt) {
-    // console.log('this.transforms: ', this.transforms)
     for (let i = this.transforms.length - 1; i >= 0; i--) {
-      // console.log('chain BEFORE pt: ', pt)
       const transform = this.transforms[i]
-      if (isinstance(transform, point.Point)) {
-        // console.log('transform: ', transform)
-      }
       pt = transform.back_pt(pt)
-      // console.log('chain AFTER pt: ', pt)
     }
     return pt
   }

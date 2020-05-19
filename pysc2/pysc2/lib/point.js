@@ -15,9 +15,7 @@ Math.degrees = function(radians) {
 class Point extends all_collections_generated_classes.Point {
   //A basic Point class.//
   constructor(x, y) {
-    // console.log('Point constructor -> x: ', x, 'y: ', y)
     super({})
-    // console.log('Point constructor ->', x.toObject ? x.toObject() : '')
     // if x is a proto point class
     if (Number(x) == x) {
       this.x = x
@@ -35,10 +33,8 @@ class Point extends all_collections_generated_classes.Point {
       this.x = point.x //x is an object { x, y }
       this.y = point.y
     }
-
     this[0] = this.x
     this[1] = this.y
-    // console.log('this.x: ', this.x, ' this.y: ', this.y)
     this.length = 2
   }
 
@@ -52,7 +48,6 @@ class Point extends all_collections_generated_classes.Point {
 
   static build(obj) {
     //Build a Point from an object that has properties `x` and `y`.//
-    // console.log('Point.build constructor -> obj: ', obj.toObject ? obj.toObject() : obj)
     let usedObj = obj
     if (isinstance(obj, [common_pb.Point, common_pb.PointI, common_pb.Point2D])) {
       usedObj = {
@@ -69,12 +64,12 @@ class Point extends all_collections_generated_classes.Point {
   }
 
   static unit_rand() {
-    //Return a Point with x, y chosen randomly with 0 <= x < 1, 0 <= y < 1.//
+    // Return a Point with x, y chosen randomly with 0 <= x < 1, 0 <= y < 1.//
     return this._make({ x: Math.random(), y: Math.random() })
   }
 
   assign_to(obj) {
-    //Assign `x` and `y` to an object that has properties `x` and `y`.//
+    // Assign `x` and `y` to an object that has properties `x` and `y`.//
     if (isinstance(obj, [common_pb.Point, common_pb.PointI, common_pb.Point2D])) {
       obj.setX(this.x)
       obj.setY(this.y)
@@ -85,57 +80,57 @@ class Point extends all_collections_generated_classes.Point {
   }
 
   dist(other) {
-    //Distance to some other point.//
+    // Distance to some other point.//
     const dx = this.x - other.x
     const dy = this.y - other.y
     return Math.sqrt((dx ** 2) + (dy ** 2))
   }
 
   dist_sq(other) {
-    //Distance squared to some other point.//
+    // Distance squared to some other point.//
     const dx = this.x - other.x
     const dy = this.y - other.y
     return (dx ** 2) + (dy ** 2)
   }
 
   round() {
-    //Round `x` and `y` to integers.//
+    // Round `x` and `y` to integers.//
     return this.constructor.build(Math.round(this.x), Math.round(this.y))
   }
 
   floor() {
-    //Round `x` and `y` down to integers.//
+    // Round `x` and `y` down to integers.//
     return this.constructor.build(Math.floor(this.x), Math.floor(this.y))
   }
 
   ceil() {
-    //Round `x` and `y` up to integers.//
+    // Round `x` and `y` up to integers.//
     return this.constructor.build(Math.ceil(this.x), Math.ceil(this.y))
   }
 
   abs() {
-    //Take the absolute value of `x` and `y`.//
+    // Take the absolute value of `x` and `y`.//
     return this.constructor.build(Math.abs(this.x), Math.abs(this.y))
   }
 
   len() {
-    //Length of the vector to this point.//
+    // Length of the vector to this point.//
     return Math.sqrt((this.x ** 2) + (this.y ** 2))
   }
 
   scale(target_len) {
-    //Scale the vector to have the target length.//
+    // Scale the vector to have the target length.//
     return this.mul(target_len / this.len())
   }
 
   scale_max_size(max_size) {
-    //Scale this value, keeping aspect ratio, but fitting inside `max_size`.//
+    // Scale this value, keeping aspect ratio, but fitting inside `max_size`.//
 
     return this.mul(max_size.div(this).min_dim())
   }
 
   scale_min_size(min_size) {
-    //Scale this value, keeping aspect ratio, but fitting around `min_size`.//
+    // Scale this value, keeping aspect ratio, but fitting around `min_size`.//
     return this.mul(min_size.div(this).max_dim())
   }
 
@@ -148,7 +143,7 @@ class Point extends all_collections_generated_classes.Point {
   }
 
   transpose() {
-    //Flip x and y.//
+    // Flip x and y.//
     return this.constructor._make({ x: this.y, y: this.x })
   }
 
@@ -174,7 +169,7 @@ class Point extends all_collections_generated_classes.Point {
 
   bound(p1, p2 = null) {
     //Bound this point within the rect defined by (`p1`, `p2`).//
-    const r = new Rect(p1, p2)
+    const r = new Rect(p1, p2) //eslint-disable-line
     return this.constructor._make({
       x: Math.min(Math.max(this.x, r.l), r.r),
       y: Math.min(Math.max(this.y, r.t), r.b),
@@ -231,7 +226,7 @@ class Point extends all_collections_generated_classes.Point {
   }
 
   div() {
-    return this.truediv(...arguments)
+    return this.truediv(...arguments) //eslint-disable-line
   }
 }
 

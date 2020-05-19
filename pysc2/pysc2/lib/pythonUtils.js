@@ -55,7 +55,6 @@ function getArgsArray(func, kwargs) {
     return getArgsArray.argSignatures[func.name].map((argName) => kwargs[argName])
   }
   getArgsArray.argSignatures[func.name] = getArgNames(func)
-  // console.log(getArgsArray.argSignatures[func.name])
   return getArgsArray.argSignatures[func.name].map((argName) => kwargs[argName])
 }
 getArgsArray.argSignatures = {}
