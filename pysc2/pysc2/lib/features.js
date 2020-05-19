@@ -1,6 +1,6 @@
-const path = require('path');
-const s2clientprotocol = require('s2clientprotocol')
-const Enum = require('python-enum')
+const path = require('path') //eslint-disable-line
+const s2clientprotocol = require('s2clientprotocol') //eslint-disable-line
+const Enum = require('python-enum') //eslint-disable-line
 const actions = require(path.resolve(__dirname, './actions.js'))
 const colors = require(path.resolve(__dirname, './colors.js'))
 const named_array = require(path.resolve(__dirname, './named_array.js'))
@@ -13,11 +13,10 @@ const all_collections_generated_classes = require(path.resolve(__dirname, './all
 const np = require(path.resolve(__dirname, './numpy.js'))
 
 const sw = stopwatch.sw
-const { sc2api_pb2, raw_pb2 } = s2clientprotocol
-const sc_raw = raw_pb2
-const sc_pb = sc2api_pb2
-const { Defaultdict, int, isinstance, len, map, pythonWith, sum, zip } = pythonUtils
-
+const { raw_pb, sc2api_pb } = s2clientprotocol
+const sc_raw = raw_pb
+const sc_pb = sc2api_pb
+const { Defaultdict, int, isinstance, len, map, pythonWith, setUpProtoAction, sum, zip, getArgsArray } = pythonUtils
 const EPSILON = 1e-5
 
 const FeatureType = Enum.Enum('FeatureType', {
@@ -411,7 +410,7 @@ function _to_point(dims) {
     if (size <= 0) {
       throw new Error(`ValueError: Must specify +ve value for size, got ${dims}.`)
     }
-    return point.Point(size, size)
+    return new point.Point(size, size)
   }
 }
 
@@ -546,7 +545,6 @@ class AgentInterfaceFormat {
     Raises:
       ValueError: if the parameters are inconsistent.
     */
-
     if (!(feature_dimensions || rgb_dimensions || use_raw_units)) {
       throw new Error(`Must set either the feature layer or rgb dimensions, or use raw units`)
     }
@@ -781,8 +779,6 @@ function parse_agent_interface_format({
       delay = delays[key]
       return delay / total
     }))
-    // console.log('******************** cumulative_sum : ')
-    // console.log(cumulative_sum)
     function fn() {
       const sample = Math.random() - EPSILON
       let cumulative
@@ -796,13 +792,17 @@ function parse_agent_interface_format({
     }
     return fn
   }
-  return AgentInterfaceFormat({
+  const usedArgs = {
     feature_dimensions,
     rgb_dimensions,
-    action_space: (action_space && actions.ActionSpace[action_space.upper()]),
+    action_space: (action_space && actions.ActionSpace[action_space.toUpperCase()]),
     action_delay_fn: _action_delay_fn(action_delays),
     kwargs,
+  }
+  Object.keys(arguments[0]).forEach((key) => {
+    usedArgs[key] = usedArgs[key] || arguments[0][key]
   })
+  return new AgentInterfaceFormat(usedArgs)
 }
 
 function features_from_game_info(game_info, agent_interface_format = null, map_name = null, kwargs) {
@@ -829,7 +829,7 @@ function features_from_game_info(game_info, agent_interface_format = null, map_n
   let fl_opts
   let feature_dimensions
   let camera_width_world_units
-  if (game_info.options.HasField('features_layer')) {
+  if (game_info.options.has('features_layer')) {
     fl_opts = game_info.options.feature_layer
     feature_dimensions = new Dimensions({
       screen: [fl_opts.resolution.x, fl_opts.resolution.y],
@@ -842,7 +842,7 @@ function features_from_game_info(game_info, agent_interface_format = null, map_n
   }
   let rgb_opts
   let rgb_dimensions
-  if (game_info.options.HasField("render")) {
+  if (game_info.options.hasField("render")) {
     rgb_opts = game_info.options.render
     rgb_dimensions = new Dimensions({
       screen: [rgb_opts.resolution.x, rgb_opts.resolution.y],
@@ -897,13 +897,11 @@ function _init_valid_functions(action_dimensions) {
   const screen = []
   const screen2 = []
   const minimap = []
-  Object.keys(action_dimensions.screen).forEach((key) => {
-    const i = action_dimensions.screen[key]
+  action_dimensions.screen.forEach((i) => {
     screen.push(int(i))
     screen2.push(int(i))
   })
-  Object.keys(action_dimensions.minimap).forEach((key) => {
-    const i = action_dimensions.screen[key]
+  action_dimensions.minimap.forEach((i) => {
     minimap.push(int(i))
   })
   const sizes = {
@@ -911,17 +909,14 @@ function _init_valid_functions(action_dimensions) {
     screen2,
     minimap,
   }
-  let args = Object.keys(actions.TYPES).map((key) => {
-    const t = actions.TYPES[key]
+  let args = actions.TYPES.map((t) => {
     return actions.ArgumentType
-      .spec(t.id, t.name, sizes.get(t.name, t.sizes))
+      .spec(t.id, t.name, sizes[t.name] || t.sizes)
   })
   const types = new actions.Arguments(args)
-  args = Object.keys(actions.FUNCTIONS).map((key) => {
-    const f = actions.FUNCTIONS[key]
+  args = actions.FUNCTIONS.map((f) => {
     const tuple = []
-    Object.keys(f.args).forEach((k) => {
-      const t = f.args[k]
+    f.args.forEach((t) => {
       tuple.push(types[t.id])
     })
     return actions.Function.spec(f.id, f.name, tuple)
@@ -942,14 +937,10 @@ function _init_valid_raw_functions(raw_resolution, max_selected_units) {
     world,
     unit_tags,
   }
-  let args = Object.keys(actions.RAW_TYPES).map((key) => {
-    const t = actions.RAW_TYPES[key]
-    return actions.ArgumentType
-      .spec(t.id, t.name, sizes.get(t.name, t.sizes))
-  })
+  let args = actions.RAW_TYPES.map((t) => actions.ArgumentType
+    .spec(t.id, t.name, sizes[t.name] || t.sizes))
   const types = new actions.RawArguments(args)
-  args = Object.keys(actions.RAW_FUNCTIONS).map((key) => {
-    const f = actions.RAW_FUNCTIONS[key]
+  args = actions.RAW_FUNCTIONS.map((f) => {
     const tuple = []
     Object.keys(f.args).forEach((k) => {
       const t = f.args[k]
@@ -974,7 +965,7 @@ class Features {
   contexts, eg a supervised dataset pipeline.
   */
 
-  constructor(self, agent_interface_format = null, map_size = null,
+  constructor(agent_interface_format = null, map_size = null,
     requested_races = null, map_name = 'unknown') {
     /*Initialize a Features instance matching the specified interface format.
 
@@ -996,7 +987,7 @@ class Features {
 
     this._agent_interface_format = agent_interface_format
     const aif = this._agent_interface_format
-    if (aif.raw_resolution && map_size) {
+    if (!aif.raw_resolution && map_size) {
       aif.raw_resolution = point.Point.build(map_size)
     }
     this._map_size = map_size
@@ -1029,11 +1020,11 @@ class Features {
       throw new Error('ValueError: requested_races.length is greater than 2')
     }
     // apply @sw.decorate
-    this.transform_obs = sw.decorate(this.transform_obs)
-    this.available_actions = sw.decorate(this.available_actions)
-    this.transform_action = sw.decorate(this.transform_action)
-    this.reverse_action = sw.decorate(this.reverse_action)
-    this.reverse_raw_action = sw.decorate(this.reverse_raw_action)
+    this.transform_obs = sw.decorate(this.transform_obs.bind(this))
+    this.available_actions = sw.decorate(this.available_actions.bind(this))
+    this.transform_action = sw.decorate(this.transform_action.bind(this))
+    this.reverse_action = sw.decorate(this.reverse_action.bind(this))
+    this.reverse_raw_action = sw.decorate(this.reverse_raw_action.bind(this))
   }
 
   init_camera(feature_dimensions, map_size, camera_width_world_units, raw_resolution) {
@@ -1060,34 +1051,34 @@ class Features {
           "position.`)
     }
     map_size = point.Point.build(map_size)
-    this._world_to_world_tl = transform.Linear(
-      point.Point(1, -1),
-      point.Point(0, map_size.y)
+    this._world_to_world_tl = new transform.Linear(
+      new point.Point(1, -1),
+      new point.Point(0, map_size.y)
     )
-    this._world_tl_to_world_camera_rel = transform.Linear(/*offset=*/ -(map_size / 4))
+    const offset = -map_size.div(4)
+    this._world_tl_to_world_camera_rel = new transform.Linear(null, offset)
     if (feature_dimensions) {
-      const world_camera_rel_to_feature_screen = transform.Linear(
-        feature_dimensions.screen / camera_width_world_units,
-        feature_dimensions.screen / 2
+      const world_camera_rel_to_feature_screen = new transform.Linear(
+        feature_dimensions.screen.div(camera_width_world_units),
+        feature_dimensions.screen.div(2)
       )
-      this._world_to_feature_screen_px = transform.Chain(
+      this._world_to_feature_screen_px = new transform.Chain(
         this._world_to_world_tl,
         this._world_tl_to_world_camera_rel,
         world_camera_rel_to_feature_screen,
-        transform.PixelToCoord()
+        new transform.PixelToCoord()
       )
     }
-    // If we don't have a specified raw resolution, we do no transform.
-    const world_tl_to_feature_minimap = transform.Linear(
-      raw_resolution ? /*scale=*/raw_resolution / map_size.max_dim() : null
-    )
-    this._world_to_minimap_px = transform.Chain(
+    // If we don't have a specified raw resolution, we do no new transform.
+    const scale = raw_resolution ? raw_resolution.div(map_size.max_dim()) : null
+    const world_tl_to_feature_minimap = new transform.Linear(scale)
+    this._world_to_minimap_px = new transform.Chain(
       this._world_to_world_tl,
       world_tl_to_feature_minimap,
-      transform.PixelToCoord()
+      new transform.PixelToCoord()
     )
     this._camera_size = (
-      raw_resolution / (map_size.max_dim() * camera_width_world_units)
+      raw_resolution.div(map_size.max_dim() * (camera_width_world_units))
     )
   }
 
@@ -1111,23 +1102,23 @@ class Features {
       vary in length, for example the number of valid actions depends on which
       units you have selected.
     */
-    const obs_spec = named_array.NamedDict({
+    const obs_spec = new named_array.NamedDict({
       "action_result": [0], // See error.proto: ActionResult.
       "alerts": [0], // See sc2api.proto: Alert.
-      "build_queue": [0, len(UnitLayer)],
-      "cargo": [0, len(UnitLayer)],
+      "build_queue": [0, UnitLayer._keys.length],
+      "cargo": [0, UnitLayer._keys.length],
       "cargo_slots_available": [1],
       "control_groups": [10, 2],
       "game_loop": [1],
       "last_actions": [0],
       "map_name": [0],
-      "multi_select": [0, len(UnitLayer)],
-      "player": [len(Player)],
-      "production_queue": [0, len(ProductionQueue)],
-      "score_cumulative": [len(ScoreCumulative)],
-      "score_by_category": [len(ScoreByCategory), len(ScoreCategories)],
-      "score_by_vital": [len(ScoreByVital), len(ScoreVitals)],
-      "single_select": [0, len(UnitLayer)], // Only (n, 7) for n in (0, 1).
+      "multi_select": [0, UnitLayer._keys.length],
+      "player": [Player._keys.length],
+      "production_queue": [0, ProductionQueue._keys.length],
+      "score_cumulative": [ScoreCumulative._keys.length],
+      "score_by_category": [ScoreByCategory._keys.length, ScoreCategories._keys.length],
+      "score_by_vital": [ScoreByVital._keys.length, ScoreVitals._keys.length],
+      "single_select": [0, UnitLayer._keys.length], // Only (n, 7) for n in (0, 1).
     })
 
     if (!this._raw) {
@@ -1138,13 +1129,13 @@ class Features {
 
     if (aif.feature_dimensions) {
       obs_spec["feature_screen"] = [
-        len(SCREEN_FEATURES),
+        SCREEN_FEATURES.length,
         aif.feature_dimensions.screen.y,
         aif.feature_dimensions.screen.x
       ]
 
       obs_spec["feature_minimap"] = [
-        len(MINIMAP_FEATURES),
+        MINIMAP_FEATURES.length,
         aif.feature_dimensions.minimap.y,
         aif.feature_dimensions.minimap.x
       ]
@@ -1162,21 +1153,21 @@ class Features {
       ]
     }
     if (aif.use_feature_units) {
-      obs_spec["feature_units"] = [0, len(FeatureUnit)]
-      obs_spec["feature_effects"] = [0, len(EffectPos)]
+      obs_spec["feature_units"] = [0, FeatureUnit._keys.length]
+      obs_spec["feature_effects"] = [0, EffectPos._keys.length]
     }
     if (aif.use_raw_units) {
-      obs_spec["raw_units"] = [0, len(FeatureUnit)]
-      obs_spec["raw_effects"] = [0, len(EffectPos)]
+      obs_spec["raw_units"] = [0, FeatureUnit._keys.length]
+      obs_spec["raw_effects"] = [0, EffectPos._keys.length]
     }
     if (aif.use_feature_units || aif.use_raw_units) {
-      obs_spec["radar"] = [0, len(Radar)]
+      obs_spec["radar"] = [0, Radar._keys.length]
     }
 
     obs_spec["upgrades"] = [0]
 
     if (aif.use_unit_counts) {
-      obs_spec["unit_counts"] = [0, len(UnitCounts)]
+      obs_spec["unit_counts"] = [0, UnitCounts._keys.length]
     }
 
     if (aif.use_camera_position) {
@@ -1207,14 +1198,14 @@ class Features {
 
   transform_obs(obs) {
     //Render some SC2 observations into something an agent can handle.//
-    const empty_unit = np.array([], /*dtype=*/np.int32).reshape([0, len(UnitLayer)])
+    const empty_unit = np.array([], /*dtype=*/np.int32).reshape([0, UnitLayer._keys.length])
     const out = named_array.NamedDict({ // Fill out some that are sometimes empty.
       'single_select': empty_unit,
       'multi_select': empty_unit,
       'build_queue': empty_unit,
       'cargo': empty_unit,
       'production_queue': np.array([], /*dtype=*/np.int32).reshape(
-        [0, len(ProductionQueue)]
+        [0, ProductionQueue._keys.length]
       ),
       'last_actions': np.array([], /*dtype=*/np.int32),
       'cargo_slots_available': np.array([0], /*dtype=*/np.int32),
@@ -1367,18 +1358,18 @@ class Features {
       })
       out['control_groups'] = groups
 
-      if (ui.HasField('single')) {
+      if (ui.has('single')) {
         out['single_select'] = named_array.NamedNumpyArray(
           [unit_vec(ui.single.unit)], [null, UnitLayer]
         )
-      } else if (ui.HasField('multi')) {
+      } else if (ui.has('multi')) {
         out['multi_select'] = named_array.NamedNumpyArray(
           Object.keys(ui.multi.units).map((key) => {
             const u = ui.multi.units[key]
             return unit_vec(u)
           })
         )
-      } else if (ui.HasField('cargo')) {
+      } else if (ui.has('cargo')) {
         out['single_select'] = named_array.NamedNumpyArray(
           [unit_vec(ui.cargo.unit)], [null, UnitLayer]
         )
@@ -1393,7 +1384,7 @@ class Features {
           [ui.cargo.slots_available],
           /*dtype=*/np.int32
         )
-      } else if (ui.HasField('production')) {
+      } else if (ui.has('production')) {
         out['single_select'] = named_array.NamedNumpyArray(
           [unit_vec(ui.production.unit)], [null, UnitLayer]
         )
@@ -1436,7 +1427,10 @@ class Features {
       )
       const screen_radius = pos_transform.fwd_dist(u.radius)
       function raw_order(i) {
-        if (len(u.orders) > i) {
+        if (u.order.length === undefined) {
+          throw new Error('ValueError: u.order.length is undefined\nu.order: ', u.order)
+        }
+        if (u.orders.length > i) {
           // TODO(tewalds): Return a generalized func id.
           return actions.RAW_ABILITY_ID_TO_FUNC_ID.get(u.orders[i].ability_id, 0)
         }
@@ -1474,18 +1468,18 @@ class Features {
         u.assigned_harvesters,
         u.ideal_harvesters,
         u.weapon_cooldown,
-        len(u.orders),
+        u.orders.length,
         raw_order(0),
         raw_order(1),
         is_raw ? u.tag : 0,
         u.is_hallucination,
-        len(u.buff_ids) >= 1 ? u.buff_ids[0] : 0,
-        len(u.buff_ids) >= 2 ? u.buff_ids[1] : 0,
+        u.buff_ids.length >= 1 ? u.buff_ids[0] : 0,
+        u.buff_ids.length >= 2 ? u.buff_ids[1] : 0,
         u.add_on_tag ? get_addon_type(u.add_on_tag) : 0,
         u.is_active,
         u.is_on_screen,
-        len(u.orders) >= 1 ? int(u.orders[0].progress * 100) : 0,
-        len(u.orders) >= 2 ? int(u.orders[1].progress * 100) : 0,
+        u.orders.length >= 1 ? int(u.orders[0].progress * 100) : 0,
+        u.orders.length >= 2 ? int(u.orders[1].progress * 100) : 0,
         raw_order(2),
         raw_order(3),
         0,
@@ -1500,6 +1494,7 @@ class Features {
     raw = obs.observation.raw_data
 
     if (aif.use_feature_units) {
+      console.log('*** THIS SECTION MUST BE FIXED ****')
       pythonWith(sw('feature_units'), () => {
         // Update the camera location so we can calculate world to screen pos
         this._update_camera(point.Point.build(raw.player.camera))
@@ -1550,7 +1545,8 @@ class Features {
         })
         pythonWith(sw('to_numpy'), () => {
           out['raw_units'] = named_array.NamedNumpyArray(
-            raw_units, [null, FeatureUnit], /*dtype=*/np.int64)
+            raw_units, [null, FeatureUnit], /*dtype=*/np.int64
+          )
         })
         if (raw_units) {
           const temp = []
@@ -1579,7 +1575,8 @@ class Features {
           })
         })
         out['raw_effects'] = named_array.NamedNumpyArray(
-          raw_effects, [null, EffectPos], /*dtype=*/np.int32)
+          raw_effects, [null, EffectPos], /*dtype=*/np.int32
+        )
       })
     }
     out['upgrades'] = np.array(raw.player.upgrade_ids, /*dtype=*/np.int32)
@@ -1689,9 +1686,11 @@ class Features {
               if (raw_cargo_units) {
                 raw_cargo_units = np.array(raw_cargo_units, /*dtype=*/np.int64)
                 const all_raw_units = np.concatenate(
-                  [out['raw_units'], raw_cargo_units], /*axis=*/0)
+                  [out['raw_units'], raw_cargo_units], /*axis=*/0
+                )
                 out['raw_units'] = named_array.NamedNumpyArray(
-                  all_raw_units, [null, FeatureUnit], /*dtype=*/np.int64)
+                  all_raw_units, [null, FeatureUnit], /*dtype=*/np.int64
+                )
                 const temp = []
                 for (let i = 0; i < out['raw_units'].length; i++) {
                   temp.push(out['raw_units'][i][FeatureUnit.tag])
@@ -1715,16 +1714,19 @@ class Features {
           unit_counts[u.unit_type] += 1
         })
         out['unit_counts'] = named_array.NamedNumpyArray(
-          Object.keys(unit_counts).map((key) => {
+          Object.keys(unit_counts).map((key) => { //eslint-disable-line
             return [key, unit_counts[key]]
           }).sort((a, b) => a[0] < b[0]),
-          [null, UnitCounts], /*dtype=*/np.int32)
+          [null, UnitCounts],
+          /*dtype=*/np.int32
+        )
       })
     }
 
     if (aif.use_camera_position) {
       const camera_position = this._world_to_minimap_px.fwd_pt(
-        point.Point.build(raw.player.camera))
+        point.Point.build(raw.player.camera)
+      )
       out['camera_position'] = np.array((camera_position.x, camera_position.y),
         /*dtype=*/np.int32)
       out['camera_size'] = np.array((this._camera_size.x, this._camera_size.y),
@@ -1732,12 +1734,14 @@ class Features {
     }
     if (!this._raw) {
       out['available_actions'] = np.array(
-        this.available_actions(obs.observation), /*dtype=*/np.int32)
+        this.available_actions(obs.observation), /*dtype=*/np.int32
+      )
     }
 
     if (this._requested_races !== null) {
       out['home_race_requested'] = np.array(
-        [this._requested_races[player.player_id]], /*dtype=*/np.int32)
+        [this._requested_races[player.player_id]], /*dtype=*/np.int32
+      )
       Object.keys(this._requested_races).forEach((player_id) => {
         const race = this._requested_races[player_id]
         if (player_id !== player.player_id) {
@@ -1763,41 +1767,41 @@ class Features {
     return out
   }
 
-  available_actions(self, obs) {
+  available_actions(obs) {
     //Return the list of available action ids.//
     const available_actions = new Set()
     const hide_specific_actions = this._agent_interface_format.hide_specific_actions
     Object.keys(actions.FUNCTIONS_AVAILABLE).forEach((i) => {
       const func = actions.FUNCTIONS_AVAILABLE[i]
       if (func.avail_fn(obs)) {
-        available_actions.add(i)
+        available_actions.add(func.id.key)
       }
     })
-    Object.keys(obs.abilities).forEach((key) => {
-      const a = obs.abilities[key]
-      if (!(actions.ABILITY_IDS.hasOwnProperty(a.ability_id))) {
+    const abilities = obs.getAbilitiesList()
+    for (let index = 0; index < abilities.length; index++) {
+      const a = abilities[index]
+      if (!(actions.ABILITY_IDS.hasOwnProperty(a.getAbilityId()))) {
         console.warn(`Unknown ability ${a.ability_id} seen as available.`, a.ability_id)
         return
       }
       let found_applicable = false
-      Object.keys(actions.ABILITY_IDS).forEach((k) => {
-        const func = actions.ABILITY_IDS[k]
-        if (actions.POINT_REQUIRED_FUNCS[a.requires_point]
-          .hasOwnProperty(func.function_type)) {
+      const ability_id = a.getAbilityId()
+      Object.keys(actions.ABILITY_IDS[ability_id]).forEach((k_id) => {
+        const func = actions.ABILITY_IDS[ability_id][k_id]
+        if (actions.POINT_REQUIRED_FUNCS.get(a.getRequiresPoint())
+          .hasOwnProperty(func.function_type.name)) {
           if (func.general_id == 0 || !hide_specific_actions) {
-            available_actions.add(func.id)
+            available_actions.add(func.id.key)
             found_applicable = true
           }
-          if (func.general_id !== 0) { // Always offer generic actions.
-            const ks = Object.keys(actions.ABILITY_IDS[func.general_id])
-            let k
-            for (let i = 0; i < ks.length; i++) {
-              k = ks[i]
-              const general_func = actions.ABILITY_IDS[func.general_id][k]
+          if (func.general_id != 0) { // Always offer generic actions.
+            const general_funcs = actions.ABILITY_IDS[func.general_id]
+            for (let i = 0; i < general_funcs.length; i++) {
+              const general_func = general_funcs[i]
               if (general_func.function_type === func.function_type) {
                 // Only the right type. Don't want to expose the general action
                 // to minimap if only the screen version is available.
-                available_actions.add(general_func.id)
+                available_actions.add(general_func.id.key)
                 found_applicable = true
                 break
               }
@@ -1806,13 +1810,17 @@ class Features {
         }
       })
       if (!found_applicable) {
-        throw new Error(`ValueError("Failed to find applicable action for ${a}`)
+        throw new Error(`ValueError("Failed to find applicable action for ${JSON.stringify(a.toObject())}`)
       }
-    })
-    return Array(available_actions)
+    }
+    const results = []
+    const iter = available_actions.values()
+    let i
+    while(i = iter.next().value) { results.push(i) } //eslint-disable-line
+    return results
   }
 
-  transform_action(self, obs, func_call, skip_available = false) {
+  transform_action(obs, func_call, skip_available = false) {
     /*Transform an agent-style action to one that SC2 can consume.
 
     Args:
@@ -1837,23 +1845,22 @@ class Features {
     let func
     try {
       if (this._raw) {
-        func = actions.RAW_FUNCTIONS[func_id]
+        func = actions.RAW_FUNCTIONS[func_id.key]
       } else {
-        func = actions.FUNCTIONS[func_id]
+        func = actions.FUNCTIONS[func_id.key]
       }
     } catch (err) {
-      throw new Error(`ValueError: Invalid function id: ${func_id}.`)
+      throw new Error(`ValueError: Invalid function id: ${func_id.key}.`)
     }
 
     // Available?
-    if (!(skip_available || this._raw || this.available_actions(obs).hasOwnProperty(func_id))) {
-      throw new Error(`ValueError: Function ${func_id} ${func.name} is currently not available`)
+    if (!skip_available && !this._raw && !this.available_actions(obs).hasOwnProperty(func_id.key)) {
+      throw new Error(`ValueError: Function ${func_id.key} ${func.name} is currently not available`)
     }
     // Right number of args?
-    if (len(func_call.arguments) !== len(func.args)) {
+    if (func_call.arguments.length !== func.args.length) {
       throw new Error(`ValueError: Wrong number of arguments for function: ${func}, got:${func_call} ${func_call.arguments}`)
     }
-
     // Args are valid?
     const aif = this._agent_interface_format
     zip(func.args, func_call.arguments).forEach((pair) => {
@@ -1874,19 +1881,16 @@ class Features {
       } else {
         sizes = t.sizes
       }
-
-      if (len(sizes) !== len(arg)) {
+      if (sizes.length !== arg.length) {
         throw new Error(`ValueError: Wrong number of values for argument of ${func}, got: ${func_call.arguments}`)
       }
-
       zip(sizes, arg).forEach((p) => {
         const [s, a] = p
-        if (!np.all(a >= 0) && np.all(a < s)) {
+        if (!(a >= 0) && (a < s)) {
           throw new Error(`ValueError: Argument is out of range for ${func}, got: ${func_call.arguments}`)
         }
       })
     })
-
 
     // Convert them to python types.
     const kwargs = {}
@@ -1894,9 +1898,11 @@ class Features {
       const [type_, a] = pair
       kwargs[type_.name] = type_.fn(a)
     })
-
     // Call the right callback to get an SC2 action proto.
-    const sc2_action = sc_pb.Action()
+    /**** set up proto ****/
+    /*     SPATIAL     */
+    const sc2_action = new sc_pb.Action()
+    setUpProtoAction(sc2_action, func.function_type.name)
     kwargs['action'] = sc2_action
     if (func.ability_id) {
       kwargs['ability_id'] = func.ability_id
@@ -1906,11 +1912,12 @@ class Features {
       if (kwargs.hasOwnProperty('world')) {
         kwargs['world'] = this._world_to_minimap_px.back_pt(kwargs['world'])
       }
+      const self = this
       function find_original_tag(position) {//eslint-disable-line
-        if (position >= len(this._raw_tags)) { // Assume it's a real unit tag.
+        if (position >= self._raw_tags.length) { // Assume it's a real unit tag.
           return position
         }
-        const original_tag = this._raw_tags[position]
+        const original_tag = self._raw_tags[position]
         if (original_tag == 0) {
           console.warn(`Tag not found: ${original_tag}`)
         }
@@ -1927,15 +1934,18 @@ class Features {
           return find_original_tag(t)
         })
       }
-      actions.RAW_FUNCTIONS[func_id].function_type(kwargs)
+      const argArray = getArgsArray(actions.RAW_FUNCTIONS[func_id.key].function_type, kwargs)
+      actions.RAW_FUNCTIONS[func_id.key].function_type(...argArray)
     } else {
       kwargs['action_space'] = aif.action_space
-      actions.FUNCTIONS[func_id].function_type(kwargs)
+      const argArray = getArgsArray(actions.FUNCTIONS[func_id.key].function_type, kwargs)
+      actions.FUNCTIONS[func_id.key].function_type(...argArray)
     }
     return sc2_action
   }
 
   reverse_action(action) {
+    // action = action.toObject()
     /*Transform an SC2-style action into an agent-style action.
 
     This should be the inverse of `transform_action`.
@@ -1953,9 +1963,9 @@ class Features {
 
     const aif = this._agent_interface_format
 
-    function func_call_ability(ability_id, cmd_type, args) {
-      //Get the function id for a specific ability id and action type.//
-      if (actions.ABILITY_IDS.hasOwnProperty(ability_id)) {
+    function func_call_ability(ability_id, cmd_type) {
+      let args = []
+      if (!actions.ABILITY_IDS.hasOwnProperty(ability_id)) {
         console.warn(`Unknown ability_id: ${ability_id}. This is probably dance or cheer, or some unknown new or map specific ability. Treating it as a no-op.", ability_id`)
         return FUNCTIONS.no_op()
       }
@@ -1971,90 +1981,94 @@ class Features {
         key = ks[i]
         const func = actions.ABILITY_IDS[ability_id][key]
         if (func.function_type === cmd_type) {
-          return FUNCTIONS[func.id](...args)
+          for (let j = 2; j < arguments.length; j++) {
+            args.push(arguments[j]) //eslint-disable-line
+          }
+          return FUNCTIONS[func.id.key](...args)
         }
       }
+
       throw new Error(`ValueError: Unknown ability_id: ${ability_id}, type: ${cmd_type.__name__}. Likely a bug.`)
     }
 
-    if (action.HasField('action_ui')) {
-      const act_ui = action.action_ui
-      if (act_ui.HasField('multi_panel')) {
+    if (action.getActionUi()) {
+      const actUi = action.getActionUi()
+      if (actUi.getMultiPanel()) {
         return FUNCTIONS.select_unit(
-          act_ui.multi_panel.type - 1,
-          act_ui.multi_panel.unit_index
+          actUi.getMultiPanel().getType() - 1,
+          actUi.getMultiPanel().getUnitIndex()
         )
       }
-      if (act_ui.HasField('control_group')) {
+      if (actUi.getControlGroup()) {
         return FUNCTIONS.select_control_group(
-          act_ui.control_group.action - 1,
-          act_ui.control_group.control_group_index
+          actUi.getControlGroup().getAction() - 1,
+          actUi.getControlGroup().getControlGroupIndex()
         )
       }
-      if (act_ui.HasField('select_idle_worker')) {
-        return FUNCTIONS.select_idle_worker(act_ui.select_idle_worker.type - 1)
+      if (actUi.getSelectIdleWorker()) {
+        return FUNCTIONS.select_idle_worker(actUi.getSelectIdleWorker().getType() - 1)
       }
-      if (act_ui.HasField('select_army')) {
-        return FUNCTIONS.select_army(act_ui.select_army.selection_add)
+      if (actUi.getSelectArmy()) {
+        return FUNCTIONS.select_army(actUi.getSelectArmy().getSelectionAdd())
       }
-      if (act_ui.HasField('select_warp_gates')) {
+      if (actUi.getSelectWarpGates()) {
         return FUNCTIONS.select_warp_gates(
-          act_ui.select_warp_gates.selection_add
+          actUi.getSelectWarpGates().getSelectionAdd()
         )
       }
-      if (act_ui.HasField('select_larva')) {
+      if (actUi.getSelectLarva()) {
         return FUNCTIONS.select_larva()
       }
-      if (act_ui.HasField('cargo_panel')) {
-        return FUNCTIONS.unload(act_ui.cargo_panel.unit_index)
+      if (actUi.getCargoPanel()) {
+        return FUNCTIONS.unload(actUi.getCargoPanel().getUnitIndex())
       }
-      if (act_ui.HasField('production_panel')) {
-        return FUNCTIONS.build_queue(act_ui.production_panel.unit_index)
+      if (actUi.getProductionPanel()) {
+        return FUNCTIONS.build_queue(actUi.getProductionPanel().getUnitIndex())
       }
-      if (act_ui.HasField('toggle_autocast')) {
+      if (actUi.getToggleAutocast()) {
         return func_call_ability(
-          act_ui.toggle_autocast.ability_id,
+          actUi.getToggleAutocast().getAbilityId(),
           actions.autocast
         )
       }
     }
-    if (action.HasField('action_feature_layer') || action.HasField('action_render')) {
+    if (action.getActionFeatureLayer() || action.getActionRender()) {
       const act_sp = actions.spatial(action, aif.action_space)
-      if (act_sp.HasField('camera_move')) {
-        const coord = point.Point.build(act_sp.camera_move.center_minimap)
+      if (act_sp.getCameraMove()) {
+        const coord = point.Point.build(act_sp.getCameraMove().getCenterMinimap())
         return FUNCTIONS.move_camera(coord)
       }
-      if (act_sp.HasField('unit_selection_point')) {
-        const select_point = act_sp.unit_selection_point
-        const coord = point.Point.build(select_point.selection_screen_coord)
-        return FUNCTIONS.select_point(select_point.type - 1, coord)
+      if (act_sp.getUnitSelectionPoint()) {
+        const select_point = act_sp.getUnitSelectionPoint()
+        const coord = point.Point.build(select_point.getSelectionScreenCoord())
+        return FUNCTIONS.select_point(select_point.getType() - 1, coord)
       }
-      if (act_sp.HasField('unit_selection_rect')) {
-        const select_rect = act_sp.unit_selection_rect
+      if (act_sp.getUnitSelectionRect()) {
+        const select_rect = act_sp.getUnitSelectionRect()
         // TODO(tewalds) {} After looking at some replays we should decide if
         // this is good enough. Maybe we need to simulate multiple actions or
         // merge the selection rects into a bigger one.
-        const tl = point.Point.build(select_rect.selection_screen_coord[0].p0)
-        const br = point.Point.build(select_rect.selection_screen_coord[0].p1)
-        return FUNCTIONS.select_rect(select_rect.selection_add, tl, br)
+        const tl = point.Point.build(select_rect.getSelectionScreenCoordList()[0].getP0())
+        const br = point.Point.build(select_rect.getSelectionScreenCoordList()[0].getP1())
+        return FUNCTIONS.select_rect(select_rect.getSelectionAdd(), tl, br)
       }
-      if (act_sp.HasField('unit_command')) {
-        const cmd = act_sp.unit_command
-        const queue = int(cmd.queue_command)
-        if (cmd.HasField('target_screen_coord')) {
-          const coord = point.Point.build(cmd.target_screen_coord)
-          return func_call_ability(cmd.ability_id, actions.cmd_screen,
+      if (act_sp.getUnitCommand()) {
+        const cmd = act_sp.getUnitCommand()
+        const queue = int(cmd.getQueueCommand())
+        if (cmd.getTargetScreenCoord()) {
+          const coord = point.Point.build(cmd.getTargetScreenCoord())
+          return func_call_ability(cmd.getAbilityId(), actions.cmd_screen,
             queue, coord)
         }
-        if (cmd.HasField('target_minimap_coord')) {
-          const coord = point.Point.build(cmd.target_minimap_coord)
-          return func_call_ability(cmd.ability_id, actions.cmd_minimap,
+        if (cmd.getTargetMinimapCoord()) {
+          const coord = point.Point.build(cmd.getTargetMinimapCoord())
+          return func_call_ability(cmd.getAbilityId(), actions.cmd_minimap,
             queue, coord)
         }
-        return func_call_ability(cmd.ability_id, actions.cmd_quick, queue)
+        return func_call_ability(cmd.getAbilityId(), actions.cmd_quick, queue)
       }
     }
-    if (action.HasField('action_raw') || action.HasField('action_render')) {
+    if (action.getActionRaw() || action.getActionRender()) {
       throw new Error(`ValueError: Unknown action:\n${action}`)
     }
 
@@ -2115,32 +2129,29 @@ class Features {
       }
       throw new Error(`ValueError: Unknown ability_id: ${ability_id}, type:${cmd_type.__name__}. Likely a bug.`)
     }
-    if (action.HasField('action_raw')) {
-      const raw_act = action.action_raw
-      if (raw_act.HasField('unit_command')) {
-        const uc = raw_act.unit_command
-        const ability_id = uc.ability_id
-        const queue_command = uc.queue_command
-        let unit_tags = Object.keys(uc.unit_tags).map((key) => {
-          const t = uc.unit_tags[key]
-          return find_tag_position(t)
-        })
+    if (action.getRawAction()) {
+      const raw_act = action.getRawAction()
+      if (raw_act.getUnitCommand()) {
+        const uc = raw_act.getUnitCommand()
+        const ability_id = uc.getAbilityId()
+        const queue_command = uc.getQueueCommand()
+        let unit_tags = uc.getUnitTagsList().map((t) => find_tag_position(t))
         // Remove invalid units.
         unit_tags = unit_tags.filter((t) => t != -1)
         if (!unit_tags) {
           return actions.RAW_FUNCTIONS.no_op()
         }
 
-        if (uc.HasField('target_unit_tag')) {
-          const target_unit_tag = find_tag_position(uc.target_unit_tag)
+        if (uc.getTargetUnitTag()) {
+          const target_unit_tag = find_tag_position(uc.getTargetUnitTag())
           if (target_unit_tag == -1) {
             return actions.RAW_FUNCTIONS.no_op()
           }
           return func_call_ability(ability_id, actions.raw_cmd_unit,
             queue_command, unit_tags, target_unit_tag)
         }
-        if (uc.HasField('target_world_space_pos')) {
-          let coord = point.Point.build(uc.target_world_space_pos)
+        if (uc.getTargetWorldSpacePos()) {
+          let coord = point.Point.build(uc.getTargetWorldSpacePos())
           coord = this._world_to_minimap_px.fwd_pt(coord)
           return func_call_ability(ability_id, actions.raw_cmd_pt,
             queue_command, unit_tags, coord)
@@ -2148,13 +2159,10 @@ class Features {
         return func_call_ability(ability_id, actions.raw_cmd,
           queue_command, unit_tags)
       }
-      if (raw_act.HasField('toggle_autocast')) {
-        const uc = raw_act.toggle_autocast
-        const ability_id = uc.ability_id
-        let unit_tags = Object.keys(uc.unit_tags).map((key) => {
-          const t = uc.unit_tags[key]
-          return find_tag_position(t)
-        })
+      if (raw_act.getToggleAutocast()) {
+        const uc = raw_act.getToggleAutocast()
+        const ability_id = uc.getAbilityId()
+        let unit_tags = uc.getUnitTags().map((t) => find_tag_position(t))
         // Remove invalid units.
         unit_tags = unit_tags.filter((t) => t != -1)
         if (!unit_tags) {
@@ -2162,12 +2170,12 @@ class Features {
         }
         return func_call_ability(ability_id, actions.raw_autocast, unit_tags)
       }
-      if (raw_act.HasField('unit_command')) {
+      if (raw_act.getUnitCommand()) {
         throw new Error(`ValueError: 'Unknown action:\n${action}`)
       }
 
-      if (raw_act.HasField('camera_move')) {
-        let coord = point.Point.build(raw_act.camera_move.center_world_space)
+      if (raw_act.getCameraMove()) {
+        let coord = point.Point.build(raw_act.getCameraMove().getCenterWorldSpace())
         coord = this._world_to_minimap_px.fwd_pt(coord)
         return actions.RAW_FUNCTIONS.raw_move_camera(coord)
       }
@@ -2177,31 +2185,33 @@ class Features {
 }
 
 module.exports = {
-  FeatureType,
-  PlayerRelative,
-  Visibility,
+  AgentInterfaceFormat,
+  Dimensions,
+  Features,
+  EffectPos,
   Effects,
+  Feature,
+  FeatureType,
+  FeatureUnit,
+  features_from_game_info,
+  MinimapFeatures,
+  MINIMAP_FEATURES,
+  parse_agent_interface_format,
+  Player,
+  PlayerRelative,
+  ProductionQueue,
+  Radar,
   ScoreCumulative,
   ScoreByCategory,
   ScoreCategories,
   ScoreByVital,
   ScoreVitals,
-  Player,
+  ScreenFeatures,
+  SCREEN_FEATURES,
   UnitLayer,
   UnitCounts,
-  FeatureUnit,
-  EffectPos,
-  Radar,
-  ProductionQueue,
-  Feature,
-  ScreenFeatures,
-  MinimapFeatures,
-  Dimensions,
-  AgentInterfaceFormat,
-  Features,
+  Visibility,
   _to_point,
-  parse_agent_interface_format,
-  features_from_game_info,
   _init_valid_functions,
   _init_valid_raw_functions,
 }

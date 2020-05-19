@@ -27,7 +27,7 @@
     "@tensorflow/tfjs-node": "^1.7.0",
     "@tensorflow/tfjs-node-gpu": "^1.2.7",
     "dev-dependencies": "^1.0.0",
-    "numjs": "^0.16.0",
+    "google-protobuf": "^3.11.4",
     "python-enum": "^1.0.7",
     "s2clientprotocol": "^1.0.3",
     "threading-js": "^1.0.6"
@@ -38,5 +38,10 @@
     "eslint-plugin-import": "^2.20.2",
     "jest": "^25.5.2",
     "node-pre-gyp": "^0.14.0"
+  },
+  "jest": {
+    "modulePathIgnorePatterns": [
+      ".git"
+    ]
   }
 }
