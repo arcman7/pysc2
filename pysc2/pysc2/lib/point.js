@@ -363,21 +363,17 @@ class Rect extends all_collections_generated_classes.Rect {
     const rect_corner = this.size.mul(0.5) // relative to the rect center
     const circle_center = pt.sub(this.center).abs() // relative to the rect center
 
-    console.log(rect_corner, circle_center)
+    // console.log('rect_corner: ', rect_corner, '\ncircle_center: ', circle_center)
     // Is the circle far from the rect?
     if (circle_center.x > rect_corner.x + radius ||
-        circle_center.y > rect_corner.y || rect_corner.y + radius) {
-      console.log('here1')
+        circle_center.y > rect_corner.y + radius) {
       return false
     }
     // Is the circle center inside the rect or near one of the edges?
     if (circle_center.x <= rect_corner.x ||
         circle_center.y <= rect_corner.y) {
-      console.log('here2')
-
       return true
     }
-      console.log('here3')
 
     // Does the circle contain the corner of the rect?
     return circle_center.dist_sq(rect_corner) <= (radius ** 2)
