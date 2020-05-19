@@ -146,11 +146,13 @@ function raw_cmd(action, ability_id, queued, unit_tags) {
   const action_cmd = action.getActionRaw().getUnitCommand()
   action_cmd.setAbilityId(ability_id)
   action_cmd.setQueueCommand(queued)
-  // if (!isinstance(unit_tags, [Array])) {
-  //   unit_tags = [unit_tags]
-  // }
-  // action_cmd.getUnitTags.extend(unit_tags)
-  action_cmd.addUnitTags(unit_tags)
+  if (isinstance(unit_tags, [Array])) {
+    unit_tags.forEach((unit_tag) => {
+      action_cmd.addUnitTags(unit_tag)
+    })
+  } else {
+    action_cmd.addUnitTags(unit_tags)
+  }
 }
 
 function raw_cmd_pt(action, ability_id, queued, unit_tags, world) {
@@ -165,7 +167,6 @@ function raw_cmd_pt(action, ability_id, queued, unit_tags, world) {
   } else {
     action_cmd.addUnitTags(unit_tags)
   }
-  // console.log('raw_cmd_pt > world: ', world)
   world.assign_to(action_cmd.getTargetWorldSpacePos())
 }
 
@@ -247,7 +248,6 @@ class ArgumentType extends all_collections_generated_classes.ArgumentType {
     // Create an ArgumentType where you choose one of a set of known values.//
     const [names, real] = zip(...options)
     const self = this
-    // console.log('options:', options, '\nnames: ', names, '\nreal: ', real)
     function factory(i, name) {
       return new self.prototype.constructor({
         id: i,
@@ -677,9 +677,6 @@ class Function extends all_collections_generated_classes.Function {
 
   __call__() {
     //A convenient way to create a FunctionCall from this Function.//
-    // if (this.id.key == 'select_point') {
-    //   console.log('__call__ arguments: ', arguments)
-    // }
     return FunctionCall.init_with_validation( //eslint-disable-line
       this.id,
       arguments, //eslint-disable-line
@@ -2038,26 +2035,11 @@ class FunctionCall extends all_collections_generated_classes.FunctionCall {
       ValueError: if the enum id doesn't exist.
     */
     const func = raw ? RAW_FUNCTIONS[_function.key] : FUNCTIONS[_function.key]
-    // if (func.id.key === 'Attack_pt') {
-    //   console.log('_function: ', _function)
-    //   console.log('_arguments: ', _arguments)
-    // }
     const args = []
-    // if (func.id.key === 'Attack_screen') {
-    //   console.log('init_with_validation\n\t _arguments:', _arguments, '\n\t_function:', _function)
-    // }
     const zipped = zip(_arguments, func.args)
     zipped.forEach(([arg, arg_type]) => {
-      // if (func.id.key === 'Attack_pt') {
-      //   console.log('init_with_validation arg: ', arg, '\ninit_with_validation arg_type: ', arg_type)
-      // }
       arg = numpy_to_python(arg)
-      // if (func.id.key === 'Attack_pt') {
-      //   // console.log('arg: ', arg, '\narg_type: ', arg_type, '\nfunc.args: ', func.args)
-      //   console.log('after numpy_to_python: -> arg:', arg)
-      // }
       if (arg_type.values) {
-        // console.log('arg_type.values: ', arg_type.values)
         if (typeof (arg) === 'string') {
           try {
             args.push([arg_type.values[arg]])
@@ -2069,13 +2051,12 @@ class FunctionCall extends all_collections_generated_classes.FunctionCall {
             arg = arg[0]
           }
           try {
-            // console.log('using arg: ', arg, ' arg_type.values: ', arg_type.values)
             if (isinstance(arg_type.values, Enum.EnumMeta)) {
               arg = Number(arg)
             }
             args.push([arg_type.values(arg)])
           } catch (err) {
-            console.log('using arg: ', arg, '  err: ', err)
+            console.log('Error using arg: ', arg, '  err: ', err)
             throw new Error(`ValueError: Unknown argument value: ${arg}, valid values: ${arg_type.values}`)
           }
         }
