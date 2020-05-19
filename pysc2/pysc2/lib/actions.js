@@ -32,34 +32,21 @@ function no_op(action = {}, action_space) {
 }
 function move_camera(action, action_space, minimap) {
   // Move the camera.//
-  // console.log('minimap: ', minimap)
-  // console.log('assign_to -> point:', spatial(action, action_space).getCameraMove().getCenterMinimap().toObject())
   minimap.assign_to(spatial(action, action_space).getCameraMove().getCenterMinimap());
 }
 function select_point(action, action_space, select_point_act, screen) {
-  // Select a unit at a point.//
-  // console.log('select_point_act: isEnumOrArray:', isinstance(select_point_act, [Enum, Array]), ' ', select_point_act)
-  // console.log('select_point: \n\taction:', action.toObject(), '\n\taction_space: ', action_space, '\n\tselect_point_act: ', select_point_act, '\n\tscreen:', screen)
   const select = spatial(action, action_space).getUnitSelectionPoint()
   screen.assign_to(select.getSelectionScreenCoord())
   select.setType(select_point_act)
 }
 function select_rect(action, action_space, select_add, screen, screen2) {
   // Select units within a rectangle.//
-  // console.log('select_rect - action: ', action.toObject())
   const select = spatial(action, action_space).getUnitSelectionRect()
-  // console.log('select_rect - select: ', select.toObject())
   const out_rect = select.addSelectionScreenCoord(new common_pb.RectangleI())
   out_rect.setP0(new common_pb.PointI())
   out_rect.setP1(new common_pb.PointI())
-  // console.log('out_rect: ', out_rect.toObject())
-  // console.log('screen: ', screen, 'screen2: ', screen2)
   const screen_rect = new point.Rect(screen, screen2)
-  // console.log('screen_rect: ', screen_rect)
-  // console.log('out_rect.getP0: ', out_rect.getP0().toObject())
   screen_rect.tl.assign_to(out_rect.getP0())
-  // console.log('out_rect.getP0: ', out_rect.getP0().toObject())
-
   screen_rect.br.assign_to(out_rect.getP1())
   select.setSelectionAdd(Boolean(select_add))
 }
@@ -171,11 +158,14 @@ function raw_cmd_pt(action, ability_id, queued, unit_tags, world) {
   const action_cmd = action.getActionRaw().getUnitCommand()
   action_cmd.setAbilityId(ability_id)
   action_cmd.setQueueCommand(queued)
-  // if (!isinstance(unit_tags, [Array])) {
-  //   unit_tags = [unit_tags]
-  // }
-  // action_cmd.unit_tags.extend(unit_tags)
-  action_cmd.addUnitTags(unit_tags)
+  if (isinstance(unit_tags, [Array])) {
+    unit_tags.forEach((unit_tag) => {
+      action_cmd.addUnitTags(unit_tag)
+    })
+  } else {
+    action_cmd.addUnitTags(unit_tags)
+  }
+  // console.log('raw_cmd_pt > world: ', world)
   world.assign_to(action_cmd.getTargetWorldSpacePos())
 }
 
@@ -185,11 +175,13 @@ function raw_cmd_unit(action, ability_id, queued, unit_tags,
   const action_cmd = action.getActionRaw().getUnitCommand()
   action_cmd.setAbilityId(ability_id)
   action_cmd.setQueueCommand(queued)
-  // if (!isinstance(unit_tags, [Array])) {
-  //   unit_tags = [unit_tags]
-  // }
-  // action_cmd.unit_tags.extend(unit_tags)
-  action_cmd.addUnitTags(unit_tags)
+  if (isinstance(unit_tags, [Array])) {
+    unit_tags.forEach((unit_tag) => {
+      action_cmd.addUnitTags(unit_tag)
+    })
+  } else {
+    action_cmd.addUnitTags(unit_tags)
+  }
   action_cmd.setTargetUnitTag(target_unit_tag)
 }
 
@@ -197,46 +189,37 @@ function raw_autocast(action, ability_id, unit_tags) {
   // Toggle autocast.//
   const action_cmd = action.getActionRaw().getToggleAutocast()
   action_cmd.setAbilityId(ability_id)
-  // if (!isinstance(unit_tags, [Array])) {
-  //   unit_tags = [unit_tags]
-  // }
-  // action_cmd.unit_tags.extend(unit_tags)
-  action_cmd.addUnitTags(unit_tags)
+  if (isinstance(unit_tags, [Array])) {
+    unit_tags.forEach((unit_tag) => {
+      action_cmd.addUnitTags(unit_tag)
+    })
+  } else {
+    action_cmd.addUnitTags(unit_tags)
+  }
 }
 
 function numpy_to_python(val) {
   // Convert numpy types to their corresponding python types.//
-  if (isinstance(val, Number)) {
+  if (isinstance(val, [Number, String, Boolean])) {
     return val
   }
-  if (isinstance(val, String)) {
-    return val
+  if (isinstance(val, numpy.TensorMeta)) {
+    return val.arraySync() // handles any rank tensor
   }
-  if (isinstance(val, Boolean)) {
-    return val
-  }
-  if (/*isinstance(val, numpy.number) ||*/ isinstance(val, numpy.ndarray) && !(val.shape)) { // numpy.array(1)
-    return val.item()
-  }
-  const isPointLikeObj = (val && val.hasOwnProperty('x') && val.hasOwnProperty('y'))
-  if (isinstance(val, [Array, numpy.ndarray, point.Point]) || isPointLikeObj) {
-    const result = [];
-    if (isinstance(val, Array)) {
-      val.forEach((ele) => {
-        result.push(numpy_to_python(ele))
-      })
-    } else if (isinstance(val, point.Point) || isPointLikeObj) {
-      result.push(numpy_to_python(val.x))
-      result.push(numpy_to_python(val.y))
-    } else {
-      val = val.arraySync()
-      val.forEach((ele) => {
-        result.push(numpy_to_python(ele))
-      })
-    }
+  const result = [];
+  if (isinstance(val, Array)) {
+    val.forEach((ele) => {
+      result.push(numpy_to_python(ele))
+    })
     return result
   }
-  throw new Error(`ValueError: Unknown value. Type:${typeof (val)}, repr: ${JSON.stringify(val)}`)
+  const isPointLikeObj = (val && val.hasOwnProperty('x') && val.hasOwnProperty('y'))
+  if (isinstance(val, point.Point) || isPointLikeObj) {
+    result.push(numpy_to_python(val.x))
+    result.push(numpy_to_python(val.y))
+    return result
+  }
+  throw new Error(`ValueError: Unknown value. Type:${typeof (val)}, repr: ${val}`)
 }
 
 class ArgumentType extends all_collections_generated_classes.ArgumentType {
@@ -299,10 +282,7 @@ class ArgumentType extends all_collections_generated_classes.ArgumentType {
         id: i,
         name,
         sizes: [0, 0],
-        fn: (a) => {
-          // console.log('a: ', a); return new point.Point(...a).floor()
-          return new point.Point(...a).floor()
-        },
+        fn: (a) => new point.Point(...a).floor(),
         values: null,
         count: null,
       })
@@ -615,11 +595,6 @@ class Function extends all_collections_generated_classes.Function {
 
   static ui_func(id_, name, function_type, avail_fn = always) {
     //Define a function representing a ui action.//
-    // if (name === 'select_point') {
-    //   // console.log('ui_func:')
-    //   // console.log(function_type)
-    //   // console.log('args: ', FUNCTION_TYPES[function_type.name])
-    // }
     return new this.prototype.constructor({
       id: id_,
       name,
@@ -702,15 +677,11 @@ class Function extends all_collections_generated_classes.Function {
 
   __call__() {
     //A convenient way to create a FunctionCall from this Function.//
-    let func = this.id
-    //if (typeof func !== 'string') {
-    //  func = func.key || func
-    //}
     // if (this.id.key == 'select_point') {
     //   console.log('__call__ arguments: ', arguments)
     // }
     return FunctionCall.init_with_validation( //eslint-disable-line
-      func, //this.id,
+      this.id,
       arguments, //eslint-disable-line
       this.raw,
     )
@@ -2066,25 +2037,24 @@ class FunctionCall extends all_collections_generated_classes.FunctionCall {
       KeyError: if the enum name doesn't exist.
       ValueError: if the enum id doesn't exist.
     */
-    // console.log('_function: ', _function)
-    // console.log('_arguments: ', _arguments)
     const func = raw ? RAW_FUNCTIONS[_function.key] : FUNCTIONS[_function.key]
+    // if (func.id.key === 'Attack_pt') {
+    //   console.log('_function: ', _function)
+    //   console.log('_arguments: ', _arguments)
+    // }
     const args = []
-    // if (func.id.key === 'select_rect') {
+    // if (func.id.key === 'Attack_screen') {
     //   console.log('init_with_validation\n\t _arguments:', _arguments, '\n\t_function:', _function)
     // }
     const zipped = zip(_arguments, func.args)
     zipped.forEach(([arg, arg_type]) => {
-      // if (func.id.key === 'select_point') {
-      // console.log('init_with_validation arg: ', arg, '\ninit_with_validation arg_type: ', arg_type)
+      // if (func.id.key === 'Attack_pt') {
+      //   console.log('init_with_validation arg: ', arg, '\ninit_with_validation arg_type: ', arg_type)
       // }
-
       arg = numpy_to_python(arg)
-      arg = numpy_to_python(arg)
-      // if (func.id.key === 'select_point') {
-      //   console.log('arg: ', arg)
-      //   console.log('arg_type: ', arg_type)
-      //   console.log('func.args: ', func.args)
+      // if (func.id.key === 'Attack_pt') {
+      //   // console.log('arg: ', arg, '\narg_type: ', arg_type, '\nfunc.args: ', func.args)
+      //   console.log('after numpy_to_python: -> arg:', arg)
       // }
       if (arg_type.values) {
         // console.log('arg_type.values: ', arg_type.values)
@@ -2105,7 +2075,7 @@ class FunctionCall extends all_collections_generated_classes.FunctionCall {
             }
             args.push([arg_type.values(arg)])
           } catch (err) {
-            // console.log('using arg: ', arg, '  err: ', err)
+            console.log('using arg: ', arg, '  err: ', err)
             throw new Error(`ValueError: Unknown argument value: ${arg}, valid values: ${arg_type.values}`)
           }
         }
@@ -2153,13 +2123,13 @@ class ValidActions extends all_collections_generated_classes.ValidActions {
 }
 
 module.exports = {
-  autocast,
   ActionSpace,
   ABILITY_FUNCTIONS,
   ABILITY_IDS,
   always,
   ArgumentType,
   Arguments,
+  autocast,
   build_queue,
   cmd_quick,
   control_group,
@@ -2177,6 +2147,7 @@ module.exports = {
   QUEUED_OPTIONS,
   move_camera,
   no_op,
+  numpy_to_python,
   POINT_REQUIRED_FUNCS,
   RawArguments,
   RAW_ABILITY_FUNCTIONS,

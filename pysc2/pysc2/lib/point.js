@@ -130,12 +130,13 @@ class Point extends all_collections_generated_classes.Point {
 
   scale_max_size(max_size) {
     //Scale this value, keeping aspect ratio, but fitting inside `max_size`.//
-    return this.mul((max_size / this).min_dim())
+
+    return this.mul(max_size.div(this).min_dim())
   }
 
   scale_min_size(min_size) {
     //Scale this value, keeping aspect ratio, but fitting around `min_size`.//
-    return this.mul((min_size / this).max_dim())
+    return this.mul(min_size.div(this).max_dim())
   }
 
   min_dim() {
@@ -230,7 +231,7 @@ class Point extends all_collections_generated_classes.Point {
   }
 
   div() {
-    return this.truediv()
+    return this.truediv(...arguments)
   }
 }
 

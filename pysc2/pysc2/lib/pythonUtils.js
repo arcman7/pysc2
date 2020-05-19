@@ -55,6 +55,7 @@ function getArgsArray(func, kwargs) {
     return getArgsArray.argSignatures[func.name].map((argName) => kwargs[argName])
   }
   getArgsArray.argSignatures[func.name] = getArgNames(func)
+  // console.log(getArgsArray.argSignatures[func.name])
   return getArgsArray.argSignatures[func.name].map((argName) => kwargs[argName])
 }
 getArgsArray.argSignatures = {}
@@ -194,7 +195,7 @@ function setUpProtoAction(action, name) {
     action.setActionUi(actionUI)
     return action
   }
-  if (name === 'select_control_group') {
+  if (name === 'select_control_group' || name === 'control_group') {
     const actionUI = new ui_pb.ActionUI()
     const controlGroup = new ui_pb.ActionControlGroup()
     actionUI.setControlGroup(controlGroup)

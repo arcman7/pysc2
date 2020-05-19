@@ -5,6 +5,7 @@ const actions = require(path.resolve(__dirname, './actions.js'))
 const features = require(path.resolve(__dirname, './features.js'))
 const point = require(path.resolve(__dirname, './point.js'))
 const pythonUtils = require(path.resolve(__dirname, './pythonUtils.js'))
+const numpy = require(path.resolve(__dirname, './numpy.js'))
 
 const { isinstance, randomUniform } = pythonUtils
 const { common_pb, sc2api_pb, spatial_pb, ui_pb } = s2clientprotocol
@@ -423,11 +424,14 @@ describe('features:', () => {
     function gen_random_function_call(action_spec, func_id) {
       const args = []
       // console.log('action_spec.functions: ', action_spec.functions)
-      if (func_id.key == 'select_point') {
-        // console.log('func_id:', func_id)
-        // console.log('action_spec.functions[func_id.key]: ', action_spec.functions[func_id.key].toString())
-        // console.log('action_spec.functions[func_id.key].args: ', action_spec.functions[func_id.key].args)
-      }
+      // if (func_id.key == 'select_point') {
+      //   // console.log('func_id:', func_id)
+      //   // console.log('action_spec.functions[func_id.key]: ', action_spec.functions[func_id.key].toString())
+      //   // console.log('action_spec.functions[func_id.key].args: ', action_spec.functions[func_id.key].args)
+      // }
+      // if (func_id.key === 'Attack_screen') {
+      //   console.log('Attack_screen.args: ', action_spec.functions[func_id.key].args)
+      // }
       action_spec.functions[func_id.key].args.forEach((arg) => {
         const temp = []
         arg.sizes.forEach((size) => {
@@ -435,7 +439,7 @@ describe('features:', () => {
         })
         args.push(temp)
       })
-      // if (func_id.key == 'select_point') {
+      // if (func_id.key == 'Attack_screen') {
       //   console.log('arguments: ', args, '\nfunc_id: ', func_id)
       // }
       return new actions.FunctionCall({ function: func_id, arguments: args })
@@ -475,27 +479,30 @@ describe('features:', () => {
       //console.log(action_spec.functions)
 
       action_spec.functions.forEach((func_def) => {
-        console.log(func_def.id.key)
+        // console.log(func_def.id.key)
         let func_call
         let sc2_action
         let func_call2
         let sc2_action2
         for (let i = 0; i < 10; i++) {
           func_call = gen_random_function_call(action_spec, func_def.id)
-          // if (func_def.id.key == 'select_rect') {
+          // if (func_def.id.key == 'Build_Interceptors_autocast') {
           //   console.log('STEP 0 ********* func_call: ', func_call)
           // }
           sc2_action = feats.transform_action(null, func_call, true)
-          // if (func_def.id.key == 'select_rect') {
+          // if (func_def.id.key == 'Build_Interceptors_autocast') {
           //   console.log('STEP 1 ********* sc2_action: ', sc2_action.toObject().actionFeatureLayer)
           // }
+          // console.log('here1')
           func_call2 = feats.reverse_action(sc2_action)
-          // if (func_def.id.key == 'select_rect') {
+          // console.log('here2')
+
+          // if (func_def.id.key == 'Build_Interceptors_autocast') {
           //   console.log('STEP 2 ********* after reverse func_call2: ', func_call2)
           // }
           sc2_action2 = feats.transform_action(null, func_call2, true)
           // console.log('test func_call2.arguments[0]: ', func_call2.arguments[0], func_call2.arguments[0]._init)
-          // if (func_def.id.key == 'select_rect' && func_call2.arguments[0] && func_call2.arguments[0]) {
+          // if (func_def.id.key == 'Build_Interceptors_autocast' && func_call2.arguments[0] && func_call2.arguments[0]) {
           if (func_call2.arguments[0] && func_call2.arguments[0][0] && isinstance(func_call2.arguments[0][0], Enum.EnumMeta)) {
             // console.log('test func_call2.arguments[0]: ', func_call2.arguments[0], func_call2.arguments[0][0].val)
             func_call2.arguments[0][0] = func_call2.arguments[0][0].val
@@ -503,10 +510,10 @@ describe('features:', () => {
           // else {
           //   console.log('STEP 1.5 ********* after reverse func_call2: ', func_call2)
           // }
-          // if (func_def.id.key == 'select_rect') {
+          // if (func_def.id.key == 'Build_Interceptors_autocast') {
           //   console.log('STEP 2 ********* after reverse func_call2: ', func_call2)
           // }
-          // if (func_def.id.key == 'select_rect') {
+          // if (func_def.id.key == 'Build_Interceptors_autocast') {
           //   console.log('STEP 3 *********  sc2_action2: ', sc2_action2.toObject().actionFeatureLayer)
           // }
 
@@ -524,17 +531,58 @@ describe('features:', () => {
             expect(func_call.arguments[0]).toMatchObject(func_call2.arguments[0])
             expect(rect(func_call.arguments)).toMatchObject(rect(func_call2.arguments))
           } else {
-            // if (func_def.id.key == 'select_rect') {
+            // if (func_def.id.key == 'Build_Interceptors_autocast') {
             //   console.log('STEP 3.5 \n', func_call, '\n', func_call2)
             // }
             expect(func_call).toMatchObject(func_call2)
           }
           expect(sc2_action.toObject()).toMatchObject(sc2_action2.toObject())
-          // if (func_def.id.key == 'select_rect') {
+          // if (func_def.id.key == 'Build_Interceptors_autocast') {
           //   console.log('STEP 4 ********* passed')
           // }
         }
       })
+    })
+    test('testRawActionUnitTags', () => {
+      const map_size = new point.Point(100, 100)
+      const feats = new features.Features(
+        new features.AgentInterfaceFormat({
+          use_raw_units: true,
+          action_space: actions.ActionSpace.RAW,
+        }),
+        map_size
+      )
+      const tags = []
+      for (let i = 0; i < 10; i++) {
+        tags.push(randomUniform.int(2 ** 20, 2 ** 24))
+      }
+      const ntags = numpy.tensor(tags)
+      const tag = tags[0]
+      const ntag = numpy.tensor(tag)
+      function transform(fn) {
+        const args = ['now']
+        for (let i = 1; i < arguments.length; i++) {
+          args.push(arguments[i]) //eslint-disable-line
+        }
+        const func_call = actions.RAW_FUNCTIONS[fn](...args)
+        const skip_available = true
+        const proto = feats.transform_action(null, func_call, skip_available)
+        return proto.getActionRaw().getUnitCommand()
+      }
+      expect(transform('Attack_pt', tag, [15, 20]).getUnitTagsList()).toMatchObject([tag])
+      expect(transform('Attack_pt', ntag, [15, 20]).getUnitTagsList()).toMatchObject([tag])
+      expect(transform('Attack_pt', [tag], [15, 20]).getUnitTagsList()).toMatchObject([tag])
+      expect(transform('Attack_pt', [ntag], [15, 20]).getUnitTagsList()).toMatchObject([tag])
+      expect(transform('Attack_pt', tags, [15, 20]).getUnitTagsList()).toMatchObject(tags)
+      expect(transform('Attack_pt', ntags, [15, 20]).getUnitTagsList()).toMatchObject(tags)
+      // python code comment: "Weird, but needed for backwards compatibility"
+      expect(transform('Attack_pt', [tags], [15, 20]).getUnitTagsList()).toMatchObject(tags)
+      expect(transform('Attack_pt', [ntags], [15, 20]).getUnitTagsList()).toMatchObject(tags)
+
+      expect(transform('Attack_unit', tag, tag).getTargetUnitTag()).toBe(tag)
+      expect(transform('Attack_unit', tag, ntag).getTargetUnitTag()).toBe(tag)
+      expect(transform('Attack_unit', tag, [tag]).getTargetUnitTag()).toBe(tag)
+      expect(transform('Attack_unit', tag, [ntag]).getTargetUnitTag()).toBe(tag)
     })
   })
 })
