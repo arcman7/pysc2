@@ -28,9 +28,6 @@
     "@tensorflow/tfjs-node-gpu": "^1.2.7",
     "dev-dependencies": "^1.0.0",
     "google-protobuf": "^3.11.4",
-    "numjs": "^0.16.0",
-    "protobuf-textformat": "^1.0.0",
-    "protobufjs": "^6.9.0",
     "python-enum": "^1.0.7",
     "s2clientprotocol": "^1.0.3",
     "threading-js": "^1.0.6"
@@ -43,6 +40,8 @@
     "node-pre-gyp": "^0.14.0"
   },
   "jest": {
-    "modulePathIgnorePatterns": [".git"] 
+    "modulePathIgnorePatterns": [
+      ".git"
+    ]
   }
 }
