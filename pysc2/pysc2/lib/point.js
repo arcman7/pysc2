@@ -16,11 +16,10 @@ class Point extends all_collections_generated_classes.Point {
   //A basic Point class.//
   constructor(x, y) {
     super({})
-    // if x is a proto point class
     if (Number(x) == x) {
       this.x = x
       this.y = y
-    } else if (x && x.x && isinstance(x.x, [common_pb.Point, spatial_pb.PointI, common_pb.Point2D])) {
+    } else if (x && x.x && isinstance(x.x, [common_pb.Point, spatial_pb.PointI, common_pb.Point2D])) { // if x is a proto point class
       const point = x.x
       this.x = point.getX() || 0.0
       this.y = point.getY() || 0.0
@@ -144,7 +143,7 @@ class Point extends all_collections_generated_classes.Point {
 
   transpose() {
     // Flip x and y.//
-    return this.constructor._make({ x: this.y, y: this.x })
+    return new Point({ x: this.y, y: this.x })
   }
 
   rotate_deg(angle) {
@@ -152,7 +151,7 @@ class Point extends all_collections_generated_classes.Point {
   }
 
   rotate_rad(angle) {
-    return this.constructor._make(
+    return new Point(
       this.x * Math.cos(angle) - this.y * Math.sin(angle),
       this.x * Math.sin(angle) + this.y * Math.cos(angle)
     )
@@ -237,10 +236,10 @@ class Rect extends all_collections_generated_classes.Rect {
 
   constructor() {
     let arg = arguments //eslint-disable-line
-    if (len(arg) === 1 || (len(arg) === 2 && arg[1] === null)) {
+    if (arg.length === 1 || (arg.length === 2 && arg[1] === null)) {
       arg = [origin, arg[0]]
     }
-    if (len(arg) === 2) {
+    if (arg.length === 2) {
       const [p1, p2] = arg
       if ((!isinstance(p1, Point) || !(isinstance(p2, Point)))) {
         throw new Error(`TypeError: Rect expected Points`)
@@ -253,7 +252,7 @@ class Rect extends all_collections_generated_classes.Rect {
       })
       return
     }
-    if (len(arg) === 4) {
+    if (arg.length === 4) {
       if (arg[0] > arg[2] || arg[1] > arg[3]) {
         throw new Error(`TypeError:"Rect requires: t <= b and l <= r`)
       }
@@ -263,6 +262,7 @@ class Rect extends all_collections_generated_classes.Rect {
         b: arg[2],
         r: arg[3],
       })
+      return
     }
     throw new Error(`TypeError:
         "Unexpected arguments to Rect. Takes 1 or 2 Points, or 4 coords.`)
@@ -277,7 +277,7 @@ class Rect extends all_collections_generated_classes.Rect {
   }
 
   get center() {
-    return this.constructor._make(this).mul(0.5)
+    return new Point(this.l + this.r, this.t + this.b).mul(0.5)
   }
 
   get top() {
@@ -360,12 +360,13 @@ class Rect extends all_collections_generated_classes.Rect {
   intersects_circle(pt, radius) {
     //Does the circle intersect with this rect?//
     // How this works: http://stackoverflow.com/a/402010
-    const rect_corner = this.size / 2 // relative to the rect center
-    const circle_center = (pt - this.center).abs() // relative to the rect center
+    const rect_corner = this.size.mul(0.5) // relative to the rect center
+    const circle_center = pt.sub(this.center).abs() // relative to the rect center
 
+    // console.log('rect_corner: ', rect_corner, '\ncircle_center: ', circle_center)
     // Is the circle far from the rect?
     if (circle_center.x > rect_corner.x + radius ||
-        circle_center.y > rect_corner.y || rect_corner.y + radius) {
+        circle_center.y > rect_corner.y + radius) {
       return false
     }
     // Is the circle center inside the rect or near one of the edges?
@@ -373,6 +374,7 @@ class Rect extends all_collections_generated_classes.Rect {
         circle_center.y <= rect_corner.y) {
       return true
     }
+
     // Does the circle contain the corner of the rect?
     return circle_center.dist_sq(rect_corner) <= (radius ** 2)
   }
