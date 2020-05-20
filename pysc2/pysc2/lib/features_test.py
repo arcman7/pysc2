@@ -442,12 +442,16 @@ class FeaturesTest(absltest.TestCase):
 
   def testSpecificActionsAreReversible(self):
     """Test that the `transform_action` and `reverse_action` are inverses."""
-    feats = features.Features(features.AgentInterfaceFormat(
+    feats = features.Features(
+      features.AgentInterfaceFormat(
         feature_dimensions=RECTANGULAR_DIMENSIONS,
-        hide_specific_actions=False))
+        hide_specific_actions=False
+      )
+    )
     action_spec = feats.action_spec()
 
     for func_def in action_spec.functions:
+      # print('func_def: ', func_def.name)
       for _ in range(10):
         func_call = self.gen_random_function_call(action_spec, func_def.id)
 
@@ -470,7 +474,7 @@ class FeaturesTest(absltest.TestCase):
                            rect(func_call2.arguments))
         else:
           self.assertEqual(func_call, func_call2, msg=sc2_action)
-        self.assertEqual(sc2_action, sc2_action2)
+          self.assertEqual(sc2_action, sc2_action2)
 
   def testRawActionUnitTags(self):
     feats = features.Features(
@@ -478,7 +482,7 @@ class FeaturesTest(absltest.TestCase):
             use_raw_units=True,
             action_space=actions.ActionSpace.RAW),
         map_size=point.Point(100, 100))
-
+    # print('feats._agent_interface_format.raw_resolution:', feats._agent_interface_format.raw_resolution)
     tags = [numpy.random.randint(2**20, 2**24) for _ in range(10)]
     ntags = numpy.array(tags, dtype=numpy.int64)
     tag = tags[0]
@@ -520,9 +524,7 @@ class FeaturesTest(absltest.TestCase):
 
   def testCanDeepcopyNumpyFunctionCall(self):
     arguments = [numpy.float32] * len(actions.Arguments._fields)
-    dtypes = actions.FunctionCall(
-        function=numpy.float32,
-        arguments=actions.Arguments(*arguments))
+    dtypes = actions.FunctionCall(function=numpy.float32, arguments=actions.Arguments(*arguments))
     self.assertEqual(dtypes, copy.deepcopy(dtypes))
 
   def testSizeConstructors(self):

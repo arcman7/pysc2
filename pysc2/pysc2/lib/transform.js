@@ -1,8 +1,8 @@
-const path = require('path')
+const path = require('path') //eslint-disable-line
 const point = require(path.resolve(__dirname, './point.js'))
 const pythonUtils = require(path.resolve(__dirname, './pythonUtils.js'))
 
-const { assert, isinstance, NotImplementedError } = pythonUtils.NotImplementedError
+const { assert, isinstance, NotImplementedError } = pythonUtils
 
 class Transform {
   fwd_dist() {//eslint-disable-line
@@ -32,7 +32,7 @@ class Linear extends Transform {
     } else {
       this.scale = scale
     }
-    assert(this.scale.x !== 0 && this.scale.y !== 0)
+    assert(this.scale.x !== 0 && this.scale.y !== 0, ' new Linear.scale.x !== 0 && new Linear.scale.y !== 0')
     this.offset = offset || new point.Point(0, 0)
   }
 
@@ -49,7 +49,8 @@ class Linear extends Transform {
   }
 
   back_pt(pt) {
-    return pt.sub(this.offset).div(this.scale)
+    pt = pt.sub(this.offset).div(this.scale)
+    return pt
   }
 
   toString() {
@@ -64,34 +65,34 @@ class Chain extends Transform {
   }
 
   fwd_dist(dist) {
-    Object.keys(this.transforms).forEach((key) => {
-      const transform = this.transforms[key]
+    for (let i = 0; i < this.transforms.length; i++) {
+      const transform = this.transforms[i]
       dist = transform.fwd_dist(dist)
-    })
+    }
     return dist
   }
 
   fwd_pt(pt) {
-    Object.keys(this.transforms).forEach((key) => {
-      const transform = this.transforms[key]
+    for (let i = 0; i < this.transforms.length; i++) {
+      const transform = this.transforms[i]
       pt = transform.fwd_pt(pt)
-    })
+    }
     return pt
   }
 
   back_dist(dist) {
-    Object.keys(this.transforms).forEach((key) => {
-      const transform = this.transforms[key]
+    for (let i = this.transforms.length - 1; i >= 0; i--) {
+      const transform = this.transforms[i]
       dist = transform.back_dist(dist)
-    })
+    }
     return dist
   }
 
   back_pt(pt) {
-    Object.keys(this.transforms).forEach((key) => {
-      const transform = this.transforms[key]
+    for (let i = this.transforms.length - 1; i >= 0; i--) {
+      const transform = this.transforms[i]
       pt = transform.back_pt(pt)
-    })
+    }
     return pt
   }
 
@@ -113,8 +114,8 @@ class PixelToCoord extends Transform {
     return dist
   }
 
-  back_pit(pt) { //eslint-disable-line
-    return pt.floor.add(0.5)
+  back_pt(pt) { //eslint-disable-line
+    return pt.floor().add(0.5)
   }
 
   toString() { //eslint-disable-line

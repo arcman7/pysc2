@@ -1,133 +1,134 @@
-const path = require('path');
-const s2clientprotocol = require('s2clientprotocol')
-const Enum = require('python-enum')
+const path = require('path') //eslint-disable-line
+const s2clientprotocol = require('s2clientprotocol') //eslint-disable-line
+const Enum = require('python-enum') //eslint-disable-line
 const point = require(path.resolve(__dirname, './point.js'))
 const pythonUtils = require(path.resolve(__dirname, './pythonUtils.js'))
 const all_collections_generated_classes = require(path.resolve(__dirname, './all_collections_generated_classes.js'))
 const numpy = require(path.resolve(__dirname, './numpy.js'))
 
-const { spatial_pb, ui_pb } = s2clientprotocol
+const { spatial_pb, ui_pb, common_pb } = s2clientprotocol
 const sc_spatial = spatial_pb
 const sc_ui = ui_pb
-const { len, iter, isinstance, isObject } = pythonUtils
+const { len, isinstance, isObject, zip } = pythonUtils
 
 const ActionSpace = Enum.IntEnum('ActionSpace', {
   FEATURES: 1, // Act in feature layer pixel space with FUNCTIONS below.
-  RGB: 2,      // Act in RGB pixel space with FUNCTIONS below.
-  RAW: 3,      // Act with unit tags with RAW_FUNCTIONS below.
+  RGB: 2, //      Act in RGB pixel space with FUNCTIONS below.
+  RAW: 3, //      Act with unit tags with RAW_FUNCTIONS below.
 })
 
 function spatial(action, action_space) {
   // Choose the action space for the action proto.//
-  if (action_space === ActionSpace.FEATURES) {
-    return action.action_feature_layer;
+  if (action_space == ActionSpace.FEATURES) {
+    return action.getActionFeatureLayer()
   }
-  if (action_space === ActionSpace.RGB) {
-    return action.action_render;
+  if (action_space == ActionSpace.RGB) {
+    return action.getActionRender()
   }
   throw new Error(`ValueError: Unexpected value for action_space: ${action_space}`);
 }
-function no_op(action, action_space) {
+function no_op(action = {}, action_space) {
   delete action[action_space]
 }
 function move_camera(action, action_space, minimap) {
   // Move the camera.//
-  minimap.assign_to(spatial(action, action_space).camera_move.center_minimap);
+  minimap.assign_to(spatial(action, action_space).getCameraMove().getCenterMinimap());
 }
 function select_point(action, action_space, select_point_act, screen) {
-  // Select a unit at a point.//
-  const select = spatial(action, action_space).unit_selection_point
-  screen.assign_to(select.selection_screen_coord)
-  select.type = select_point_act
+  const select = spatial(action, action_space).getUnitSelectionPoint()
+  screen.assign_to(select.getSelectionScreenCoord())
+  select.setType(select_point_act)
 }
 function select_rect(action, action_space, select_add, screen, screen2) {
   // Select units within a rectangle.//
-  const select = spatial(action, action_space).unit_selection_rect
-  const out_rect = select.selection_screen_coord.add()
-  const screen_rect = point.Rect(screen, screen2)
-  screen_rect.tl.assign_to(out_rect.p0)
-  screen_rect.br.assign_to(out_rect.p1)
-  select.selection_add = Boolean(select_add)
+  const select = spatial(action, action_space).getUnitSelectionRect()
+  const out_rect = select.addSelectionScreenCoord(new common_pb.RectangleI())
+  out_rect.setP0(new common_pb.PointI())
+  out_rect.setP1(new common_pb.PointI())
+  const screen_rect = new point.Rect(screen, screen2)
+  screen_rect.tl.assign_to(out_rect.getP0())
+  screen_rect.br.assign_to(out_rect.getP1())
+  select.setSelectionAdd(Boolean(select_add))
 }
 function select_idle_worker(action, action_space, select_worker) {
   // Select an idle worker.//
   /* delete action_space has no equivalent in js */
-  action.action_ui.select_idle_worker.type = select_worker
+  action.getActionUi().getSelectIdleWorker().setType(select_worker)
 }
 
 function select_army(action, action_space, select_add) {
   // Select the entire army.//
   /* delete action_space has no equivalent in js */
-  action.action_ui.select_army.selection_add = select_add
+  action.getActionUi().getSelectArmy().setSelectionAdd(select_add)
 }
 
 function select_warp_gates(action, action_space, select_add) {
   // Select all warp gates.//
   /* delete action_space has no equivalent in js */
-  action.action_ui.select_warp_gates.selection_add = select_add
+  action.getActionUi().getSelectWarpGates().setSelectionAdd(select_add)
 }
 
 function select_larva(action, /*action_space*/) {
   // Select all larva.//
   /* delete action_space has no equivalent in js */
-  action.action_ui.select_larva.SetInParent() // Adds the empty proto field.
+  action.getActionUi().setSelectLarva(new ui_pb.ActionSelectLarva()) // Adds the empty proto field.
 }
 
 function select_unit(action, action_space, select_unit_act, select_unit_id) {
   // Select a specific unit from the multi-unit selection.//
   /* delete action_space has no equivalent in js */
-  const select = action.action_ui.multi_panel
-  select.type = select_unit_act
-  select.unit_index = select_unit_id
+  const select = action.getActionUi().getMultiPanel()
+  select.setType(select_unit_act)
+  select.setUnitIndex(select_unit_id)
 }
 
 function control_group(action, action_space, control_group_act, control_group_id) {
   // Act on a control group, selecting, setting, etc.//
   /* delete action_space has no equivalent in js */
-  const select = action.action_ui.control_group
-  select.action = control_group_act
-  select.control_group_index = control_group_id
+  const select = action.getActionUi().getControlGroup()
+  select.setAction(control_group_act)
+  select.setControlGroupIndex(control_group_id)
 }
 
 function unload(action, action_space, unload_id) {
   // Unload a unit from a transport/bunker/nydus/etc.//
   /* delete action_space has no equivalent in js */
-  action.action_ui.cargo_panel.unit_index = unload_id
+  action.getActionUi().getCargoPanel().setUnitIndex(unload_id)
 }
 
 function build_queue(action, action_space, build_queue_id) {
   // Cancel a unit in the build queue.//
   /* delete action_space has no equivalent in js */
-  action.action_ui.production_panel.unit_index = build_queue_id
+  action.getActionUi().getProductionPanel().setUnitIndex(build_queue_id)
 }
 
 function cmd_quick(action, action_space, ability_id, queued) {
   // Do a quick command like 'Stop' or 'Stim'.//
-  const action_cmd = spatial(action, action_space).unit_command
-  action_cmd.ability_id = ability_id
-  action_cmd.queue_command = queued
+  const action_cmd = spatial(action, action_space).getUnitCommand()
+  action_cmd.setAbilityId(ability_id)
+  action_cmd.setQueueCommand(queued)
 }
 
 function cmd_screen(action, action_space, ability_id, queued, screen) {
   // Do a command that needs a point on the screen.//
-  const action_cmd = spatial(action, action_space).unit_command
-  action_cmd.ability_id = ability_id
-  action_cmd.queue_command = queued
-  screen.assign_to(action_cmd.target_screen_coord)
+  const action_cmd = spatial(action, action_space).getUnitCommand()
+  action_cmd.setAbilityId(ability_id)
+  action_cmd.setQueueCommand(queued)
+  screen.assign_to(action_cmd.getTargetScreenCoord())
 }
 
 function cmd_minimap(action, action_space, ability_id, queued, minimap) {
   // Do a command that needs a point on the minimap.//
-  const action_cmd = spatial(action, action_space).unit_command
-  action_cmd.ability_id = ability_id
-  action_cmd.queue_command = queued
-  minimap.assign_to(action_cmd.target_minimap_coord)
+  const action_cmd = spatial(action, action_space).getUnitCommand()
+  action_cmd.setAbilityId(ability_id)
+  action_cmd.setQueueCommand(queued)
+  minimap.assign_to(action_cmd.getTargetMinimapCoord())
 }
 
 function autocast(action, action_space, ability_id) {
   // Toggle autocast.//
   /* delete action_space has no equivalent in js */
-  action.action_ui.toggle_autocast.ability_id = ability_id
+  action.getActionUi().getToggleAutocast().setAbilityId(ability_id)
 }
 
 function raw_no_op(/*action*/) {
@@ -136,75 +137,90 @@ function raw_no_op(/*action*/) {
 
 function raw_move_camera(action, world) {
   // Move the camera.//
-  const action_cmd = action.action_raw.camera_move
+  const action_cmd = action.getActionRaw().getCameraMove()
   world.assign_to(action_cmd.center_world_space)
 }
 
 function raw_cmd(action, ability_id, queued, unit_tags) {
   // Do a raw command to another unit.//
-  const action_cmd = action.action_raw.unit_command
-  action_cmd.ability_id = ability_id
-  action_cmd.queue_command = queued
-  if (!isinstance(unit_tags, [Array])) {
-    unit_tags = [unit_tags]
+  const action_cmd = action.getActionRaw().getUnitCommand()
+  action_cmd.setAbilityId(ability_id)
+  action_cmd.setQueueCommand(queued)
+  if (isinstance(unit_tags, [Array])) {
+    unit_tags.forEach((unit_tag) => {
+      action_cmd.addUnitTags(unit_tag)
+    })
+  } else {
+    action_cmd.addUnitTags(unit_tags)
   }
-  action_cmd.unit_tags.extend(unit_tags)
 }
 
 function raw_cmd_pt(action, ability_id, queued, unit_tags, world) {
   // Do a raw command to another unit towards a point.//
-  const action_cmd = action.action_raw.unit_command
-  action_cmd.ability_id = ability_id
-  action_cmd.queue_command = queued
-  if (!isinstance(unit_tags, [Array])) {
-    unit_tags = [unit_tags]
+  const action_cmd = action.getActionRaw().getUnitCommand()
+  action_cmd.setAbilityId(ability_id)
+  action_cmd.setQueueCommand(queued)
+  if (isinstance(unit_tags, [Array])) {
+    unit_tags.forEach((unit_tag) => {
+      action_cmd.addUnitTags(unit_tag)
+    })
+  } else {
+    action_cmd.addUnitTags(unit_tags)
   }
-  action_cmd.unit_tags.extend(unit_tags)
-  world.assign_to(action_cmd.target_world_space_pos)
+  world.assign_to(action_cmd.getTargetWorldSpacePos())
 }
 
 function raw_cmd_unit(action, ability_id, queued, unit_tags,
   target_unit_tag) {
   // Do a raw command to another unit towards a unit.//
-  const action_cmd = action.action_raw.unit_command
-  action_cmd.ability_id = ability_id
-  action_cmd.queue_command = queued
-  if (!isinstance(unit_tags, [Array])) {
-    unit_tags = [unit_tags]
+  const action_cmd = action.getActionRaw().getUnitCommand()
+  action_cmd.setAbilityId(ability_id)
+  action_cmd.setQueueCommand(queued)
+  if (isinstance(unit_tags, [Array])) {
+    unit_tags.forEach((unit_tag) => {
+      action_cmd.addUnitTags(unit_tag)
+    })
+  } else {
+    action_cmd.addUnitTags(unit_tags)
   }
-  action_cmd.unit_tags.extend(unit_tags)
-  action_cmd.target_unit_tag = target_unit_tag
+  action_cmd.setTargetUnitTag(target_unit_tag)
 }
 
 function raw_autocast(action, ability_id, unit_tags) {
   // Toggle autocast.//
-  const action_cmd = action.action_raw.toggle_autocast
-  action_cmd.ability_id = ability_id
-  if (!isinstance(unit_tags, [Array])) {
-    unit_tags = [unit_tags]
+  const action_cmd = action.getActionRaw().getToggleAutocast()
+  action_cmd.setAbilityId(ability_id)
+  if (isinstance(unit_tags, [Array])) {
+    unit_tags.forEach((unit_tag) => {
+      action_cmd.addUnitTags(unit_tag)
+    })
+  } else {
+    action_cmd.addUnitTags(unit_tags)
   }
-  action_cmd.unit_tags.extend(unit_tags)
 }
 
 function numpy_to_python(val) {
   // Convert numpy types to their corresponding python types.//
-  if (isinstance(val, [Number])) {
+  if (isinstance(val, [Number, String, Boolean])) {
     return val
   }
-  if (isinstance(val, String)) {
-    return val
+  if (isinstance(val, numpy.TensorMeta)) {
+    return val.arraySync() // handles any rank tensor
   }
-  if (isinstance(val, numpy.number) || isinstance(val, numpy.ndarray) && !(val.shape)) { // numpy.array(1)
-    return val.item()
-  }
-  if (isinstance(val, [Array, numpy.ndarray])) {
-    const result = [];
-    Object.keys(val).forEach((key) => {
-      result.push(numpy_to_python(val[key]))
+  const result = [];
+  if (isinstance(val, Array)) {
+    val.forEach((ele) => {
+      result.push(numpy_to_python(ele))
     })
     return result
   }
-  throw new Error(`ValueError: Unknown value. Type:${typeof (val)}, repr: ${JSON.stringify(val)}`)
+  const isPointLikeObj = (val && val.hasOwnProperty('x') && val.hasOwnProperty('y'))
+  if (isinstance(val, point.Point) || isPointLikeObj) {
+    result.push(numpy_to_python(val.x))
+    result.push(numpy_to_python(val.y))
+    return result
+  }
+  throw new Error(`ValueError: Unknown value. Type:${typeof (val)}, repr: ${val}`)
 }
 
 class ArgumentType extends all_collections_generated_classes.ArgumentType {
@@ -230,18 +246,14 @@ class ArgumentType extends all_collections_generated_classes.ArgumentType {
 
   static enum(options, values) {
     // Create an ArgumentType where you choose one of a set of known values.//
-    const real = []
-    options.forEach(() => {
-      const thing = [1]
-      real.push(thing)
-    })
+    const [names, real] = zip(...options)
     const self = this
     function factory(i, name) {
       return new self.prototype.constructor({
         id: i,
         name,
-        sizes: [len(real)],
-        fn: a => real[a[0]],
+        sizes: [real.length],
+        fn: (a) => real[Number(a[0])],
         values,
         count: null,
       })
@@ -270,7 +282,7 @@ class ArgumentType extends all_collections_generated_classes.ArgumentType {
         id: i,
         name,
         sizes: [0, 0],
-        fn: (a) => point.Point(...a).floor(),
+        fn: (a) => new point.Point(...a).floor(),
         values: null,
         count: null,
       })
@@ -336,9 +348,33 @@ class Arguments extends all_collections_generated_classes.Arguments {
   constructor(kwargs) {
     if (Array.isArray(kwargs)) {
       super(null, ...kwargs)
-      return
+      this.setIndexValues()
+    } else {
+      super(kwargs)
+      this.setIndexValues()
     }
-    super(kwargs)
+  }
+
+  setIndexValues() {
+    this.constructor._fields.forEach((field, index) => {
+      this[index] = this[field]
+    })
+  }
+
+  get _stateList() {
+    return [this['screen'], this['minimap'], this['screen2'], this['queued'], this['control_group_act'], this['control_group_id'], this['select_point_act'], this['select_add'], this['select_unit_act'], this['select_unit_id'], this['select_worker'], this['build_queue_id'], this['unload_id']]
+  }
+
+  get forEach() {
+    return this._stateList.forEach.bind(this._stateList)
+  }
+
+  get map() {
+    return this._stateList.map.bind(this._stateList)
+  }
+
+  keys() {
+    return this.constructor._fields
   }
 
   static types(kwargs) {
@@ -370,6 +406,22 @@ class RawArguments extends all_collections_generated_classes.RawArguments {
     super(kwargs)
   }
 
+  get _stateList() {
+    return [this['world'], this['queued'], this['unit_tags'], this['target_unit_tag']]
+  }
+
+  get forEach() {
+    return this._stateList.forEach.bind(this._stateList)
+  }
+
+  get map() {
+    return this._stateList.map.bind(this._stateList)
+  }
+
+  keys() {
+    return this.constructor._fields
+  }
+
   static types(kwargs) {
     const named = {}
     Object.keys(kwargs).forEach((name) => {
@@ -382,9 +434,8 @@ class RawArguments extends all_collections_generated_classes.RawArguments {
 
 function _define_position_based_enum(name, options) {
   const dict = {}
-  options.forEach((tuple, index) => {
-    const funcName = [0]
-    dict[funcName] = index
+  options.forEach(([opt_name], i) => {
+    dict[opt_name] = i
   })
   return Enum(name, dict)
 }
@@ -397,11 +448,11 @@ const QUEUED_OPTIONS = [
 const Queued = _define_position_based_enum("Queued", QUEUED_OPTIONS)
 
 const CONTROL_GROUP_ACT_OPTIONS = [
-  ["recall", sc_ui.ActionControlGroup.RECALL],
-  ["set", sc_ui.ActionControlGroup.SET],
-  ["append", sc_ui.ActionControlGroup.APPEND],
-  ["set_and_steal", sc_ui.ActionControlGroup.SETANDSTEAL],
-  ["append_and_steal", sc_ui.ActionControlGroup.APPENDANDSTEAL],
+  ["recall", sc_ui.ActionControlGroup.ControlGroupAction.RECALL],
+  ["set", sc_ui.ActionControlGroup.ControlGroupAction.SET],
+  ["append", sc_ui.ActionControlGroup.ControlGroupAction.APPEND],
+  ["set_and_steal", sc_ui.ActionControlGroup.ControlGroupAction.SETANDSTEAL],
+  ["append_and_steal", sc_ui.ActionControlGroup.ControlGroupAction.APPENDANDSTEAL],
 ]
 
 const ControlGroupAct = _define_position_based_enum(
@@ -427,10 +478,10 @@ const SelectAdd = _define_position_based_enum(
 )
 
 const SELECT_UNIT_ACT_OPTIONS = [
-  ["select", sc_ui.ActionMultiPanel.SINGLESELECT],
-  ["deselect", sc_ui.ActionMultiPanel.DESELECTUNIT],
-  ["select_all_type", sc_ui.ActionMultiPanel.SELECTALLOFTYPE],
-  ["deselect_all_type", sc_ui.ActionMultiPanel.DESELECTALLOFTYPE],
+  ["select", sc_ui.ActionMultiPanel.Type.SINGLESELECT],
+  ["deselect", sc_ui.ActionMultiPanel.Type.DESELECTUNIT],
+  ["select_all_type", sc_ui.ActionMultiPanel.Type.SELECTALLOFTYPE],
+  ["deselect_all_type", sc_ui.ActionMultiPanel.Type.DESELECTALLOFTYPE],
 ]
 const SelectUnitAct = _define_position_based_enum(
   "SelectUnitAct", SELECT_UNIT_ACT_OPTIONS
@@ -439,8 +490,8 @@ const SelectUnitAct = _define_position_based_enum(
 const SELECT_WORKER_OPTIONS = [
   ["select", sc_ui.ActionSelectIdleWorker.Type.SET],
   ["add", sc_ui.ActionSelectIdleWorker.Type.ADD],
-  ["select_all", sc_ui.ActionSelectIdleWorker.Type.All],
-  ["add_all", sc_ui.ActionSelectIdleWorker.Type.ADDAll],
+  ["select_all", sc_ui.ActionSelectIdleWorker.Type.ALL],
+  ["add_all", sc_ui.ActionSelectIdleWorker.Type.ADDALL],
 ]
 const SelectWorker = _define_position_based_enum(
   "SelectWorker", SELECT_WORKER_OPTIONS
@@ -527,14 +578,22 @@ class Function extends all_collections_generated_classes.Function {
         valid.
     raw: Whether the function is raw or not.
   */
-  // constructor(kwargs) {
-  //   super(kwargs)
-  // }
+  constructor(kwargs) {
+    super(kwargs)
+    const func = this.__call__.bind(this)
+    return this._getProxy(func)
+  }
+
+  _getProxy(thing) {
+    const self = this
+    return new Proxy(thing, {
+      get: (target, name) => {
+        return self[name]
+      },
+    })
+  }
 
   static ui_func(id_, name, function_type, avail_fn = always) {
-    if (typeof function_type === 'function') {
-      function_type = function_type.name
-    }
     //Define a function representing a ui action.//
     return new this.prototype.constructor({
       id: id_,
@@ -542,19 +601,16 @@ class Function extends all_collections_generated_classes.Function {
       ability_id: 0,
       general_id: 0,
       function_type,
-      args: FUNCTION_TYPES[function_type],
+      args: FUNCTION_TYPES[function_type.name],
       avail_fn,
       raw: false,
     })
   }
 
   static ability(id_, name, function_type, ability_id, general_id = 0) {
-    if (typeof function_type === 'function') {
-      function_type = function_type.name
-    }
     //Define a function represented as a game ability.//
     // assert function_type in ABILITY_FUNCTIONS
-    if (!ABILITY_FUNCTIONS[function_type]) {
+    if (!ABILITY_FUNCTIONS[function_type.name]) {
       console.warn('ability: Unknown function type: ', JSON.stringify(function_type))
     }
     return new this.prototype.constructor({
@@ -563,7 +619,7 @@ class Function extends all_collections_generated_classes.Function {
       ability_id,
       general_id,
       function_type,
-      args: FUNCTION_TYPES[function_type],
+      args: FUNCTION_TYPES[function_type.name],
       avail_fn: null,
       raw: false,
     })
@@ -571,11 +627,8 @@ class Function extends all_collections_generated_classes.Function {
 
   static raw_ability(id_, name, function_type, ability_id, general_id = 0,
     avail_fn = always) {
-    if (typeof function_type === 'function') {
-      function_type = function_type.name
-    }
     //Define a function represented as a game ability.//
-    if (!RAW_ABILITY_FUNCTIONS[function_type]) {
+    if (!RAW_ABILITY_FUNCTIONS[function_type.name]) {
       console.warn('raw_ability: Unknown function type: ', JSON.stringify(function_type))
     }
     return new this.prototype.constructor({
@@ -584,16 +637,13 @@ class Function extends all_collections_generated_classes.Function {
       ability_id,
       general_id,
       function_type,
-      args: FUNCTION_TYPES[function_type],
+      args: FUNCTION_TYPES[function_type.name],
       avail_fn,
       raw: true,
     })
   }
 
   static raw_ui_func(id_, name, function_type, avail_fn = always) {
-    if (typeof function_type === 'function') {
-      function_type = function_type.name
-    }
     //Define a function representing a ui action.//
     return new this.prototype.constructor({
       id: id_,
@@ -601,7 +651,7 @@ class Function extends all_collections_generated_classes.Function {
       ability_id: 0,
       general_id: 0,
       function_type,
-      args: FUNCTION_TYPES[function_type],
+      args: FUNCTION_TYPES[function_type.name],
       avail_fn,
       raw: true,
     })
@@ -609,7 +659,7 @@ class Function extends all_collections_generated_classes.Function {
 
   static spec(id_, name, args) {
     //Create a Function to be used in ValidActions.//
-    return this.prototype.constructor({
+    return new this.prototype.constructor({
       id: id_,
       name,
       ability_id: null,
@@ -625,23 +675,23 @@ class Function extends all_collections_generated_classes.Function {
     return this.id
   }
 
-  __str__() {
-    return this.str()
-  }
-
   __call__() {
     //A convenient way to create a FunctionCall from this Function.//
-    return FunctionCall.init_with_validation({
-      function: this.id,
-      arguments: arguments,
-      raw: this.raw,
-    })
+    return FunctionCall.init_with_validation( //eslint-disable-line
+      this.id,
+      arguments, //eslint-disable-line
+      this.raw,
+    )
   }
 
-  str(self, space = false) {
+  str(space = false) {
     //String version. Set space=True to line them all up nicely.//
-    const val1 = (String(Math.floor(self.id))).rjust(space && 4)
+    const val1 = (String(Math.floor(this.id))).rjust(space && 4)
     return `${val1} ${this.name.ljust(space && 50)} (${this.args.join('; ')})`
+  }
+
+  toString(space = false) {
+    return this.str(space)
   }
 }
 
@@ -653,11 +703,12 @@ class Functions {
   */
   constructor(functions) {
     this.__init__(functions)
+    return this._getProxy(this)
   }
 
   /* @param functions Array */
   __init__(functions) {
-    functions = functions.sort((fA, fB) => fB.id - fA.id)
+    functions = functions.sort((fA, fB) => fA.id - fB.id)
     this._func_list = functions
     this._func_dict = {}
     functions.forEach((f) => {
@@ -680,8 +731,8 @@ class Functions {
     return this._func_list
   }
 
-  __len__() {
-    return len(this._func_list)
+  get length() {
+    return this._func_list.length
   }
 
   __eq__(other) {
@@ -691,6 +742,40 @@ class Functions {
       }
     }
     return true;
+  }
+
+  _getProxy(thing) {
+    const self = this //eslint-disable-line
+    return new Proxy(thing, {
+      get: (target, name) => {
+        if (name === Symbol.iterator) {
+          return target._func_list[Symbol.iterator].bind(target._func_list)
+        }
+        if (name === '_func_list' || name === '_func_dict') {
+          return target[name]
+        }
+        if (typeof name === 'number' || (typeof name === 'string' && Number.isInteger(Number(name)))) {
+          return target._func_list[name]
+        }
+        if (name === 'forEach') {
+          return target._func_list.forEach.bind(target._func_list)
+        }
+        if (name === 'map') {
+          return target._func_list.map.bind(target._func_list)
+        }
+        if (name === 'length') {
+          return target._func_list.length
+        }
+        return target._func_dict[name]
+      },
+      ownKeys: (target) => Object.keys(self._func_dict),
+      getOwnPropertyDescriptor(k) {
+        return {
+          enumerable: true,
+          configurable: true,
+        }
+      },
+    })
   }
 }
 
@@ -703,19 +788,19 @@ let _FUNCTIONS = [
   Function.ui_func(3, "select_rect", select_rect),
   Function.ui_func(4, "select_control_group", control_group),
   Function.ui_func(5, "select_unit", select_unit,
-    (obs) => obs.ui_data.HasField("multi")),
+    (obs) => obs.hasUiData() && obs.getUiData().hasMulti()),
   Function.ui_func(6, "select_idle_worker", select_idle_worker,
-    (obs) => obs.player_common.idle_worker_count > 0),
+    (obs) => obs.hasPlayerCommon() && obs.getPlayerCommon().getIdleWorkerCount() > 0),
   Function.ui_func(7, "select_army", select_army,
-    (obs) => obs.player_common.army_count > 0),
+    (obs) => obs.hasPlayerCommon() && obs.getPlayerCommon().getArmyCount() > 0),
   Function.ui_func(8, "select_warp_gates", select_warp_gates,
-    (obs) => obs.player_common.warp_gate_count > 0),
+    (obs) => obs.hasPlayerCommon() && obs.getPlayerCommon().getWarpGateCount() > 0),
   Function.ui_func(9, "select_larva", select_larva,
-    (obs) => obs.player_common.larva_count > 0),
+    (obs) => obs.hasPlayerCommon() && obs.getPlayerCommon().getLarvaCount() > 0),
   Function.ui_func(10, "unload", unload,
-    (obs) => obs.ui_data.HasField("cargo")),
+    (obs) => obs.hasUiData() && obs.getUiData().hasCargo()),
   Function.ui_func(11, "build_queue", build_queue,
-    (obs) => obs.ui_data.HasField("production")),
+    (obs) => obs.hasUiData() && obs.getUiData().hasProduction()),
   // Everything below here is generated with gen_actions.py
   Function.ability(12, "Attack_screen", cmd_screen, 3674),
   Function.ability(13, "Attack_minimap", cmd_minimap, 3674),
@@ -1293,8 +1378,8 @@ const FUNCTIONS = new Functions(_FUNCTIONS)
 // Some indexes to support features.py and action conversion.
 const ABILITY_IDS = {}
 const ABILITY_IDS_seen = new Map()
-for (let i = 0; i < iter(FUNCTIONS).length; i++) {
-  const _func = iter(FUNCTIONS)[i];
+for (let i = 0; i < FUNCTIONS.length; i++) {
+  const _func = FUNCTIONS[i];
   ABILITY_IDS[_func.ability_id] = ABILITY_IDS[_func.ability_id] || []
   if (_func.ability_id >= 0 && !ABILITY_IDS_seen.has(_func)) {
     ABILITY_IDS[_func.ability_id].push(_func)
@@ -1306,9 +1391,9 @@ Object.keys(ABILITY_IDS).forEach((key) => {
   Object.freeze(ABILITY_IDS[key])
 })
 const FUNCTIONS_AVAILABLE = {}
-iter(FUNCTIONS).forEach((f) => {
+FUNCTIONS.forEach((f) => {
   if (f.avail_fn) {
-    FUNCTIONS_AVAILABLE[f.id] = f
+    FUNCTIONS_AVAILABLE[f.id.key] = f
   }
 })
 
@@ -1894,8 +1979,8 @@ const RAW_FUNCTIONS = new Functions(_RAW_FUNCTIONS)
 // Some indexes to support features.py and action conversion.
 const RAW_ABILITY_IDS = {}
 const RAW_ABILITY_IDS_seen = new Map()
-for (let i = 0; i < iter(RAW_FUNCTIONS).length; i++) {
-  const _func = iter(RAW_FUNCTIONS)[i];
+for (let i = 0; i < RAW_FUNCTIONS.length; i++) {
+  const _func = RAW_FUNCTIONS[i];
   RAW_ABILITY_IDS[_func.ability_id] = RAW_ABILITY_IDS[_func.ability_id] || []
   if (_func.ability_id >= 0 && !RAW_ABILITY_IDS_seen.has(_func)) {
     RAW_ABILITY_IDS[_func.ability_id].push(_func)
@@ -1907,7 +1992,7 @@ Object.keys(RAW_ABILITY_IDS).forEach((key) => {
   Object.freeze(RAW_ABILITY_IDS[key])
 })
 const RAW_FUNCTIONS_AVAILABLE = {}
-iter(RAW_FUNCTIONS).forEach((f) => {
+RAW_FUNCTIONS.forEach((f) => {
   if (f.avail_fn) {
     RAW_FUNCTIONS_AVAILABLE[f.id] = f
   }
@@ -1915,8 +2000,8 @@ iter(RAW_FUNCTIONS).forEach((f) => {
 const RAW_ABILITY_ID_TO_FUNC_ID = {}
 Object.keys(RAW_ABILITY_IDS).forEach((key) => {
   const set = RAW_ABILITY_IDS[key]
-  const minIndex = Math.min(...(set.map((f) => f.id)))
-  const minF = set[minIndex]
+  const minIndex = Math.min(...set.map((f) => f.id))
+  const minF = set.find((f) => f.id == minIndex)
   RAW_ABILITY_ID_TO_FUNC_ID[key] = minF
 })
 
@@ -1943,17 +2028,17 @@ class FunctionCall extends all_collections_generated_classes.FunctionCall {
       raw: Whether this is a raw function call.
 
     Returns:
-      A new `FunctionCall` instance.
+      A new `FunctionCall` instance.``
 
     Raises:
       KeyError: if the enum name doesn't exist.
       ValueError: if the enum id doesn't exist.
     */
-    const func = raw ? RAW_FUNCTIONS[_function] : FUNCTIONS[_function]
+    const func = raw ? RAW_FUNCTIONS[_function.key] : FUNCTIONS[_function.key]
     const args = []
-    iter(_arguments).forEach((arg, index) => {
+    const zipped = zip(_arguments, func.args)
+    zipped.forEach(([arg, arg_type]) => {
       arg = numpy_to_python(arg)
-      const arg_type = func.args[index]
       if (arg_type.values) {
         if (typeof (arg) === 'string') {
           try {
@@ -1966,15 +2051,19 @@ class FunctionCall extends all_collections_generated_classes.FunctionCall {
             arg = arg[0]
           }
           try {
+            if (isinstance(arg_type.values, Enum.EnumMeta)) {
+              arg = Number(arg)
+            }
             args.push([arg_type.values(arg)])
           } catch (err) {
-            throw new Error(`ValueError: Unknown argument value: ${arg}, valid values: ${JSON.stringify(arg_type.values)}`)
+            console.log('Error using arg: ', arg, '  err: ', err)
+            throw new Error(`ValueError: Unknown argument value: ${arg}, valid values: ${arg_type.values}`)
           }
         }
-      } else if (typeof (arg) === 'number') {
+      } else if (typeof (arg) === 'number' || typeof (arg) === 'boolean') {
         args.push([arg])
       } else if (isinstance(arg, Array)) {
-        args.append(arg)
+        args.push(arg)
       } else {
         throw new Error(`ValueError: "Unknown argument value type: ${typeof (arg)}, expected int or list of ints, or "
             "their numpy equivalents. Value: ${arg}`)
@@ -2021,8 +2110,14 @@ module.exports = {
   always,
   ArgumentType,
   Arguments,
+  autocast,
+  build_queue,
+  cmd_quick,
+  control_group,
   ControlGroupAct,
   CONTROL_GROUP_ACT_OPTIONS,
+  cmd_screen,
+  cmd_minimap,
   Function,
   FunctionCall,
   Functions,
@@ -2031,20 +2126,40 @@ module.exports = {
   FUNCTION_TYPES,
   Queued,
   QUEUED_OPTIONS,
+  move_camera,
+  no_op,
+  numpy_to_python,
   POINT_REQUIRED_FUNCS,
   RawArguments,
   RAW_ABILITY_FUNCTIONS,
   RAW_ABILITY_IDS,
   RAW_ABILITY_ID_TO_FUNC_ID,
+  raw_autocast,
+  raw_cmd,
+  raw_cmd_pt,
+  raw_cmd_unit,
   RAW_FUNCTIONS,
   RAW_FUNCTIONS_AVAILABLE,
+  raw_move_camera,
+  raw_no_op,
   RAW_TYPES,
-  SelectUnitAct,
+  SelectAdd,
+  select_army,
   SELECT_ADD_OPTIONS,
+  select_idle_worker,
+  select_larva,
+  select_point,
+  SelectPointAct,
   SELECT_POINT_ACT_OPTIONS,
+  select_rect,
+  select_unit,
+  SelectUnitAct,
   SELECT_UNIT_ACT_OPTIONS,
+  select_warp_gates,
   SELECT_WORKER_OPTIONS,
   SelectWorker,
+  spatial,
   TYPES,
+  unload,
   ValidActions,
 }
