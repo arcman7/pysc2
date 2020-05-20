@@ -426,11 +426,12 @@ function nonZero(arr) {
 }
 class ABCMeta {
   static get abstractMethods() { return [] }
+
   constructor() {
     const abstractMethods = this.constructor.abstractMethods
     function NotImplementedError(message) {
-        this.name = "NotImplementedError"
-        this.message = (message || "")
+      this.name = "NotImplementedError"
+      this.message = (message || "")
     }
     NotImplementedError.prototype = Error.prototype
     Object.keys(abstractMethods).forEach((key) => {
