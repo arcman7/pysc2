@@ -16,7 +16,7 @@ const sw = stopwatch.sw
 const { raw_pb, sc2api_pb } = s2clientprotocol
 const sc_raw = raw_pb
 const sc_pb = sc2api_pb
-const { Defaultdict, int, isinstance, len, map, pythonWith, setUpProtoAction, sum, zip, getArgsArray } = pythonUtils
+const { Defaultdict, int, isinstance, len, map, withPython, setUpProtoAction, sum, zip, getArgsArray } = pythonUtils
 const EPSILON = 1e-5
 
 const FeatureType = Enum.Enum('FeatureType', {
@@ -1079,7 +1079,7 @@ class Features {
       new transform.PixelToCoord()
     )
     this._camera_size = (
-      raw_resolution.div(map_size.max_dim() * (camera_width_world_units))
+      raw_resolution.div(map_size.max_dim()) * camera_width_world_units
     )
   }
 
@@ -1224,7 +1224,7 @@ class Features {
     const aif = this._agent_interface_format
 
     if (aif.feature_dimensions) {
-      pythonWith(sw('feature_screen'), () => {
+      withPython(sw('feature_screen'), () => {
         const stacks = SCREEN_FEATURES.map((f) => {
           return or_zeros(f.unpack(obs.observation), aif.feature_dimensions.scren)
         })
@@ -1233,7 +1233,7 @@ class Features {
           /*names=*/[ScreenFeatures, null, null]
         )
       })
-      pythonWith(sw('feature_minimap'), () => {
+      withPython(sw('feature_minimap'), () => {
         const stacks = MINIMAP_FEATURES.map((f) => {
           return or_zeros(f.unpack(obs.observation), aif.feature_dimensions.minimap)
         })
@@ -1244,17 +1244,17 @@ class Features {
       })
     }
     if (aif.rgb_dimensions) {
-      pythonWith(sw('rgb_screen'), () => {
+      withPython(sw('rgb_screen'), () => {
         out['rgb_screen'] = Feature.unpack_rgb_image(
           obs.observation.render_data.map).astype(np.int32)
       })
-      pythonWith(sw('rgb_minimap'), () => {
+      withPython(sw('rgb_minimap'), () => {
         out['rgb_minimap'] = Feature.unpack_rgb_image(
           obs.observation.render_data.minimap).astype(np.int32)
       })
     }
     if (!this._raw) {
-      pythonWith(sw('last_actions'), () => {
+      withPython(sw('last_actions'), () => {
         const acts = Object.keys(obs.actions).map((key) => {
           const a = obs.actions[key]
           return this.reverse_action(a).function
@@ -1277,7 +1277,7 @@ class Features {
 
     out['game_loop'] = np.array([obs.observation.game_loop], /*dtype=*/np.int32)
 
-    pythonWith(sw('score'), () => {
+    withPython(sw('score'), () => {
       const score_details = obs.observation.score.score_details
       out['score_cumulative'] = named_array.NamedNumpyArray([
         obs.observation.score.score,
@@ -1350,7 +1350,7 @@ class Features {
     }
     const ui = obs.observation.ui_data
 
-    pythonWith(sw('ui'), () => {
+    withPython(sw('ui'), () => {
       const groups = np.zeros([10, 2], /*dtype=*/np.int32)
       Object.keys(ui.groups).forEach((key) => {
         const g = ui.groups[key]
@@ -1496,7 +1496,7 @@ class Features {
 
     if (aif.use_feature_units) {
       console.log('*** THIS SECTION MUST BE FIXED ****')
-      pythonWith(sw('feature_units'), () => {
+      withPython(sw('feature_units'), () => {
         // Update the camera location so we can calculate world to screen pos
         this._update_camera(point.Point.build(raw.player.camera))
         const feature_units = Object.keys(raw.units).filter((key) => {
@@ -1537,14 +1537,14 @@ class Features {
     }
     if (aif.use_raw_units) {
       let raw_units
-      pythonWith(sw('raw_units'), () => {
-        pythonWith(sw('to_list'), () => {
+      withPython(sw('raw_units'), () => {
+        withPython(sw('to_list'), () => {
           raw_units = Object.keys(raw.units).map((key) => {
             const u = raw.units[key]
             return full_unit_vec(u, this._world_to_minimap_px, /*is_raw=*/true)
           })
         })
-        pythonWith(sw('to_numpy'), () => {
+        withPython(sw('to_numpy'), () => {
           out['raw_units'] = named_array.NamedNumpyArray(
             raw_units, [null, FeatureUnit], /*dtype=*/np.int64
           )
@@ -1643,10 +1643,10 @@ class Features {
     }
     if (aif.add_cargo_to_units) {
       let feature_cargo_units
-      pythonWith(sw('add_cargo_to_units'), () => {
+      withPython(sw('add_cargo_to_units'), () => {
         if (aif.use_feature_units) {
-          pythonWith(sw('feature_units'), () => {
-            pythonWith(sw('to_list'), () => {
+          withPython(sw('feature_units'), () => {
+            withPython(sw('to_list'), () => {
               feature_cargo_units = []
               Object.keys(raw.units).forEach((key) => {
                 const u = raw.units[key]
@@ -1657,7 +1657,7 @@ class Features {
                   .push(cargo_units(u, this._world_to_feature_screen_px))
               })
             })
-            pythonWith(sw('to_numpy'), () => {
+            withPython(sw('to_numpy'), () => {
               if (feature_cargo_units) {
                 let all_feature_units = np.array(
                   feature_cargo_units, /*dtype=*/np.int64)
@@ -1671,8 +1671,8 @@ class Features {
         }
         if (aif.use_raw_units) {
           let raw_cargo_units
-          pythonWith(sw('raw_units'), () => {
-            pythonWith(sw('to_list'), () => {
+          withPython(sw('raw_units'), () => {
+            withPython(sw('to_list'), () => {
               raw_cargo_units = []
               Object.keys(raw.units).forEach((key) => {
                 const u = raw.units[key]
@@ -1683,7 +1683,7 @@ class Features {
                   .push(cargo_units(u, this._world_to_minimap_px, true))
               })
             })
-            pythonWith(sw('to_numpy'), () => {
+            withPython(sw('to_numpy'), () => {
               if (raw_cargo_units) {
                 raw_cargo_units = np.array(raw_cargo_units, /*dtype=*/np.int64)
                 const all_raw_units = np.concatenate(
@@ -1705,7 +1705,7 @@ class Features {
     }
 
     if (aif.use_unit_counts) {
-      pythonWith(sw('unit_counts'), () => {
+      withPython(sw('unit_counts'), () => {
         const unit_counts = new Defaultdict(0)
         Object.keys(raw.units).forEach((key) => {
           const u = raw.units[key]
@@ -1946,7 +1946,6 @@ class Features {
   }
 
   reverse_action(action) {
-    // action = action.toObject()
     /*Transform an SC2-style action into an agent-style action.
 
     This should be the inverse of `transform_action`.

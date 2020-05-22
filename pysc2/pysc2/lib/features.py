@@ -1057,8 +1057,7 @@ class Features(object):
         self._world_to_world_tl,
         world_tl_to_feature_minimap,
         transform.PixelToCoord())
-    # print('map_size.max_dim(): ', map_size.max_dim())
-    # print('raw_resolution: ', raw_resolution)
+
     self._camera_size = (
         raw_resolution / map_size.max_dim() * camera_width_world_units)
 
