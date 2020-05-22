@@ -1,28 +1,20 @@
 const path = require('path') //eslint-disable-line
+// const net = require('net') //eslint-disable-line
 const Enum = require('python-enum') //eslint-disable-line
 const s2clientprotocol = require('s2clientprotocol') //eslint-disable-line
 const websocket = require('ws') //eslint-disable-line
 const flags = require('flags') //eslint-disable-line
-const { performance } = require('perf_hooks')
+const { performance } = require('perf_hooks') //eslint-disable-line
 const stopwatch = require(path.resolve(__dirname, 'stopwatch.js'))
 const pythonUtils = require(path.resolve(__dirname, './pythonUtils.js'))
 
-
-
-// mimic python strip
-if(typeof(String.prototype.strip) === "undefined")
-{
-    String.prototype.trim = function() 
-    {
-        return String(this).replace(/^\s+|\s+$/g, '');
-    };
-}
 
 //Protocol library to make communication easy.//
 
 const { sc2api_pb } = s2clientprotocol
 const sc_pb = sc2api_pb
-const { assert } = pythonUtils
+// const { socket } = net
+const { assert, withPython } = pythonUtils
 
 flags.defineInteger('sc2_verbose_protocol', 0, `
   Print the communication packets with SC2. 0 disables.
@@ -58,31 +50,13 @@ class ProtocolError extends Error {
 
 //   /* not sure we need this in javascript */
 // }
-// function makeRangeIterator(start = 0, end = Infinity, step = 1) {
-//   let nextIndex = start;
-//   let iterationCount = 0;
-
-//   const rangeIterator = {
-//     next: function() {
-//       let result;
-//       if (nextIndex < end) {
-//         result = { value: nextIndex, done: false }
-//         nextIndex += step;
-//         iterationCount++;
-//         return result;
-//       }
-//       return { value: iterationCount, done: true }
-//     }
-//   };
-//   return rangeIterator;
-// }
 class StarcraftProtocol {
   constructor(sock) {
     this._status = Status.LAUNCHED
     this._sock = sock
-    this._port = sock.sock.getpeername()[1]
+    this._port = sock.address().port
     this._count = 1
-    // javascript only set up
+    // apply @decoraters
     this.read = sw.decorate(this.read.bind(this))
     this.write = sw.decorate(this.write.bind(this))
   }
@@ -91,17 +65,14 @@ class StarcraftProtocol {
     return this._status
   }
 
-  get count() {
+  next(n) {
+    this._count = n + 1
     return this._count
-  }
-
-  set count(val) {
-    this._count = val
   }
 
   close() {
     if (this._sock) {
-      this._sock.close()
+      this._sock.terminate()
       this._sock = null
     }
     this._status = Status.QUIT
@@ -164,7 +135,7 @@ class StarcraftProtocol {
     assert(names.length === 1, 'Must make a single request')
     let name = names[0]
     const req = new sc_pb.Request(kwargs[name])
-    req.setId(this._count)
+    req.setId(this.next(this._count))
     let res
     try {
       res = this.send_req(req)
@@ -177,19 +148,86 @@ class StarcraftProtocol {
     return res[`get${name + isList ? 'List' : ''}`]()
   }
 
-  _packet_str(packet) {
+  _packet_str(packet) { //eslint-disable-line
     //Return a string form of this packet.//
     const max_lines = FLAGS.sc2_verbose_protocol
-    const packet_str = String(packet)
+    const packet_str = String(packet).trim()
+    if (max_lines <= 0) {
+      return packet_str
+    }
+    let lines = packet_str.split('\n')
+    const line_count = lines.length
+    lines = lines.slice(0, max_lines + 1).map((line) => line.slice(0, MAX_WIDTH))
+    if (line_count > max_lines + 1) { // +1 to prefer the last line to skipped msg.
+      lines.push(`***** ${line_count - max_lines} lines skipped *****`)
+    }
+    return lines.join('\n')
   }
 
-  //eslint-disable-next-line
-  _log(s) {
-    process.stderr.write(s + '\n')
+  _log(s) { //eslint-disable-line
+    const args = []
+    for (let i = 1; i < arguments.length; i++) {
+      args.push(arguments[i]) //eslint-disable-line
+    }
+    process.stderr.write(s + '\n' + args)
+    // process.stderr.clearScreenDown() // js equivalent of flush, unsure if we need it though
+  }
+
+  _read() {
+    //Actually read the response and parse it, returning a Response.//
+    let response_str
+    withPython(sw('read_response'), () => {
+      try { //eslint-disable-line
+        response_str = this._sock.recv()
+      } catch (err) {
+        /* TODO: Handling of different error types
+            raise ConnectionError("Connection already closed. SC2 probably crashed. "
+              "Check the error log.")
+            except websocket.WebSocketTimeoutException:
+              raise ConnectionError("Websocket timed out.")
+            except socket.error as e:
+              raise ConnectionError("Socket error: %s" % e)
+        */
+        throw err
+      }
+    })
+    if (!response_str) {
+      throw new ProtocolError('Got and empty response from SC2.')
+    }
+    let response
+    withPython(sw('parse_response'), () => {
+      response = sc_pb.Response.deserializeBinary(response_str)
+    })
+    return response
+  }
+
+  _write(request) {
+    //Actually serialize and write the request.//
+    let request_str
+    withPython(sw('serialize_request'), () => {
+      request_str = request.serializeBinary()
+    })
+    withPython(sw('write_request'), () => {
+      try { //eslint-disable-line
+        this._sock.send(request_str)
+      } catch (err) {
+        /* TODO: Handling of different error types
+            raise ConnectionError("Connection already closed. SC2 probably crashed. "
+              "Check the error log.")
+            except websocket.WebSocketTimeoutException:
+              raise ConnectionError("Websocket timed out.")
+            except socket.error as e:
+              raise ConnectionError("Socket error: %s" % e)
+        */
+        throw err
+      }
+    })
   }
 }
 
 module.exports = {
+  ConnectionError,
+  ProtocolError,
   StarcraftProtocol,
   Status,
 }
