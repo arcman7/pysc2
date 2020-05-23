@@ -1,4 +1,3 @@
-const { performance } = require('perf_hooks') //eslint-disable-line
 const path = require('path') //eslint-disable-line
 const getPort = require('get-port') //eslint-disable-line
 const { ValueError } = require(path.resolve(__dirname, './pythonUtils.js'))
