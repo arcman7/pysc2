@@ -2,17 +2,62 @@ const s2clientprotocol = require('s2clientprotocol') //eslint-disable-line
 
 const { common_pb, raw_pb, spatial_pb, ui_pb } = s2clientprotocol
 
+class ABCMeta {
+  static get abstractMethods() { return [] }
+
+  constructor() {
+    const abstractMethods = this.constructor.abstractMethods
+    function NotImplementedError(message) {
+      this.name = "NotImplementedError"
+      this.message = (message || "")
+    }
+    NotImplementedError.prototype = Error.prototype
+    Object.keys(abstractMethods).forEach((key) => {
+      const methodName = abstractMethods[key]
+      /* keeping this comment for inheritance blocking in the future */
+      // if (!this.constructor.prototype.hasOwnProperty(methodName) || typeof this.constructor.prototype[methodName] !== 'function') {
+      //   throw new NotImplementedError(methodName)
+      // }
+      if (typeof this.constructor.prototype[methodName] !== 'function') {
+        throw new NotImplementedError(methodName)
+      }
+    })
+  }
+}
+
 function assert(cond, errMsg) {
   if (cond === false) {
     throw new Error(errMsg)
   }
 }
-function len(container) {
-  if (container.__len__) {
-    return container.__len__()
+
+
+//eslint-disable-next-line
+Array.prototype.extend = function(array) {
+  for (let i = 0; i < array.length; i++) {
+    this.push(array[i])
   }
-  return Object.keys(container).length;
 }
+
+class DefaultDict {
+  constructor(DefaultInit) {
+    return new Proxy({}, {
+      //eslint-disable-next-line
+      get: (target, name) => {
+        if (name in target) {
+          return target[name]
+        }
+        if (typeof DefaultInit === 'function') {
+          target[name] = new DefaultInit().valueOf()
+        } else {
+          target[name] = DefaultInit
+        }
+        return target[name]
+      },
+    })
+  }
+}
+
 function eq(a, b) {
   if (a.__eq__) {
     return a.__eq__(b)
@@ -22,21 +67,7 @@ function eq(a, b) {
   }
   return a === b
 }
-function iter(container) {
-  if (container.__iter__) {
-    return container.__iter__()
-  }
-  if (len(container)) {
-    return Object.keys(container).map((key) => container[key])
-  }
-  throw new Error('ValueError: Cannont iterate over non-iterable')
-}
-//eslint-disable-next-line
-Array.prototype.extend = function(array) {
-  for (let i = 0; i < array.length; i++) {
-    this.push(array[i])
-  }
-}
+
 function getArgNames(func) {
   // First match everything inside the function argument parens.
   const args = func.toString().match(/function\s.*?\(([^)]*)\)/)[1]
@@ -59,6 +90,17 @@ function getArgsArray(func, kwargs) {
 }
 getArgsArray.argSignatures = {}
 getArgsArray.getArgNames = getArgNames
+
+function iter(container) {
+  if (container.__iter__) {
+    return container.__iter__()
+  }
+  if (len(container)) { //eslint-disable-line
+    return Object.keys(container).map((key) => container[key])
+  }
+  throw new Error('ValueError: Cannont iterate over non-iterable')
+}
+
 //eslint-disable-next-line
 String.prototype.splitlines = function() {
   return this.split(/\r?\n/)
@@ -100,9 +142,18 @@ function isinstance(a, compare) {
   }
   return a instanceof compare;
 }
+
 function isObject(a) {
   return a === Object(a)
 }
+
+function len(container) {
+  if (container.__len__) {
+    return container.__len__()
+  }
+  return Object.keys(container).length;
+}
+
 function map(func, collection) {
   function clone(obj) {
     if (obj === null || typeof obj !== 'object') {
@@ -289,6 +340,11 @@ function setUpProtoAction(action, name) {
     return action
   }
 }
+const snakeToCamel = (str) => str
+  .toLowerCase().replace(/([-_][a-z])/g, (group) => group
+    .toUpperCase()
+    .replace('-', '')
+    .replace('_', ''))
 function sum(collection) {
   let total = 0
   Object.keys(collection).forEach((key) => {
@@ -297,23 +353,9 @@ function sum(collection) {
   return total
 }
 
-class DefaultDict {
-  constructor(DefaultInit) {
-    return new Proxy({}, {
-      //eslint-disable-next-line
-      get: (target, name) => {
-        if (name in target) {
-          return target[name]
-        }
-        if (typeof DefaultInit === 'function') {
-          target[name] = new DefaultInit().valueOf()
-        } else {
-          target[name] = DefaultInit
-        }
-        return target[name]
-      },
-    })
-  }
+function snakeToPascal(str) {
+  const usedStr = snakeToCamel(str)
+  return usedStr[0].toUpperCase() + usedStr.slice(1, usedStr.length)
 }
 
 function withPython(withInterface, callback) {
@@ -424,28 +466,6 @@ function nonZero(arr) {
   }
   return [rows, cols]
 }
-class ABCMeta {
-  static get abstractMethods() { return [] }
-
-  constructor() {
-    const abstractMethods = this.constructor.abstractMethods
-    function NotImplementedError(message) {
-      this.name = "NotImplementedError"
-      this.message = (message || "")
-    }
-    NotImplementedError.prototype = Error.prototype
-    Object.keys(abstractMethods).forEach((key) => {
-      const methodName = abstractMethods[key]
-      /* keeping this comment for inheritance blocking in the future */
-      // if (!this.constructor.prototype.hasOwnProperty(methodName) || typeof this.constructor.prototype[methodName] !== 'function') {
-      //   throw new NotImplementedError(methodName)
-      // }
-      if (typeof this.constructor.prototype[methodName] !== 'function') {
-        throw new NotImplementedError(methodName)
-      }
-    })
-  }
-}
 
 
 module.exports = {
@@ -465,6 +485,8 @@ module.exports = {
   randomUniform,
   setUpProtoAction,
   String,
+  snakeToCamel,
+  snakeToPascal,
   sum,
   ValueError,
   withPython,

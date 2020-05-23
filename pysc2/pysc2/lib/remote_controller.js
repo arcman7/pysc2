@@ -10,9 +10,10 @@ const static_data = require(path.resolve(__dirname, 'static_data.js'))
 const { debug_pb, sc2ai_pb } = s2clientprotocol
 const sc_debug = debug_pb
 const sc_pb = sc2ai_pb
+//eslint-disable-next-line
 String.prototype.center = String.prototype.center || function(space, char) {
-   const usedSpace = Math.floor(space / 2)
-   return this.padStart(this.length + usedSpace, char) + ''.padStart(usedSpace, char)
+  const usedSpace = Math.floor(space / 2)
+  return this.padStart(this.length + usedSpace, char) + ''.padStart(usedSpace, char)
 }
 
 flags.defineBoolean('sc2_log_actions', false, 'Print all the actions sent to SC2. If you want observations\n as well, consider using `sc2_verbose_protocol`.')
@@ -203,9 +204,18 @@ class RemoteController {
       sw.decorate(this.replay_info.bind(this))
     )
     this._last_obs = null
-    this.ping()
-    const sock = this._connect(host, port, proc, timeout_seconds)
+    /** must call from factory  _setClientConnection() **/
+    // const sock = this._connect(host, port, proc, timeout_seconds).then((sock) => {
+    //   this._client = new protocol.StarcraftProtocol(sock)
+    //   this.ping()
+    // })
+  }
+
+  async _setClientConnection() {
+    const sock = await this._connect(host, port, proc, timeout_seconds)
     this._client = new protocol.StarcraftProtocol(sock)
+    await this.ping()
+    return true
   }
 
   _connect(host, port, proc, timeout_seconds) { //eslint-disable-line
@@ -216,12 +226,18 @@ class RemoteController {
     }
     const url = `ws://${host}:${port}/sc2api`
     let was_running = false
-    for (let i = 0; i < timeout_seconds; i++) {
+    let resolve
+    const p = new Promise((res) => {
+      resolve = res
+    })
+    let i = 0
+    const connectTimeout = setInterval(() => {
       const is_running = proc && proc.is_running
       was_running = was_running || is_running
       if ((i >= Math.floor(timeout_seconds / 4) || was_running) && !is_running) {
         console.warn('SC2 isn\'t running, so bailing early on the websocket connection.')
-        break
+        clearInterval(connectTimeout)
+        throw new ConnectError('Failed to connect to the SC2 websocket. Is it up?')
       }
       console.info(`Connecting to : ${url}, attempt: ${i}, running: ${is_running}`)
       try {
@@ -234,14 +250,17 @@ class RemoteController {
           // sends out pings plus a conservative assumption of the latency.
           this.pingTimeout = setTimeout(() => {
             this.terminate()
-          }, timeout_seconds * 1000)
+          }, timeout_seconds * 1200)
         }
+        ws.on('open', () => {
+          clearInterval(connectTimeout)
+          resolve(ws)
+        })
         ws.on('open', heartbeat)
         ws.on('ping', heartbeat)
         ws.on('close', function clear() {
           clearTimeout(this.pingTimeout);
         })
-        return ws
       } catch (err) {
         // TODO: handle various error types
         // socket.error: SC2 hasn't started listening yet.
@@ -250,10 +269,14 @@ class RemoteController {
         } else {
           throw err
         }
-        // time.sleep(1)? how to do this in javascript?
       }
-    }
-    throw new ConnectError('Failed to connect to the SC2 websocket. Is it up?')
+      i++
+      if (i >= timeout_seconds) {
+        clearInterval(connectTimeout)
+        throw new ConnectError('Failed to connect to the SC2 websocket. Is it up?')
+      }
+    }, 1000)
+    return p
   }
 
   close() {
@@ -313,12 +336,12 @@ class RemoteController {
     return static_data.StaticData(this.data_raw())
   }
 
-  observe(disable_fog = false, target_game_loop = 0) {
+  async observe(disable_fog = false, target_game_loop = 0) {
     //Get a current observation.//
     const req = sc_pb.RequestObservation()
     req.setGameLoop(target_game_loop)
     req.setDisableFog(disable_fog)
-    let obs = this._client.send({ observation: req })
+    let obs = await this._client.send({ observation: req })
 
     if (obs.getObservation().getGameLoop() == (2 ** 32 - 1)) {
       console.info('Received stub observation.')
@@ -486,6 +509,13 @@ class RemoteController {
   }
 }
 
+async function RemoteControllerFacory(host, port, proc, timeout_seconds) {
+  const rm = new RemoteController(host, port, proc, timeout_seconds)
+  await rm._setClientConnection()
+  return rm
+}
+
 module.exports = {
   RemoteController,
+  RemoteControllerFacory,
 }
