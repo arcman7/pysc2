@@ -40,8 +40,8 @@ class Point(all_collections_generated_classes.Point):
 
   def assign_to(self, obj):
     """Assign `x` and `y` to an object that has properties `x` and `y`."""
-    obj.x = self.x
-    obj.y = self.y
+    obj.x = int(self.x)
+    obj.y = int(self.y)
 
   def dist(self, other):
     """Distance to some other point."""

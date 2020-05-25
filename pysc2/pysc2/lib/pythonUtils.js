@@ -1,3 +1,7 @@
+const s2clientprotocol = require('s2clientprotocol') //eslint-disable-line
+
+const { common_pb, raw_pb, spatial_pb, ui_pb } = s2clientprotocol
+
 function assert(cond, errMsg) {
   if (cond === false) {
     throw new Error(errMsg)
@@ -33,6 +37,28 @@ Array.prototype.extend = function(array) {
     this.push(array[i])
   }
 }
+function getArgNames(func) {
+  // First match everything inside the function argument parens.
+  const args = func.toString().match(/function\s.*?\(([^)]*)\)/)[1]
+
+  // Split the arguments string into an array comma delimited.
+  return args.split(',').map(function(arg) {
+    // Ensure no inline comments are parsed and trim the whitespace.
+    return arg.replace(/\/\*.*\*\//, '').trim()
+  }).filter(function(arg) {
+    // Ensure no undefined values are added.
+    return arg
+  })
+}
+function getArgsArray(func, kwargs) {
+  if (getArgsArray.argSignatures[func.name]) {
+    return getArgsArray.argSignatures[func.name].map((argName) => kwargs[argName])
+  }
+  getArgsArray.argSignatures[func.name] = getArgNames(func)
+  return getArgsArray.argSignatures[func.name].map((argName) => kwargs[argName])
+}
+getArgsArray.argSignatures = {}
+getArgsArray.getArgNames = getArgNames
 //eslint-disable-next-line
 String.prototype.splitlines = function() {
   return this.split(/\r?\n/)
@@ -95,8 +121,173 @@ function map(func, collection) {
     collection[key] = func(collection[key])
   })
 }
+
 function randomUniform(min, max) {
   return Math.random() * (max - min) + min;
+}
+randomUniform.int = function (min, max) {
+  return Math.round(randomUniform(min, max))
+}
+function setUpProtoAction(action, name) {
+  if (name === 'no_op') {
+    return action
+  }
+  if (name === 'move_camera') {
+    const actionSpatial = new spatial_pb.ActionSpatial()
+    const camMove = new spatial_pb.ActionSpatialCameraMove()
+    camMove.setCenterMinimap(new common_pb.PointI())
+    actionSpatial.setCameraMove(camMove)
+    action.setActionFeatureLayer(actionSpatial)
+    action.setActionRender(actionSpatial)
+    return action
+  }
+  if (name === 'select_point') {
+    const actionSpatial = new spatial_pb.ActionSpatial()
+    const unitSelectionPoint = new spatial_pb.ActionSpatialUnitSelectionPoint()
+    unitSelectionPoint.setSelectionScreenCoord(new common_pb.PointI())
+    actionSpatial.setUnitSelectionPoint(unitSelectionPoint)
+    action.setActionFeatureLayer(actionSpatial)
+    action.setActionRender(actionSpatial)
+    return action
+  }
+  if (name === 'select_rect') {
+    const actionSpatial = new spatial_pb.ActionSpatial()
+    const unitSelectionRect = new spatial_pb.ActionSpatialUnitSelectionRect()
+    // unitSelectionRect.addSelectionScreenCoord(new common_pb.RectangleI())
+    actionSpatial.setUnitSelectionRect(unitSelectionRect)
+    action.setActionFeatureLayer(actionSpatial)
+    action.setActionRender(actionSpatial)
+    return action
+  }
+  if (name === 'select_idle_worker') {
+    const actionUI = new ui_pb.ActionUI()
+    const selectIdleWorker = new ui_pb.ActionSelectIdleWorker()
+    actionUI.setSelectIdleWorker(selectIdleWorker)
+    action.setActionUi(actionUI)
+    return action
+  }
+  if (name === 'select_army') {
+    const actionUI = new ui_pb.ActionUI()
+    const selectArmy = new ui_pb.ActionSelectArmy()
+    actionUI.setSelectArmy(selectArmy)
+    action.setActionUi(actionUI)
+    return action
+  }
+  if (name === 'select_warp_gates') {
+    const actionUI = new ui_pb.ActionUI()
+    const selectWarpGates = new ui_pb.ActionSelectWarpGates()
+    actionUI.setSelectWarpGates(selectWarpGates)
+    action.setActionUi(actionUI)
+    return action
+  }
+  if (name === 'select_larva') {
+    const actionUI = new ui_pb.ActionUI()
+    // const selectLarva = new ui_pb.ActionSelectLarva()
+    // actionUI.setSelectLarva(selectLarva)
+    action.setActionUi(actionUI)
+    return action
+  }
+  if (name === 'select_unit') {
+    const actionUI = new ui_pb.ActionUI()
+    const multiPanel = new ui_pb.ActionMultiPanel()
+    actionUI.setMultiPanel(multiPanel)
+    action.setActionUi(actionUI)
+    return action
+  }
+  if (name === 'select_control_group' || name === 'control_group') {
+    const actionUI = new ui_pb.ActionUI()
+    const controlGroup = new ui_pb.ActionControlGroup()
+    actionUI.setControlGroup(controlGroup)
+    action.setActionUi(actionUI)
+    return action
+  }
+  if (name === 'unload') {
+    const actionUI = new ui_pb.ActionUI()
+    const cargoPanel = new ui_pb.ActionCargoPanelUnload()
+    actionUI.setCargoPanel(cargoPanel)
+    action.setActionUi(actionUI)
+    return action
+  }
+  if (name === 'build_queue') {
+    const actionUI = new ui_pb.ActionUI()
+    const productionPanel = new ui_pb.ActionProductionPanelRemoveFromQueue()
+    actionUI.setProductionPanel(productionPanel)
+    action.setActionUi(actionUI)
+    return action
+  }
+  if (name === 'cmd_quick') {
+    const unitCommand = new spatial_pb.ActionSpatialUnitCommand()
+    const actionSpatial = new spatial_pb.ActionSpatial()
+    actionSpatial.setUnitCommand(unitCommand)
+    action.setActionFeatureLayer(actionSpatial)
+    action.setActionRender(actionSpatial)
+    return action
+  }
+  if (name === 'cmd_screen') {
+    const unitCommand = new spatial_pb.ActionSpatialUnitCommand()
+    unitCommand.setTargetScreenCoord(new common_pb.PointI())
+    const actionSpatial = new spatial_pb.ActionSpatial()
+    actionSpatial.setUnitCommand(unitCommand)
+    action.setActionFeatureLayer(actionSpatial)
+    action.setActionRender(actionSpatial)
+    return action
+  }
+  if (name === 'cmd_minimap') {
+    const unitCommand = new spatial_pb.ActionSpatialUnitCommand()
+    unitCommand.setTargetMinimapCoord(new common_pb.PointI())
+    const actionSpatial = new spatial_pb.ActionSpatial()
+    actionSpatial.setUnitCommand(unitCommand)
+    action.setActionFeatureLayer(actionSpatial)
+    action.setActionRender(actionSpatial)
+    return action
+  }
+  if (name === 'autocast') {
+    const actionUI = new ui_pb.ActionUI()
+    const toggleAutocast = new ui_pb.ActionToggleAutocast()
+    actionUI.setToggleAutocast(toggleAutocast)
+    action.setActionUi(actionUI)
+    return action
+  }
+  if (name === 'raw_no_op') {
+    return action
+  }
+  if (name === 'raw_move_camera') {
+    const actionRaw = new raw_pb.ActionRaw()
+    const camMove = new raw_pb.ActionRawCameraMove()
+    camMove.setCenterWorldSpace(new common_pb.Point())
+    actionRaw.setCameraMove(camMove)
+    action.setActionRaw(actionRaw)
+    return action
+  }
+  if (name === 'raw_cmd') {
+    const actionRaw = new raw_pb.ActionRaw()
+    const unitCommand = new raw_pb.ActionRawUnitCommand()
+    actionRaw.setUnitCommand(unitCommand)
+    action.setActionRaw(actionRaw)
+    return action
+  }
+  if (name === 'raw_cmd_pt') {
+    const actionRaw = new raw_pb.ActionRaw()
+    const unitCommand = new raw_pb.ActionRawUnitCommand()
+    unitCommand.setTargetWorldSpacePos(new common_pb.Point2D())
+    actionRaw.setUnitCommand(unitCommand)
+    action.setActionRaw(actionRaw)
+    return action
+  }
+  if (name === 'raw_cmd_unit') {
+    const actionRaw = new raw_pb.ActionRaw()
+    const unitCommand = new raw_pb.ActionRawUnitCommand()
+    actionRaw.setUnitCommand(unitCommand)
+    action.setActionRaw(actionRaw)
+    return action
+  }
+  if (name === 'raw_autocast') {
+    const actionRaw = new raw_pb.ActionRaw()
+    const toggleAutocast = new raw_pb.ActionRawCameraMove()
+    actionRaw.setToggleAutocast(toggleAutocast)
+    action.setActionRaw(actionRaw)
+    return action
+  }
 }
 function sum(collection) {
   let total = 0
@@ -104,16 +295,6 @@ function sum(collection) {
     total += collection[key]
   })
   return total
-}
-function zip() {
-  var args = [].slice.call(arguments); //eslint-disable-line
-  var shortest = args.length === 0 ? [] : args.reduce(function(a, b) {
-    return a.length < b.length ? a : b
-  });
-
-  return shortest.map(function(_, i) {
-    return args.map(function(array) { return array[i] })
-  });
 }
 
 class DefaultDict {
@@ -139,9 +320,10 @@ function withPython(withInterface, callback) {
   if (!withInterface.__enter__ || !withInterface.__exit__) {
     throw new Error('ValueError: withInterface must define a __enter__ and __exit__ method')
   }
-  const tempResult = withInterface.__enter__()
-  callback(tempResult)
+  let tempResult = withInterface.__enter__()
+  tempResult = callback(tempResult)
   withInterface.__exit__()
+  return tempResult
 }
 
 function int(numOrStr) {
@@ -202,6 +384,23 @@ function ValueError(value) {
 
   this.message = str;
 }
+
+function zip() {
+  var args = [].slice.call(arguments); //eslint-disable-line
+  var shortest = args.length === 0 ? [] : args.reduce(function(a, b) {
+    return a.length < b.length ? a : b
+  });
+
+  return shortest.map(function(_, i) {
+    return args.map(function(array) { return array[i] })
+  });
+}
+// function zip(arrays) {
+//   return Array.apply(null,Array(arrays[0].length)).map(function(_, i) { //eslint-disable-line
+//     return arrays.map(function(array){ return array[i] }) //eslint-disable-line
+//   });
+// }
+
 function randomChoice(arr) {
   // This function does not support "size" of output shape.
   if (Array.isArray(arr)) {
@@ -254,6 +453,7 @@ module.exports = {
   Array,
   DefaultDict,
   eq,
+  getArgsArray,
   len,
   int,
   iter,
@@ -262,6 +462,7 @@ module.exports = {
   map,
   NotImplementedError,
   randomUniform,
+  setUpProtoAction,
   String,
   sum,
   ValueError,

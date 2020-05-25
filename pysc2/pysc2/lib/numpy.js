@@ -38,6 +38,8 @@ var a = Object.keys(delays).map((key) => {
 /*eslint-disable prefer-rest-params*/
 const tf = require('@tensorflow/tfjs')
 require('@tensorflow/tfjs-node'); //eslint-disable-line
+const foo = tf.tensor([1])
+const TensorMeta = foo.constructor // currently unknown where else to get this value
 module.exports = {
   cumsum() {
     return tf.cumsum(...arguments).dataSync() //eslint-disable-line
@@ -50,6 +52,8 @@ module.exports = {
   },
   range: tf.range,
   ndarray: tf.tensor,
+  array: tf.tensor,
+  TensorMeta, // used for type checking
   zeros: tf.zeros,
   ones: tf.ones,
   absolute: tf.abs,

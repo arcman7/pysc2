@@ -352,11 +352,7 @@ class ScreenFeatures(all_collections_generated_classes.ScreenFeatures):
 
   def __new__(cls, **kwargs):
     feats = {}
-    # print('***************** kwargs ***********************')
-    # print(kwargs)
     for name, (scale, type_, palette, clip) in iteritems(kwargs):
-      # print('name: ', name)
-      # print(scale, type_, palette, clip)
       feats[name] = Feature(
           index=ScreenFeatures._fields.index(name),
           name=name,
@@ -602,10 +598,6 @@ class AgentInterfaceFormat(object):
 
     if action_space:
       if not isinstance(action_space, actions.ActionSpace):
-        # print(action_space == actions.ActionSpace.FEATURES)
-        # print ('type action_space:')
-        # print(type(action_space))
-        # print('value : ', action_space)
         raise ValueError("action_space must be of type ActionSpace.")
 
       if action_space == actions.ActionSpace.RAW:
@@ -1065,6 +1057,7 @@ class Features(object):
         self._world_to_world_tl,
         world_tl_to_feature_minimap,
         transform.PixelToCoord())
+
     self._camera_size = (
         raw_resolution / map_size.max_dim() * camera_width_world_units)
 
@@ -1752,6 +1745,9 @@ class Features(object):
 
       for func in actions.ABILITY_IDS[ability_id]:
         if func.function_type is cmd_type:
+          # print('func.name: ', func.name, ' cmd_type.name: ', cmd_type.name)
+          # print('func: ', func, ' cmd_type: ', cmd_type)
+          # print('args: ', args)
           return FUNCTIONS[func.id](*args)
       raise ValueError("Unknown ability_id: %s, type: %s. Likely a bug." % (
           ability_id, cmd_type.__name__))
@@ -1909,6 +1905,3 @@ class Features(object):
         return actions.RAW_FUNCTIONS.raw_move_camera(coord)
 
     return actions.RAW_FUNCTIONS.no_op()
-
-# print('len(SCREEN_FEATURES):')
-# print(len(SCREEN_FEATURES))

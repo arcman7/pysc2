@@ -35,13 +35,8 @@ class ArgumentType {
   constructor(kwargs, id, name, sizes, fn, values, count) {
     if (kwargs) {
       var { id, name, sizes, fn, values, count } = kwargs;
-      this.name = name;
-      this.sizes = sizes;
-      this.fn = fn;
-      this.values = values;
-      this.count = count;
-      return
     }
+    this.id = id
     this.name = name;
     this.sizes = sizes;
     this.fn = fn;
@@ -122,7 +117,7 @@ class Arguments {
 class RawArguments {
   static get classname() { return 'RawArguments' }
 
-  static get _fields() { return ["world", "queued", "unit_tags", "target_unit_tag"] };
+  static get _fields() { return ["world", "queued", "unit_tags", "target_unit_tag"] }
 
   constructor(kwargs, world, queued, unit_tags, target_unit_tag) {
     if (kwargs) {
@@ -166,7 +161,7 @@ class Function {
     this.ability_id = ability_id;
     this.general_id = general_id;
     this.function_type = function_type;
-    this.args = args;
+    this.args = args || [];
     this.avail_fn = avail_fn;
     this.raw = raw;
   }
@@ -193,6 +188,7 @@ class FunctionCall {
   static get _fields() { return ['function', 'arguments'] }
 
   constructor(kwargs) {
+    // console.log('FunctionCall constructor: arguments: ', kwargs.arguments)
     this.function = kwargs.function;
     this.arguments = kwargs.arguments;
   }
@@ -218,20 +214,22 @@ class ValidActions {
 
   static get _fields() { return ["types", "functions"] }
 
-  constructor({ types, functions }) {
+  constructor(types, functions) {
     this.types = types;
     this.functions = functions;
   }
 
-  static _make(kwargs) {
-    return new this.prototype.constructor(kwargs);
+  static _make(types, functions) {
+    return new this.prototype.constructor(types, functions);
   }
 
   _replace(kwargs) {
-    this.constructor._fields.forEach((field) => {
-      kwargs[field] = kwargs[field] || this[field];
-    });
-    return this.constructor._make(kwargs);
+    if (Array.isArray(kwargs)) {
+      const [types, functions] = kwargs
+    } else {
+      const { types, functions } = kwargs
+    }
+    return this.constructor._make(types, functions)
   }
 
   __reduce__() {

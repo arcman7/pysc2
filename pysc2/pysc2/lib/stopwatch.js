@@ -228,13 +228,13 @@ class StopWatch {
       decorated function.
     */
     if (process.env['SC2_NO_STOPWATCH']) {
-      return typeof (name_or_func) === 'function' ? name_or_func : func => func
+      return typeof (name_or_func) === 'function' ? name_or_func : (func) => func
     }
     const self = this
     function decorator(name, func) {
       function _stopwatch() {
-        return withPython(self.__call__(name), () => {
-          func(arguments) //eslint-disable-line
+        return withPython(self.__call__(name), () => { //eslint-disable-line
+          return func(...arguments) //eslint-disable-line
         })
       }
       return _stopwatch
@@ -242,7 +242,7 @@ class StopWatch {
     if (typeof (name_or_func) === 'function') {
       return decorator(name_or_func.name, name_or_func)
     }
-    return func => decorator(name_or_func, func)
+    return (func) => decorator(name_or_func, func)
   }
 
   push(name) {
