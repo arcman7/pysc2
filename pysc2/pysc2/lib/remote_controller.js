@@ -62,12 +62,17 @@ function decorate_check_error(error_enum) {
   return decorator
 }
 
-function skip_status(skipped) {
+function skip_status() {
+  const skipped = new Map()
+  for (let i = 0; i < arguments.length; i++) {
+    const arg = arguments[i] //eslint-disable-line
+    skipped.set(arg, arg)
+  }
+  const self = this
   //Decorator to skip this call if we're in one of the skipped states.//
   function decorator(func) {
-    function _skip_status(self) {
-      // pretty sure self.status will be an enum type
-      if (!skipped.hasOwnProperty(self.status) && !skipped.hasOwnProperty(self.status.key)) {
+    function _skip_status() {
+      if (!skipped.has(self.status)) {
         return func(...arguments) //eslint-disable-line
       }
     }
@@ -76,12 +81,17 @@ function skip_status(skipped) {
   return decorator
 }
 
-function valid_status(valid) {
+function valid_status() {
   //Decorator to assert that we're in a valid state.//
+  const valid = new Map()
+  for (let i = 0; i < arguments.length; i++) {
+    const arg = arguments[i] //eslint-disable-line
+    valid.set(arg, arg)
+  }
+  const self = this
   function decorator(func) {
-    function _valid_status(self) {
-      // pretty sure self.status will be an enum type
-      if (!valid.hasOwnProperty(self.status) && !valid.hasOwnProperty(self.status.key)) {
+    function _valid_status() {
+      if (!valid.has(self.status)) {
         throw new protocol.ProtocolError(`${func.name} called while in state: ${self.status}, valid: ${valid}`)
       }
       return func(...arguments) //eslint-disable-line
@@ -133,70 +143,70 @@ class RemoteController {
   constructor(host, port, proc = null, timeout_seconds = FLAGS.sc2_timeout) {
     this._connect = sw.decorate(this._connect.bind(this))
     // apply @decorators
-    this.create_game = valid_status(Status.launched, Status.ended, Status.in_game, Status.in_replay)(
+    this.create_game = valid_status.call(this, Status.launched, Status.ended, Status.in_game, Status.in_replay)(
       decorate_check_error(sc_pb.ResponseCreateGame.Error)(
         sw.decorate(this.create_game.bind(this))
       )
     )
-    this.save_map = valid_status(Status.launched, Status.init_game)(
+    this.save_map = valid_status.call(this, Status.launched, Status.init_game)(
       decorate_check_error(sc_pb.ResponseCreateGame.Error)(
         sw.decorate(this.save_map.bind(this))
       )
     )
-    this.join_game = valid_status(Status.launched, Status.init_game)(
+    this.join_game = valid_status.call(this, Status.launched, Status.init_game)(
       decorate_check_error(sc_pb.ResponseJoinGame.Error)(
         sw.decorate(this.join_game.bind(this))
       )
     )
-    this.restart = valid_status(Status.ended, Status.in_game)(
+    this.restart = valid_status.call(this, Status.ended, Status.in_game)(
       decorate_check_error(sc_pb.ResponseRestartGame.Error)(
         sw.decorate(this.restart.bind(this))
       )
     )
-    this.start_replay = valid_status(Status.launched, Status.ended, Status.in_game, Status.in_replay)(
+    this.start_replay = valid_status.call(this, Status.launched, Status.ended, Status.in_game, Status.in_replay)(
       decorate_check_error(sc_pb.ResponseStartReplay.Error)(
         sw.decorate(this.start_replay.bind(this))
       )
     )
-    this.game_info = valid_status(Status.in_game, Status.in_replay)(
+    this.game_info = valid_status.call(this, Status.in_game, Status.in_replay)(
       sw.decorate(this.game_info.bind(this))
     )
-    this.data_raw = valid_status(Status.in_game, Status.in_replay)(
+    this.data_raw = valid_status.call(this, Status.in_game, Status.in_replay)(
       sw.decorate(this.data_raw.bind(this))
     )
-    this.observe = valid_status(Status.in_game, Status.in_replay, Status.ended)(
+    this.observe = valid_status.call(this, Status.in_game, Status.in_replay, Status.ended)(
       sw.decorate(this.observe.bind(this))
     )
-    this.step = valid_status(Status.in_game, Status.in_replay)(
+    this.step = valid_status.call(this, Status.in_game, Status.in_replay)(
       catch_game_end(
         sw.decorate(this.step.bind(this))
       )
     )
-    this.actions = skip_status(Status.in_replay)(
-      valid_status(Status.in_game)(
+    this.actions = skip_status.call(this, Status.in_replay)(
+      valid_status.call(this, Status.in_game)(
         catch_game_end(
           sw.decorate(this.actions.bind(this))
         )
       )
     )
-    this.observer_actions = skip_status(Status.in_game)(
-      valid_status(Status.in_replay)(
+    this.observer_actions = skip_status.call(this, Status.in_game)(
+      valid_status.call(this, Status.in_replay)(
         sw.decorate(this.observer_actions.bind(this))
       )
     )
-    this.leave = valid_status(Status.in_game, Status.ended)(
+    this.leave = valid_status.call(this, Status.in_game, Status.ended)(
       sw.decorate(this.leave.bind(this))
     )
-    this.save_replay = valid_status(Status.in_game, Status.in_replay, Status.ended)(
+    this.save_replay = valid_status.call(this, Status.in_game, Status.in_replay, Status.ended)(
       sw.decorate(this.save_replay.bind(this))
     )
-    this.debug = valid_status(Status.in_game)(
+    this.debug = valid_status.call(this, Status.in_game)(
       sw.decorate(this.debug.bind(this))
     )
-    this.query = valid_status(Status.in_game, Status.in_replay)(
+    this.query = valid_status.call(this, Status.in_game, Status.in_replay)(
       sw.decorate(this.query.bind(this))
     )
-    this.quit = skip_status(Status.quit)(
+    this.quit = skip_status.call(this, Status.quit)(
       sw.decorate(this.quit.bind(this))
     )
     this.ping = sw.decorate(this.ping.bind(this))
