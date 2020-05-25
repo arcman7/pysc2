@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Launch the game and set up communication."""
-
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
@@ -102,7 +101,7 @@ class StarcraftProcess(object):
       if full_screen:
         args += ["-displayMode", "1"]
       else:
-        args += [
+        args += [ #foo = tempfile.mkdtemp(prefix="sc-", dir ='test')
             "-displayMode", "0",
             "-windowwidth", str(window_size[0]),
             "-windowheight", str(window_size[1]),
@@ -197,6 +196,8 @@ class StarcraftProcess(object):
     del kwargs
     try:
       with sw("popen"):
+        # print('************ _launch args: {}'.format(args))
+        # print('************ _launch env: {}'.format(run_config.env))
         return subprocess.Popen(args, cwd=run_config.cwd, env=run_config.env)
     except OSError:
       logging.exception("Failed to launch")

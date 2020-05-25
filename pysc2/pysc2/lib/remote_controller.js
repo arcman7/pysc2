@@ -211,7 +211,7 @@ class RemoteController {
     // })
   }
 
-  async _setClientConnection() {
+  async _setClientConnection(host, port, proc, timeout_seconds = FLAGS.sc2_timeout) {
     const sock = await this._connect(host, port, proc, timeout_seconds)
     this._client = new protocol.StarcraftProtocol(sock)
     await this.ping()
@@ -511,7 +511,7 @@ class RemoteController {
 
 async function RemoteControllerFacory(host, port, proc, timeout_seconds) {
   const rm = new RemoteController(host, port, proc, timeout_seconds)
-  await rm._setClientConnection()
+  await rm._setClientConnection(host, port, proc, timeout_seconds)
   return rm
 }
 
