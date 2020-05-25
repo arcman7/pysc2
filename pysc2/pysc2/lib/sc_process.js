@@ -115,25 +115,12 @@ class StarcraftProcess {
     } else {
       console.info(`Launching SC2:${args}`)
     }
+    // rest of set up happens in _setupController called by factory
     const self = this
     this._setupController = this._setupController.bind(this)
     this._setupController = function _setupController() {
       return self._setupController({ run_config, args, timeout_seconds, connect })
     }
-    // try {
-    //   withPython(sw('startup'), () => {
-    //     if (!FLAGS.sc2_port) {
-    //       this._proc = this._launch(run_config, args, **kwargs)
-    //     }
-    //     if (connect) {
-    //       this._controller = await remote_controller.RemoteController(
-    //           this._host, this._port, this, timeout_seconds)
-    //     }
-    //   })
-    // } catch (err) {
-    //   this.close()
-    //   throw err
-    // }
   }
 
   async _setupController({ run_config, args, timeout_seconds, connect }) {
@@ -219,7 +206,15 @@ class StarcraftProcess {
     //Launch the process and return the process object.//
     try {
       const { cwd, env } = run_config
-      return withPython(sw('popen'), () => spawn(args.join(' '), { cwd, env }))
+      const proc = withPython(sw('popen'), () => spawn(args.join(' '), { cwd, env }))
+      this._proc_exited = false
+      proc.on('exit', () => {
+        this._proc_exited = true
+      })
+      proc.on('error', () => {
+        this._proc_exited = true
+      })
+      return proc
     } catch (err) {
       console.error('Failed to launch')
       throw new SC2LaunchError(`Failed to launch ${args}`)
@@ -241,14 +236,11 @@ class StarcraftProcess {
       return true
     }
     // poll returns None if it's running, otherwise the exit code.
-    return this._proc && (this._proc.poll() == null)
+    return this._proc && (!this._proc_exited)
   }
 
   get pid() {
-    if (this.running) {
-      return this._proc.pid
-    }
-    return null
+    return this.running ? this._proc.pid : null
   }
 }
 
