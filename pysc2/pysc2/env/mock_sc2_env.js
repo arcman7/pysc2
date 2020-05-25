@@ -55,16 +55,14 @@ class _TestEnvironment extends environment.Base {
     this._episode_steps = 0
     this.next_timestep = []
 
-    Object.keys(observation_spec.entries()).forEach((key) => {
-      const agent_index = key
-      const obs_spec = observation_spec.entries()[key]
+    for ( let [agent_index, obs_spec] of Object.entries(observation_spec)) {
       this.next_timestep.push(environment.TimeStep({
         step_type: environment.StepType.MID,
         reward: 0.0,
         discount: 1.0,
         observation: this._default_observation(obs_spec, agent_index)
       }))
-    })
+    }
 
     this.episode_length = Infinity
   }

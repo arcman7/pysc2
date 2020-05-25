@@ -15,8 +15,9 @@ const renderer_human = require(path.resolve(__dirname, '..', 'lib', 'renderer_hu
 const run_parallel = require(path.resolve(__dirname, '..', 'lib', 'run_parallel.js'))
 const stopwatch = require(path.resolve(__dirname, '..', 'lib', 'stopwatch.js'))
 const pythonUtils = require(path.resolve(__dirname, '..', 'lib', 'pythonUtils.js'))
+
 const { performance } = require('perf_hooks')
-const { randomChoice } = pythonUtils
+const { randomChoice, any, zip, assert} = pythonUtils
 const { common_pb, sc2api_pb } = s2clientprotocol
 const sc_common = common_pb
 const sc_pb = sc2api_pb
@@ -339,8 +340,8 @@ class SC2Env extends environment.Base {
     this._total_steps = 0
     this._episode_steps = 0
     this._episode_count = 0
-    this._obs = [null] * this._num_agents
-    this._agent_obs = [null] * this._num_agents
+    this._obs = Array(this._num_agents.length).fill(null)
+    this._agent_obs = Array(this._num_agents.length).fill(null)
     this._state = environment.StepType.LAST  // Want to jump to `reset`.
     console.log("Environment is ready")
   }
@@ -393,7 +394,7 @@ class SC2Env extends environment.Base {
       const interface = this._interface_options[key]
       this._sc2_procs.push(this._run_config.start({
         extra_ports: this._ports,
-        want_rgb: interface.HasField("render")
+        want_rgb: interface.has("render")
       }))
     })
     this._controllers = []
@@ -486,8 +487,8 @@ class SC2Env extends environment.Base {
     })
 
     const join_reqs = []
-    let tempzip1 = zip(agent_players, sanitized_names, this._interface_options)
-    tempzip.forEach(([p, name, interface]) => {
+    zip(agent_players, sanitized_names, this._interface_options).forEach((keys) => {
+      const [p, name, interface] = keys
       const join = sc_pb.RequestCreateGame({options: interface})
       join.race = randomChoice(p.race)
       join.player_name = name
@@ -506,24 +507,26 @@ class SC2Env extends environment.Base {
     })
     
     // Join the game. This must be run in parallel because Join is a blocking call to the game that waits until all clients have joined.
-    let tempzip2 = zip(this._controllers, join_reqs) 
-    tempzip2.forEach(([c, join]) => {
+    zip(this._controllers, join_reqs).forEach((keys) => {
+      const [c, join] = keys
       this._parallel.run((c.join_game, join))
     })
+
     Object.keys(this._controllers).forEach((key) => {
       const c = this._controllers[key]
       this._game_info = this._parallel(c.game_info)       
     })
-    let tempzip3 = zip(this._game_info, this._interface_options)
-    tempzip3.forEach(([g, interface]) => {
+
+    zip(this._game_info, this._interface_options).forEach((keys) => {
+      const [g, interface] = keys
       if (g.options.render !== interface.render) {
         console.warn("Actual interface options don't match requested options: \n"
           "Requested: ${interface} \n\nActual: ${g.options}")
       }
     })
 
-    let tempzip4 = zip(this._game_info, this._interface_formats)
-    tempzip4.forEach(([g, aif]) => {
+    zip(this._game_info, this._interface_formats).forEach((keys) => {
+      const [g, aif] = keys
       this._features = [features.features_from_game_info({
         game_info: g,
         agent_interface_format: aif,
@@ -597,8 +600,6 @@ class SC2Env extends environment.Base {
     }
   }
 
-  this.reset = sw.decorate(this.reset.bind(this))
-  this.step
   reset() {
     // Start a new episode.
     this._episode_steps = 0
@@ -616,12 +617,12 @@ class SC2Env extends environment.Base {
     })
     console.log("Starting episode ${this._episode_count}: [${", ".join(races)}] on ${this._map_name}")
     this._metrics.increment_episode()
-    this._last_score = [0] * this._num_agents
+    this._last_score = Array(this._num_agents.length).fill(0)
     this._state = environment.StepType.FIRST
     if (this._realtime) {
       this._last_step_time = performance.now() * 1000
       this._last_obs_game_loop = null
-      this._action_delays = [[0] * NUM_ACTION_DELAY_BUCKETS] * this._num_agents
+      this._action_delays = Array(this._num_agents).fill(Array(NUM_ACTION_DELAY_BUCKETS).fill(0)) 
     }
 
     return this._observe({target_game_loop: 0}) 
@@ -646,9 +647,9 @@ class SC2Env extends environment.Base {
     }
 
     const skip = !(this._ensure_available_actions)
-    let tempzip5 = zip(this._features, this._obs, actions)
     let temp_actions = []
-    tempzip5.forEach(([f, o, acts]) => {
+    zip(this._features, this._obs, actions).forEach((keys) => {
+      const [f, o, acts] = keys
       Object.keys(to_list(acts)).forEach((key) => {
         const a = to_list(acts)[key]
         temp_actions.push(f.transform_action({o.observation, a, skip_available: skip}))
@@ -660,8 +661,8 @@ class SC2Env extends environment.Base {
       actions = this._apply_action_delays(actions)
     }
 
-    let tempzip6 = zip(this._controllers, actions)
-    tempzip6.forEach(([c,a]) => {
+    zip(this._controllers, actions).forEach((keys) => {
+      const [c,a] = keys
       this._parallel.run((c.actions, sc_pb.RequestAction({actions: a})))
     })
 
@@ -672,9 +673,370 @@ class SC2Env extends environment.Base {
   _step(step_mul = null) {
     const step_mul = step_mul || this._step_mul
     if (step_mul <= 0) {
-      
+      throw new Error("ValueError: step_mul should be positive, got ${step_mul}")
+    }
+
+    const target_game_loop = this._episode_steps + step_mul
+    if (!(this._realtime)) {
+      // Send any delayed actions that were scheduled up to the target game loop.
+      const current_game_loop = this._send_delayed_actions({
+        up_to_game_loop: target_game_loop,
+        current_game_loop: this._episode_steps
+      })
+
+      this._step_to({
+        game_loop: target_game_loop,
+        current_game_loop: current_game_loop
+      })
+    }
+
+    return this._observe({target_game_loop: target_game_loop})
+  }
+
+  _apply_action_delays(actions) {
+    // Apply action delays to the requested actions, if configured to.
+    assert(!(this._realtime))
+    const actions_now = []
+    zip(actions, this._action_delay_fns, this._delayed_actions).forEach((keys) => {
+      const [actions_for_player, delay_fn, delayed_actions] = keys
+      let actions_now_for_player = []
+      actions_for_player.forEach((action) => {
+        if (delay_fn) {
+          const delay = delay_fn()
+        } else {
+          const delay = 1
+        }
+        if (delay > 1 && Object.keys(action)) { //action.ListFields() //Skip no-ops
+          const game_loop = this._episode_steps + delay - 1
+          // Randomized delays mean that 2 delay actions can be reversed.
+          // Make sure that doesn't happen.
+          if (delayed_actions) {
+            const game_loop = Math.max(game_loop, delayed_actions[delayed_actions.length - 1].game_loop)
+          }
+          // Don't send an action this frame.
+          delayed_actions.push(_DelayedAction(game_loop, action))
+        } else {
+          actions_now_for_player.push(action)
+        }
+      })
+      actions_now.push(actions_now_for_player)
+    }) 
+    return actions_now
+  }
+
+  _send_delayed_actions(up_to_game_loop, current_game_loop){
+    // Send any delayed actions scheduled for up to the specified game loop.
+    assert(!(this._realtime))
+    while (true) {
+      if (!(any(this._delayed_actions))) {
+        return current_game_loop
+      }
+      let array_temp = []
+      Object.keys(this._delayed_actions).forEach((key) => {
+        const d = this._delayed_actions[key]
+        if (d) {
+          array_temp.push(d[0].game_loop)
+        }
+      })
+      const act_game_loop = Math.min(...array_temp)
+      if (act_game_loop > up_to_game_loop) {
+        return current_game_loop
+      }
+
+      this._step_to(act_game_loop, current_game_loop)
+      current_game_loop = act_game_loop
+      if (this._controllers[0].status_ended) {
+         // We haven't observed and may have hit game end.
+        return current_game_loop
+      }
+
+      let actions = []
+      this._delayed_actions.forEach((d) => {
+        if (d && d[0].game_loop == current_game_loop) {
+          const delayed_action = d.shift()
+          actions.push(delayed_action)
+        } else {
+          actions.push(null)
+        }
+      })
+
+      zip(this._controllers, actions).forEach((keys) => {
+        const [c, a] = keys
+        this._parallel.run((c.act, a))
+      })
     }
   }
+
+  _step_to(game_loop, current_game_loop) {
+    const step_mul = game_loop - current_game_loop
+    if (step_mul < 0) {
+      throw new Error("ValueError: We should never need to step backwards")
+    }
+    if (step_mul > 0) {
+      with (this._metrics.measure_step_time(step_mul)) {
+        if (!(this._controllers[0].status_ended)) {
+          // May already have ended.
+          this._controllers.forEach((c) => {
+            this._parallel.run((c.step, step_mul))            
+          })
+        }
+      }
+    }
+  }
+
+  _get_observations(target_game_loop) {
+    // Transform in the thread so it runs while waiting for other observations.
+    function parallel_observe(c, f) {
+      const obs = c.observe(target_game_loop)
+      const agent_obs = f.transform_obs(obs)
+      return obs, agent_obs
+    }
+
+    with (this._metrics.measure_observation_time()) {
+      zip(this._controllers, this._features).forEach((keys) => {
+        const [c, f] = keys
+        [this._obs, this._agent_obs] = zip(...this._parallel.run((parallel_observe, c, f)))
+      })
+    }
+    const bucket = []
+    const game_loop = this._agent_obs[0].game_loop[0]
+    this._obs.forEach((o) => {
+      bucket.push(o.player_result)
+    })
+    if (game_loop < target_game_loop && !(any(bucket))) {
+      throw new Error("ValueError: The game didn't advance to the expected game loop.\n"
+        "Expected: ${target_game_loop}, got: ${game_loop}")
+    } else if (game_loop > target_game_loop && target_game_loop > 0)  {
+      console.warn("Received observation ${game_loop - target_game_loop} step(s) late: ${game_loop} rather than ${target_game_loop}")
+    }
+
+    if (this._realtime) {
+      /*
+      Track delays on executed actions.
+      Note that this will underestimate e.g. action sent, new observation taken before action executes, action executes, observation taken with action. This is difficult to avoid without changing the SC2 binary - e.g. send the observation game loop with each action, return them in the observation action proto.
+      */
+      if (this._last_step_time !== null) {
+        for (let [i, o] of Object.entries(this._obs)) {
+          for (const action of obs.actions) {
+            if (action.has("game_loop")) {
+              const delay = action.game_loop - this._last_obs_game_loop
+              if (delay > 0) {
+                const num_slots = this._action_delays[i].length
+                delay = Math.min(delay, num_slots - 1) // Cap to num buckets.
+                this._action_delays[i][delay] += 1
+                break
+              }
+            }
+          }
+        }
+      }
+      this._last_obs_game_loop = game_loop
+    }
+  }
+
+  _observe(target_game_loop) {
+    this._get_observations(target_game_loop)
+    // TODO(tewalds): How should we handle more than 2 agents and the case where the episode can end early for some agents?
+    const outcome = Array(this._num_agents.length).fill(0)
+    const discount = this._discount
+    this._obs.forEach((o) => {
+      const episode_complete = any(o.player_result)
+    })
+
+    if (episode_complete) {
+      this._state = environment.StepType.LAST
+      discount = 0
+      for (let [i, o] of Object.entries(this._obs)) {
+        const player_id = o.observation.player_common.player_id
+        for (let result of o.player_result) {
+          if (result.player_id == player_id) {
+            outcome[i] = possible_results.get(result.result, 0)
+          }
+        }
+      }
+    }
+    let cur_score = []
+    if (this._score_index >= 0) {
+      // Game score, not win/loss reward.
+      this._agent_obs.forEach((o) => {
+        cur_score.push(o["score_cumulative"][this._score_index])
+      })
+      if (this._episode_steps == 0) {
+        // First reward is always 0.
+        const reward = Array(this._num_agents.length).fill(0)
+      } else {
+        let reward = []
+        zip(cur_score, this._last_score).forEach(([cur, last]) => {
+          reward.push(cur - last)
+        })
+      }
+      this._last_score = cur_score
+    } else {
+      const reward = outcome
+    }
+
+    if (this._renderer_human) {
+      this._renderer_human.render(this._obs[0])
+      const cmd = this._renderer_human.get_actions(this._run_config, this._controllers[0])
+      if (cmd == renderer_human.ActionCmd.STEP) {
+        return        
+      } else if (cmd == renderer_human.ActionCmd.RESTART) {
+        this._state = environment.StepType.LAST
+      } else if (cmd == renderer_human.ActionCmd.QUIT) {
+        throw new Error("KeyboardInterrup: Quit?")
+      }
+    }
+
+    this._total_steps += this._agent_obs[0].game_loop[0] - this._episode_steps
+    this._episode_steps = this._agent_obs[0].game_loop[0]
+    if (this._episode_steps >= this._episode_length) {
+      this._state = environment.StepType.LAST
+      if (this._discount_zero_after_timeout) {
+        const discount = 0.0
+      }
+      if (this._episode_steps >= MAX_STEP_COUNT) {
+        console.log("Cut short to avoid SC2's max step count of 2^19=524288.")
+      }
+    }
+
+    if (this._state == environment.StepType.LAST) {
+      if (this._save_replay_episodes > 0 && (this._episode_count % this._save_replay_episodes) == 0) {
+        this.save_replay(this._replay_dir, this._replay_prefix)
+      }
+      let score_val = []
+      this._agent_obs.forEach((o) => {
+        score_val.push(o["score_cumulative"][0])
+      })
+      console.log("Episode ${this._episode_count} finished after ${this._episode_steps} game steps.\n"
+        "Outcome: ${outcome}, reward: ${reward}, score: ${score_val}")
+    }
+
+    function zero_on_first_step(value) {
+      if (this._state == environment.StepType.FIRST) {
+        return 0.0
+      } else {
+        return value
+      }
+    }
+
+    let tuple = []
+    zip(reward, this._agent_obs).forEach(([r, o]) => {
+      tuple.push(environment.TimeStep({
+        step_type: this._state,
+        reward: zero_on_first_step(r * this._score_multiplier),
+        discount: zero_on_first_step(discount),
+        observation: o
+      }))
+    })
+    return tuple
+  }
+
+  send_chat_message(messages, broadcast = true) {
+    // Useful for logging messages into the replay.
+    zip(this._controllers, messages).forEach(([c, messages]) =>{
+      if (broadcast) {
+        this._parallel.run(c.chat, messages, sc_pb.ActionChat.Broadcast)
+      } else {
+        this._parallel.run(c.chat, messages, sc_pb.ActionChat.Team)
+      }
+    })
+  }
+
+  save_replay(replay_dir, prefix = null) {
+    if (prefix == null) {
+      prefix = this._map_name
+    }
+    replay_path = this._run_config.save_replay(this._controllers[0].save_replay(), replay_dir, prefix)
+    console.log("Wrote replay to: ${replay_path}")
+    return replay_path
+  }
+
+  close() {
+    console.log("Environment Close")
+    if (this.hasAttribute("_metrics") && this._metrics) {
+      this._metrics.close()
+      this._metrics = null
+    }
+    if (this.hasAttribute("_renderer_human") && this._renderer_human) {
+      this._renderer_human.close()
+      this._renderer_human = null
+    }
+    // Don't use parallel since it might be broken by an exception.
+    if (this.hasAttribute("_controllers") && this._controllers) {
+      this._controllers.forEach((c) => {
+        c.quit()
+      })
+      this._controllers = null
+    }
+    if (this.hasAttribute("_sc2_procs") && this._sc2_procs) {
+      this._sc2_procs.forEach((p) => {
+        p.close()
+      })
+      this._sc2_procs = null
+    }
+    if (this.hasAttribute("_ports") && this._ports) {
+      portspicker.return_ports(this._ports)
+      this._ports = null
+    }
+    this._game_info = null
+  }
+}
+
+function crop_and_deduplicate_names(names) {
+  /*
+  Crops and de-duplicates the passed names.
+
+  SC2 gets confused in a multi-agent game when agents have the same
+  name. We check for name duplication to avoid this, but - SC2 also
+  crops player names to a hard character limit, which can again lead
+  to duplicate names. To avoid this we unique-ify names if they are
+  equivalent after cropping. Ideally SC2 would handle duplicate names,
+  making this unnecessary.
+
+  TODO(b/121092563): Fix this in the SC2 binary.
+
+  Args:
+    names: List of names.
+
+  Returns:
+    De-duplicated names cropped to 32 characters.
+  */
+  const max_name_length = 32
+  // Crop.
+  let cropped = []
+  Object.keys(names).forEach((key) => {
+    const n = names[key]
+    cropped.push(n.slice(0,max_name_length))
+  })
+
+  // De-duplicate.
+  let deduplicated = []
+  Object.keys(cropped).forEach((key) => {
+    const n = cropped[key]
+    name_counts = all_collections_generated_classes.Counter(n)
+  }) 
+
+  const name_index = new Defaultdict(1)
+  Object.keys(cropped).forEach((key) => {
+    const n = cropped[key]
+    if (name_counts[n] == 1) {
+      deduplicated.push(n)
+    } else {
+      deduplicated.push("(${name_index[n]}) ${n}")
+      name_index[n] += 1
+    }
+  })
+
+  // Crop again.
+  let recropped = []
+  Object.keys(deduplicated).forEach((key) => {
+    const n = deduplicated[key]
+    recropped.push(n.slice(0,max_name_length))
+  })
+  if (set(recropped).length !== recropped.length) {
+    throw new Error("ValueError: Failed to de-duplicate names")
+  }
+  return recopped
 }
 
 module.exports = {

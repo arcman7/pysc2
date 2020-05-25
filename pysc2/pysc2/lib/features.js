@@ -842,7 +842,7 @@ function features_from_game_info(game_info, agent_interface_format = null, map_n
   }
   let rgb_opts
   let rgb_dimensions
-  if (game_info.options.hasField("render")) {
+  if (game_info.options.has("render")) {
     rgb_opts = game_info.options.render
     rgb_dimensions = new Dimensions({
       screen: [rgb_opts.resolution.x, rgb_opts.resolution.y],
@@ -910,8 +910,7 @@ function _init_valid_functions(action_dimensions) {
     minimap,
   }
   let args = actions.TYPES.map((t) => {
-    return actions.ArgumentType
-      .spec(t.id, t.name, sizes[t.name] || t.sizes)
+    return actions.ArgumentType.spec(t.id, t.name, sizes[t.name] || t.sizes)
   })
   const types = new actions.Arguments(args)
   args = actions.FUNCTIONS.map((f) => {
