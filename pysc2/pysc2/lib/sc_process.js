@@ -121,6 +121,8 @@ class StarcraftProcess {
     this._setupController = function _setupController() {
       return self._setupController({ run_config, args, timeout_seconds, connect })
     }
+    // apply @decorators
+    this.close = sw.decorate(this.close.bind(this))
   }
 
   async _setupController({ run_config, args, timeout_seconds, connect }) {
