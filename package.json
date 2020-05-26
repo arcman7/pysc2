@@ -29,7 +29,7 @@
     "dev-dependencies": "^1.0.0",
     "google-protobuf": "^3.11.4",
     "python-enum": "^1.0.7",
-    "s2clientprotocol": "^1.0.3",
+    "s2clientprotocol": "^1.0.4",
     "threading-js": "^1.0.6"
   },
   "devDependencies": {

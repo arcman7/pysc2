@@ -53,12 +53,12 @@ const Difficulty = Enum.IntEnum('Difficulty', {
 
 const BotBuild = Enum.IntEnum('BotBuild', {
   // Bot build strategies.
-  random = sc_pb.RandomBuild
-  rush = sc_pb.Rush
-  timing = sc_pb.Timing
-  power = sc_pb.Power
-  macro = sc_pb.Macro
-  air = sc_pb.Air
+  random: sc_pb.BotbBild.RANDOMBUILD
+  rush: sc_pb.Botbuild.Rush
+  timing: sc_pb.Timing
+  power: sc_pb.Power
+  macro: sc_pb.Macro
+  air: sc_pb.Air
 })
 
 // Re-export these names to make it easy to construct the environment.
