@@ -53,12 +53,12 @@ const Difficulty = Enum.IntEnum('Difficulty', {
 
 const BotBuild = Enum.IntEnum('BotBuild', {
   // Bot build strategies.
-  random: sc_pb.BotbBild.RANDOMBUILD
-  rush: sc_pb.Botbuild.Rush
-  timing: sc_pb.Timing
-  power: sc_pb.Power
-  macro: sc_pb.Macro
-  air: sc_pb.Air
+  random: sc_pb.AIBuild.RANDOMBUILD,
+  rush: sc_pb.AIBuild.RUSH,
+  timing: sc_pb.AIBuild.TIMING,
+  power: sc_pb.AIBuild.POWER,
+  macro: sc_pb.AIBuild.MACRO,
+  air: sc_pb.AIBuild.AIR,
 })
 
 // Re-export these names to make it easy to construct the environment.
@@ -86,7 +86,7 @@ function get_default(a, b) {
 class Agent extends all_collections_generated_classes.Agent {
 // Define an Agent. It can have a single race or a list of races.
   constructor(race, name = null) {
-    super(to_list(race), name or "<unknown>")
+    super(to_list(race), name || "<unknown>")
   }
 }
 
