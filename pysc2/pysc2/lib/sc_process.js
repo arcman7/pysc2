@@ -272,7 +272,7 @@ function _shutdown_proc(p, timeout) {
   return prom
 }
 
-async function StarcraftProcessFactory(run_config, exec_path, version, full_screen, extra_args, verbose, host, port, connect, timeout_seconds, window_size, window_loc) {
+async function StarcraftProcessFactory({ run_config, exec_path, version, full_screen, extra_args, verbose, host, port, connect, timeout_seconds, window_size, window_loc }) {
   const scP = new StarcraftProcess(run_config, exec_path, version, full_screen, extra_args, verbose, host, port, connect, timeout_seconds, window_size, window_loc)
   await scP._setupController()
   return scP

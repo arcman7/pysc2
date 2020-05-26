@@ -169,8 +169,8 @@ class RunConfig {
     fs.writeFileSync(replay_path, replay_data)
     return replay_path
   }
-
-  start (version = null) { //eslint-disable-line
+  // in general start method takes keyword arguments
+  start ({ version = null }) { //eslint-disable-line
     //Launch the game. Find the version and run sc_process.StarcraftProcess//
     throw new NotImplementedError('method "start" not implemented on class RunConfig.')
   }

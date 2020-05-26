@@ -1,6 +1,7 @@
 const path = require('path') //eslint-disable-line
 const fs = require('fs') //eslint-disable-line
 // const os = require('os') //eslint-disable-line
+const { exec, execSync } = require('child_process') //eslint-disable-line
 const flags = require('flags') //eslint-disable-line
 const sc_process = require(path.resolve(__dirname, '..', 'lib', 'sc_process.js'))
 const pythonUtils = require(path.resolve(__dirname, '..', 'lib', 'pythonUtils.js'))
@@ -54,7 +55,8 @@ class LocalBase extends lib.RunConfig {
     this._exec_name = exec_name
   }
 
-  start() {
+  start(kwargs) {
+    delete kwargs.want_rgb
     //Launch the game.//
     if (!gfile.IsDirectory(this.data_dir)) {
       throw new sc_process.SC2LaunchError(`
@@ -72,9 +74,9 @@ class LocalBase extends lib.RunConfig {
       throw new sc_process.SC2LaunchError(`No SC2 binary found at: ${exec_path}`)
     }
     // returns promise
-    return sc_process.StarcraftProcessFactory(
-      exec_path, this.version, ...arguments.slice(1, arguments.length)
-    )
+    kwargs.exec_path = exec_path
+    kwargs.version = this.version
+    return sc_process.StarcraftProcessFactory(kwargs)
   }
 
   get_versions(containing = null) {
@@ -191,8 +193,38 @@ class Linux extends LocalBase {
     }
   }
 
-  start() {
-    return super.start()
+  async start({ want_rgb = true, extra_args = [] }) {
+    const kwargs = arguments[0] //eslint-disable-line
+    if (want_rgb) {
+      // Figure out whether the various GL libraries exist since SC2 sometimes
+      // fails if you ask to use a library that doesn't exist.
+      const libs = execSync('/sbin/ldconfig -p').toString()
+      const temp = {}
+      libs.split('\n').forEach((line) => {
+        if (!line) {
+          return
+        }
+        const libName = line.trim().split(' ')[0]
+        temp[libName] = true
+      })
+      let extraArgFound
+      for (let i = 0; i < this.known_gl_libs.length; i++) {
+        const [arg, lib_name] = this.known_gl_libs[i]
+        if (libs[lib_name]) {
+          extra_args.push(arg)
+          extra_args.push(lib_name)
+          extraArgFound = true
+          break
+        }
+      }
+      if (!extraArgFound) {
+        extra_args.push('-headlessNoRender')
+        console.info('No GL library found, so RGB rendering will be disabled. For software rendering install libosmesa.')
+      }
+    }
+    kwargs.want_rgb = want_rgb
+    kwargs.extra_args = extra_args
+    return super.start(kwargs)
   }
 }
 lib.RunConfig.subclasses.push(Linux)
