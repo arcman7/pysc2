@@ -1,3 +1,4 @@
+const os = require('os') //eslint-disable-line
 const s2clientprotocol = require('s2clientprotocol') //eslint-disable-line
 
 const { common_pb, raw_pb, spatial_pb, ui_pb } = s2clientprotocol
@@ -66,6 +67,14 @@ function eq(a, b) {
     return b.__eq__(a)
   }
   return a === b
+}
+
+function expanduser(path) {
+  const homedir = os.homedir()
+  path = path.replace(/~user/g, homedir)
+  path = path.replace(/~/g, homedir)
+  path = path.replace(/\\/g, '/')
+  return path
 }
 
 function getArgNames(func) {
@@ -520,6 +529,7 @@ module.exports = {
   Array,
   DefaultDict,
   eq,
+  expanduser,
   getArgsArray,
   len,
   int,

@@ -1,8 +1,8 @@
 const path = require('path') //eslint-disable-line
+const fs = require('fs') //eslint-disable-line
 const gfile = require(path.resolve(__dirname, '..', 'lib', 'gfile.js'))
 const pythonUtils = require(path.resolve(__dirname, '..', 'lib', 'pythonUtils.js'))
-
-const { namedtuple, ValueError } = pythonUtils
+const { isinstance, namedtuple, NotImplementedError, ValueError } = pythonUtils
 
 const Version = namedtuple('Version', ['game_version', 'build_version', 'data_version', 'binary'])
 
@@ -135,7 +135,84 @@ class RunConfig {
       }
     }
   }
+
+  save_replay(replay_data, replay_dir, prefix = null) {
+    /*
+    Save a replay to a directory, returning the path to the replay.
+
+    Args:
+      replay_data: The result of controller.save_replay(), ie the binary data.
+      replay_dir: Where to save the replay. This can be absolute or relative.
+      prefix: Optional prefix for the replay filename.
+
+    Returns:
+      The full path where the replay is saved.
+
+    Raises:
+      ValueError: If the prefix contains the path seperator.
+    */
+    let replay_filename
+    if (!prefix) {
+      replay_filename = ''
+    } else if (prefix.match('\\\\')) {
+      throw new ValueError(`Prfex '${prefix}' continas ${'\\\\'}, use replay_dir instead.`)
+    } else {
+      replay_filename = prefix + '_'
+    }
+    const now = (new Date().toISOString()).split('.')[0].replace(/:/g, '-').replace('T', '-')
+    replay_filename += `${now}.SC2Replay`
+    replay_dir = this.abs_replay_path(replay_dir)
+    if (!gfile.Exists(replay_dir)) {
+      gfile.MakeDirs(replay_dir)
+    }
+    const replay_path = path.join(replay_dir, replay_filename)
+    fs.writeFileSync(replay_path, replay_data)
+    return replay_path
+  }
+
+  start (version = null) { //eslint-disable-line
+    //Launch the game. Find the version and run sc_process.StarcraftProcess//
+    throw new NotImplementedError('method "start" not implemented on class RunConfig.')
+  }
+
+  static all_subclasses() {
+    return this.subclasses
+  }
+
+  static priority() {
+    //None means this isn't valid. Run the one with the max priority.//
+    return null
+  }
+
+  get_versions(containing = null) { //eslint-disable-line
+    //Return a dict of all versions that can be run.//
+    if (containing !== null && !VERSIONS.hasOwnProperty(containing)) {
+      throw new ValueError(`Unknown game version: ${containing}. Known versions: ${Object.keys(VERSIONS).sort()}`)
+    }
+    return VERSIONS
+  }
+
+  _get_version(game_version) {
+    //Get the full details for the specified game version.//
+    if (isinstance(game_version, Version)) {
+      if (!game_version.game_version) {
+        throw new ValueError(`Version '${game_version}' supplied without a game version.`)
+      }
+      if (game_version.data_version && game_version.binary && game_version.build_version) {
+        return game_version
+      }
+      // Some fields might be missing from serialized versions. Look them up.
+      game_version = game_version.game_version
+    }
+    if ((game_version.match(/./g) || []).length === 1) {
+      game_version += '.0'
+    }
+    const versions = this.get_versions(game_version)
+    return versions[game_version]
+  }
 }
+
+RunConfig.subclasses = []
 
 module.exports = {
   RunConfig,
