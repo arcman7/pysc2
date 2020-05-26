@@ -21,35 +21,34 @@ const { randomChoice, any, zip, assert} = pythonUtils
 const { common_pb, sc2api_pb } = s2clientprotocol
 const sc_common = common_pb
 const sc_pb = sc2api_pb
-
 const sw = stopwatch.sw
 
-const possible_results = {
-  sc_pb.Victory: 1,
-  sc_pb.Defeat: -1,
-  sc_pb.Tie: 0,
-  sc_pb.Undecided: 0,
-}
+const possible_results = {}
+possible_results[sc_pb.Result.VICTORY] = 1
+possible_results[sc_pb.Result.DEFEAT] = -1
+possible_results[sc_pb.Result.TIE] = 0
+possible_results[sc_pb.Result.UNDECIDED] = 0
+
 
 const Race = Enum.IntEnum('Race', {
-  random = sc_common.Random
-  protoss = sc_common.Protoss
-  terran = sc_common.Terran
-  zerg = sc_common.Zerg
+  random: sc_common.Race.RANDOM,
+  protoss: sc_common.Race.PROTOSS,
+  terran: sc_common.Race.TERRAN,
+  zerg: sc_common.Race.ZERG,
 }) 
 
 const Difficulty = Enum.IntEnum('Difficulty', {
   // Bot difficulties.
-  very_easy = sc_pb.VeryEasy
-  easy = sc_pb.Easy
-  medium = sc_pb.Medium
-  medium_hard = sc_pb.MediumHard
-  hard = sc_pb.Hard
-  harder = sc_pb.Harder
-  very_hard = sc_pb.VeryHard
-  cheat_vision = sc_pb.CheatVision
-  cheat_money = sc_pb.CheatMoney
-  cheat_insane = sc_pb.CheatInsane
+  very_easy: sc_pb.Difficulty.VERYEASY,
+  easy: sc_pb.Difficulty.EASY,
+  medium: sc_pb.Difficulty.MEDIUM,
+  medium_hard: sc_pb.MEDIUMHARD,
+  hard: sc_pb.Difficulty.HARD,
+  harder: sc_pb.Difficulty.HARDER,
+  very_hard: sc_pb.Difficulty.VERYHARD,
+  cheat_vision: sc_pb.Difficulty.CHEATVISION,
+  cheat_money: sc_pb.Difficulty.CHEATMONEY,
+  cheat_insane: sc_pb.Difficulty.CHEATINSANE,
 })
 
 const BotBuild = Enum.IntEnum('BotBuild', {

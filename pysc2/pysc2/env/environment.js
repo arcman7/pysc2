@@ -1,8 +1,9 @@
+
 /*Javascript Reinforcement Learning Environment API.*/
 
-const path = require('path')
+const path = require('path') //eslint-disable-line
+const Enum = require('python-enum') //eslint-disable-line
 const collections = require(path.resolve(__dirname, './collections.js'))
-const Enum = require('python-enum')
 const pythonUtils = require(path.resolve(__dirname, '..', 'lib', 'pythonUtils.js'))
 const { ABCMeta } = pythonUtils
 
