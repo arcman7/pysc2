@@ -1,11 +1,10 @@
 // A Starcraft II environment.
 const s2clientprotocol = require('s2clientprotocol')
 const Enum = require('python-enum')
+const deque = require('collections/deque')
 const path = require("path")
 const maps = require(path.resolve(__dirname, '..', 'maps')) // need to verify
 const run_configs = require(path.resolve(__dirname, '..', 'run_configs')) // need to verify
-const collections = require(path.resolve(__dirname, 'collections.js'))
-const all_collections_generated_classes = require(path.resolve(__dirname, 'all_collections_generated_classes.js'))
 const environment = require(path.resolve(__dirname, 'environment.js'))
 const actions = require(path.resolve(__dirname, '..', 'lib', 'actions.js'))
 const features = require(path.resolve(__dirname, '..', 'lib', 'features.js'))
@@ -17,7 +16,7 @@ const stopwatch = require(path.resolve(__dirname, '..', 'lib', 'stopwatch.js'))
 const pythonUtils = require(path.resolve(__dirname, '..', 'lib', 'pythonUtils.js'))
 
 const { performance } = require('perf_hooks')
-const { randomChoice, any, zip, assert} = pythonUtils
+const { any, assert, isinstance, namedtuple, randomChoice, ValueError, zip } = pythonUtils
 const { common_pb, sc2api_pb } = s2clientprotocol
 const sc_common = common_pb
 const sc_pb = sc2api_pb
@@ -76,28 +75,27 @@ function to_list(arg) {
 }
 
 function get_default(a, b) {
-  if(a == null) {
+  if (a == null) {
     return b
   } else {
     return a
   }
 }
-
-class Agent extends all_collections_generated_classes.Agent {
+class Agent extends namedtuple('Agent', ['race', 'name']) {
 // Define an Agent. It can have a single race or a list of races.
   constructor(race, name = null) {
-    super(to_list(race), name || "<unknown>")
+    super(to_list(race), name || '<unknown>')
   }
 }
 
-class Bot extends all_collections_generated_classes.Bot {
+class Bot extends namedtuple('Bot', ['race', 'difficulty', 'build']) {
 // Define a Bot. It can have a single or list of races or builds.
   constructor(race, difficulty, build = null) {
-    super(to_list(race), difficulty, to_list(build or BotBuild.random))
+    super(to_list(race), difficulty, to_list(build || BotBuild.random))
   }
 }
 
-const _DelayedAction = all_collections_generated_classes._DelayedAction 
+_DelayedAction = namedtuple('DelayedAction', ['game_loop', 'action'])
 
 const REALTIME_GAME_LOOP_SECONDS = 1 / 22.4
 const MAX_STEP_COUNT = 524000 // The game fails above 2^19=524288 steps.
@@ -193,73 +191,68 @@ class SC2Env extends environment.Base {
     */
 
     if (_only_use_kwargs) {
-      throw new Error("ValueError: All arguments must be passed as keyword arguments.")
+      throw new ValueError('All arguments must be passed as keyword arguments.')
     }
 
-    if (!(players)) {
-      throw new Error("ValueError: You must spesify the lsit of players.")
+    if (!players) {
+      throw new ValueError('You must spesify the lsit of players.')
     }
 
-    Object.keys(players).forEach((key) => {
-      const p = players[key]
-      if (!(p instanceof (Agent, Bot))) {
-        throw new Error("ValueError: Expected players to be of type Agent or Bot. Got: ${p}")
+    players.forEach((p) => {
+      if (!(isinstance (p, [Agent, Bot]))) {
+        throw new Error(`ValueError: Expected players to be of type Agent or Bot. Got: ${p}`)
       }
     })
 
     const num_players = players.length
     let n_agents = 0
-    Object.keys(players).forEach((key) => {
-      const p = players[key]
-      if(p instanceof Agent) {
+    players.forEach((p) => {
+      if (p instanceof Agent) {
         n_agents += 1
       }
     })
     this._num_agents = n_agents
     this._players = players
 
-    if (!(1 <= num_players <= 2) || !(this._num_agents)) {
-      throw new Error("ValueError: Only 1 or 2 players with at least one agent is supported at the moment")
+    if (!(1 <= num_players && num_players <= 2) || !(this._num_agents)) {
+      throw new ValueError('Only 1 or 2 players with at least one agent is supported at the moment')
     }
 
     if (!map_name) {
-      throw new Error("ValueError: Missing a map name.")
+      throw new ValueError('Missing a map name.')
     }
 
     this._battle_net_map = battle_net_map
-    let map = []
-    Object.keys(to_list(map_name)).forEach((key) => {
-      const name = to_list(map_name)[key]
-      map.push(maps.get(name))
+    this._maps = []
+    to_list(map_name).forEach((name) => {
+      this._maps.push(maps.get(name))
     })
     this._maps = map
     let playercollect = []
-    Object.keys(this._maps).forEach((key) => {
-      const m = this._maps[key]
+    this._maps.forEach((m) => {
       playercollect.push(m.players)
     })
     const min_players = Math.min(...playercollect)
     const max_players = Math.max(...playercollect)
 
     if (this._battle_net_map) {
-      Object.keys(this._maps).forEach((key) => {
-        const m = this._maps[key]
+      this._maps.forEach((m) => {
         if(!m.battle_net_map) {
-          throw new Error("ValueError: ${m.name} isn't known on Battle.net")
+          throw new ValueError(`${m.name} isn't known on Battle.net`)
         }
       })
     }
 
-    if (max_players == 1) {
+    if (max_players === 1) {
       if (this._num_agents !== 1) {
-        throw new Error("ValueError: Single player maps require exactly one Agent.")
+        throw new ValueError('Single player maps require exactly one Agent.')
       }
-    } else if (!(2 <= num_players <= min_players)) {
-      throw new Error("ValueError: Maps support 2 - ${min_players} players, but trying to join with ${num_players}")
+    } else if (!(2 <= num_players && num_players <= min_players)) {
+      throw new ValueError(`Maps support 2 - ${min_players} players, but trying to join with ${num_players}`)
     }
 
-    if (save_replay_episodes && !(replay_dir)) {
-      throw new Error("ValueError: Missing replay_dir")
+    if (save_replay_episodes && !replay_dir) {
+      throw new ValueError('Missing replay_dir')
     }
 
     this._realtime = realtime
@@ -276,7 +269,7 @@ class SC2Env extends environment.Base {
     this._default_score_index = score_index
     this._default_score_multiplier = score_multiplier
     this._default_episode_length = game_steps_per_episode
-    this._run_config = run_configs.get({version})
+    this._run_config = run_configs.get(version)
     this._parallel = run_parallel.RunParallel()  // Needed for multiplayer.
     this._game_info = null
 
@@ -293,46 +286,50 @@ class SC2Env extends environment.Base {
     }
 
     this._action_delay_fns = []
-    Object.keys(agent_interface_format).forEach((key) => {
-      const aif = agent_interface_format[key]
+    agent_interface_format.forEach((aif) => {
       this._action_delay_fns.push(aif._action_delay_fns)
     }) 
     this._interface_formats = agent_interface_format
 
     this._interface_options = []
-    Object.keys(agent_interface_format.entries()).forEach((key) => {
-      const i = key
-      const interface_format = agent_interface_format.entries()
-      this._interface_options.push(this._get_interface({interface_format, require_raw: visualize && i == 0 }))
+    agent_interface_format.forEach((interface_format, i) => {
+      const require_raw = visualize && i === 0
+      this._interface_options.push(this._get_interface(interface_format, require_raw))
     })
-
-    this._launch_game()
-    this._create_join()
-    this._finalize_join()
 
     // apply @sw.decorate
     this.reset = sw.decorate(this.reset.bind(this))
-    this.step = sw.decorate(this.step.bind(this))
-    // check with  @sw.decorate("step_env")
-    //             def step(...)
+    this.step = sw.decorate('step_env')(this.step.bind(this))
+
+    /** the rest of the set up logic is done in _setUpGame which is called inside of the factory function SC2EnvFactory **/
+    // this._launch_game()
+    // this._create_join()
+    // this._finalize_join()
+  }
+
+  async _setUpGame() {
+    await this._launch_game()
+    await this._create_join()
+    this._finalize()
+    return true
   }
 
   _finalize(visualize) {
-    for (var i = 1: i < this._action_delay_fns.lenght(); i++) {
-      this._delayed_actions = [collections.deque()]
+    for (var i = 0; i < this._action_delay_fns.length; i++) {
+      this._delayed_actions = [deque(undefined, 200)]
     }
 
     if (visualize) {
-      this._renderer_human =  renderer_human.RendererHuman()
-      this._renderer_human.init({
+      this._renderer_human =  new renderer_human.RendererHuman()
+      this._renderer_human.init(
         this._controllers[0].game_info(),
         this._controllers[0].data()
-      })
+      )
     } else {
       this._renderer_human = null
     }
     
-    this._metrics = metrics.Metrics(this._map_name)
+    this._metrics = new metrics.Metrics(this._map_name)
     this._metrics.increment_instance()
 
     this._last_score = null
@@ -342,79 +339,79 @@ class SC2Env extends environment.Base {
     this._obs = Array(this._num_agents.length).fill(null)
     this._agent_obs = Array(this._num_agents.length).fill(null)
     this._state = environment.StepType.LAST  // Want to jump to `reset`.
-    console.log("Environment is ready")
+    console.info('Environment is ready')
   }
 
   static _get_interface(agent_interface_format, require_raw) {
     const aif = agent_interface_format
-    const interface = sc_pb.InterfaceOptions({
-      raw: (aif.use_feature_units || 
-        aif.use_unit_counts ||
-        aif.use_raw_units ||
-        require_raw),
-      show_cloaked: aif.show_cloaked,
-      show_burrowed_shadows: aif.show_burrowed_shadows,
-      show_placeholders: aif.show_placeholders,
-      raw_affects_selection: true,
-      raw_crop_to_playable_area: aif.raw_crop_to_playable_area,
-      score = true)
-    })
-    
+    const interfacee = new sc_pb.InterfaceOptions()
+    interfacee.setRaw(aif.use_feature_units || 
+      aif.use_unit_counts ||
+      aif.use_raw_units ||
+      require_raw
+    )
+    interfacee.setShowCloaked(aif.show_cloaked)
+    interfacee.setShowBurrowedShadows(aif.show_burrowed_shadows)
+    interfacee.setShowPlaceholders(aif.show_placeholders)
+    interfacee.setRawAffectsSelection(true)
+    interfacee.setRawCropToPlayableArea(aif.raw_crop_to_playable_area)
+    interfacee.setScore(true)
+
     if (aif.feature_dimensions) {
-      interface.feature_layer.width = aif.camera_width_world_units
+      interfacee.getFeatureLayer().setWidth(aif.camera_width_world_units)
       aif.feature_dimensions.screen.assign_to(
-          interface.feature_layer.resolution)
+        interfacee.getFeatureLayer().getResolution()
+      )
       aif.feature_dimensions.minimap.assign_to(
-          interface.feature_layer.minimap_resolution)
-      interface.feature_layer.crop_to_playable_area = aif.crop_to_playable_area
-      interface.feature_layer.allow_cheating_layers = aif.allow_cheating_layers
+        interfacee.getFeatureLayer().getMinimapResolution()
+      )
+      interfacee.getFeatureLayer().setCropToPlayableArea(aif.crop_to_playable_area)
+      interfacee.getFeatureLayer().setAllowCheatingLayers(aif.allow_cheating_layers)
     }
 
     if (aif.rgb_dimensions) {
-      aif.rgb_dimensions.screen.assign_to(interface.render.resolution)
-      aif.rgb_dimensions.minimap.assign_to(interface.render.minimap_resolution)
+      aif.rgb_dimensions.screen.assign_to(interfacee.getRender().getResolution())
+      aif.rgb_dimensions.minimap.assign_to(interfacee.getRender().getMinimapResolution())
     }
 
-    return interface
+    return interfacee
   }
 
-  _launch_game() {
+  async _launch_game() {
     // Reserve a whole bunch of ports for the weird multiplayer implementation.
     if (this._num_agents > 1) {
-      this._ports = portspicker.pick_unused_ports(this._num_agents * 2)
-      console.log("Ports used for multiplayer: ${this._ports}")
+      this._ports = await portspicker.pick_unused_ports(this._num_agents * 2)
+      console.info(`Ports used for multiplayer: ${this._ports}`)
     } else {
       this._ports = []
     }
 
     // Actually launch the game processes.
     this._sc2_procs = []
-    Object.keys(this._interface_options).forEach((key) => {
-      const interface = this._interface_options[key]
+    this._interface_options.forEach((interfacee) => {
       this._sc2_procs.push(this._run_config.start({
         extra_ports: this._ports,
-        want_rgb: interface.has("render")
+        want_rgb: interfacee.hasRender()
       }))
     })
+    this._sc2_procs = await Promise.all(this._sc2_procs)
     this._controllers = []
-    Object.keys(this._sc2_procs).forEach((key) => {
-      const p = this._sc2_procs[key]
+    this._sc2_procs.forEach((p) => {
       this._controllers.push(p.controller)
     })
 
     if (this._battle_net_map) {
       const available_maps = this._controllers[0].available_maps()
-      available_maps = set(available_maps.battlenet_map_names)
+      available_maps = new Set(available_maps.battlenet_map_names)
       const unavailable = []
-      Object.keys(this._maps).forEach((key) => {
-        const m = this.maps[key]
+      this._maps.forEach((m) => {
         if(!(m.battle_net.includes(available_maps))) {
           unavailable.push(m.name)
         }
       })
 
       if (unavailable) {
-        throw new Error("ValueError: Requested map(s) not in the battle.net cache: ${",".join(unavailable)}")
+        throw new Error(`ValueError: Requested map(s) not in the battle.net cache: ${unavailable.join(',')}`)
       }
     }
   }
@@ -981,6 +978,52 @@ class SC2Env extends environment.Base {
   }
 }
 
+async function SC2EnvFactory(
+    _only_use_kwargs,
+    map_name,
+    battle_net_map,
+    players,
+    agent_interface_format,
+    discount,
+    discount_zero_after_timeout,
+    visualize,
+    step_mul,
+    realtime,
+    save_replay_episodes,
+    replay_dir,
+    replay_prefix,
+    game_steps_per_episode,
+    score_index,
+    score_multiplier,
+    random_seed,
+    disable_fog,
+    ensure_available_actions,
+    version) {
+  const sc2Env = new SC2Env(
+    _only_use_kwargs,
+    map_name,
+    battle_net_map,
+    players,
+    agent_interface_format,
+    discount,
+    discount_zero_after_timeout,
+    visualize,
+    step_mul,
+    realtime,
+    save_replay_episodes,
+    replay_dir,
+    replay_prefix,
+    game_steps_per_episode,
+    score_index,
+    score_multiplier,
+    random_seed,
+    disable_fog,
+    ensure_available_actions,
+    version)
+  await sc2Env._setUpGame()
+  return sc2Env
+}
+
 function crop_and_deduplicate_names(names) {
   /*
   Crops and de-duplicates the passed names.
@@ -1040,5 +1083,6 @@ function crop_and_deduplicate_names(names) {
 
 module.exports = {
   SC2Env,
+  SC2EnvFactory
   crop_and_deduplicate_names,
 }
