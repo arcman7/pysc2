@@ -597,8 +597,8 @@ class SC2Env extends environment.Base {
       this._last_obs_game_loop = null
       this._action_delays = Array(this._num_agents).fill(Array(NUM_ACTION_DELAY_BUCKETS).fill(0)) 
     }
-
-    return this._observe({target_game_loop: 0}) 
+    const target_game_loop = 0
+    return this._observe(target_game_loop) 
   }
 
   step(actions, step_mul = null) {
@@ -620,23 +620,24 @@ class SC2Env extends environment.Base {
     }
 
     const skip = !(this._ensure_available_actions)
-    let temp_actions = []
-    zip(this._features, this._obs, actions).forEach((keys) => {
-      const [f, o, acts] = keys
-      Object.keys(to_list(acts)).forEach((key) => {
-        const a = to_list(acts)[key]
-        temp_actions.push(f.transform_action({o.observation, a, skip_available: skip}))
+    const actionss = []
+    zip(this._features, this._obs, actions).forEach(([f, o, acts]) => {
+     to_list(acts).forEach((a) => {
+        const obs = o.observation || o.getObservation()
+        const func_call = a
+        const skip_available = skip
+        actions.push(f.transform_action(obs, func_call, skip_available))
       })
     })
-    actions = temp_actions
 
-    if (!(this._realtime)) {
-      actions = this._apply_action_delays(actions)
+    if (!this._realtime) {
+      actionss = this._apply_action_delays(actionss)
     }
 
-    zip(this._controllers, actions).forEach((keys) => {
-      const [c,a] = keys
-      this._parallel.run([c.actions, sc_pb.RequestAction({actions: a})])
+    zip(this._controllers, actionss).forEach(([c,a]) => {
+      const actReq = new sc_pb.RequestAction()
+      actReq.setActions(actionss)
+      this._parallel.run([c.actions, actReq])
     })
 
     this._state = environment.StepType.MID
@@ -644,7 +645,7 @@ class SC2Env extends environment.Base {
   }
 
   _step(step_mul = null) {
-    const step_mul = step_mul || this._step_mul
+    step_mul = step_mul || this._step_mul
     if (step_mul <= 0) {
       throw new Error("ValueError: step_mul should be positive, got ${step_mul}")
     }
@@ -652,40 +653,38 @@ class SC2Env extends environment.Base {
     const target_game_loop = this._episode_steps + step_mul
     if (!(this._realtime)) {
       // Send any delayed actions that were scheduled up to the target game loop.
-      const current_game_loop = this._send_delayed_actions({
-        up_to_game_loop: target_game_loop,
-        current_game_loop: this._episode_steps
-      })
-
-      this._step_to({
-        game_loop: target_game_loop,
-        current_game_loop: current_game_loop
-      })
+      const up_to_game_loop = target_game_loop
+      const current_game_loop = this._send_delayed_actions(
+        up_to_game_loop,
+        this._episode_steps, //current game_loop
+      )
+      const game_loop = target_game_loop
+      this._step_to(
+        game_loop,
+        current_game_loop,
+      )
     }
 
-    return this._observe({target_game_loop: target_game_loop})
+    return this._observe(target_game_loop)
   }
 
   _apply_action_delays(actions) {
     // Apply action delays to the requested actions, if configured to.
-    assert(!(this._realtime))
+    assert(!this._realtime, '!this._realtime')
     const actions_now = []
-    zip(actions, this._action_delay_fns, this._delayed_actions).forEach((keys) => {
-      const [actions_for_player, delay_fn, delayed_actions] = keys
+    zip(actions, this._action_delay_fns, this._delayed_actions).forEach(([actions_for_player, delay_fn, delayed_actions]) => {
       let actions_now_for_player = []
       actions_for_player.forEach((action) => {
-        if (delay_fn) {
-          const delay = delay_fn()
-        } else {
-          const delay = 1
-        }
-        if (delay > 1 && Object.keys(action)) { //action.ListFields() //Skip no-ops
-          const game_loop = this._episode_steps + delay - 1
+        const delay = delay_fn ? delay_fn() : 1
+        if (delay > 1 && Object.keys(action.toObject()).length) { //action.ListFields() //Skip no-ops
+          let game_loop = this._episode_steps + delay - 1
+
           // Randomized delays mean that 2 delay actions can be reversed.
           // Make sure that doesn't happen.
           if (delayed_actions) {
-            const game_loop = Math.max(game_loop, delayed_actions[delayed_actions.length - 1].game_loop)
+            game_loop = Math.max(game_loop, delayed_actions[delayed_actions.length - 1].game_loop)
           }
+
           // Don't send an action this frame.
           delayed_actions.push(_DelayedAction(game_loop, action))
         } else {
@@ -697,9 +696,9 @@ class SC2Env extends environment.Base {
     return actions_now
   }
 
-  _send_delayed_actions(up_to_game_loop, current_game_loop){
+  _send_delayed_actions(up_to_game_loop, current_game_loop) {
     // Send any delayed actions scheduled for up to the specified game loop.
-    assert(!(this._realtime))
+    assert(!this._realtime, '!this._realtime')
     while (true) {
       if (!(any(this._delayed_actions))) {
         return current_game_loop
@@ -762,15 +761,16 @@ class SC2Env extends environment.Base {
     function parallel_observe(c, f) {
       const obs = c.observe(target_game_loop)
       const agent_obs = f.transform_obs(obs)
-      return obs, agent_obs
+      return [obs, agent_obs]
     }
 
-    with (this._metrics.measure_observation_time()) {
-      zip(this._controllers, this._features).forEach((keys) => {
-        const [c, f] = keys
-        [this._obs, this._agent_obs] = zip(...this._parallel.run((parallel_observe, c, f)))
-      })
-    }
+    pythonWith(this._metrics.measure_observation_time(), () => {
+      let parallelRuns = zip(this._controllers, this._features)
+        .map(([c, f]) => this._parallel.run([parallel_observe, c, f]))
+      parallelRuns = zip(...parallelRuns)
+      this._obs = parallelRuns[0]
+      this._agent_obs = parallelRuns[1]
+    })
     const bucket = []
     const game_loop = this._agent_obs[0].game_loop[0]
     this._obs.forEach((o) => {
@@ -791,7 +791,7 @@ class SC2Env extends environment.Base {
       if (this._last_step_time !== null) {
         for (let [i, o] of Object.entries(this._obs)) {
           for (const action of obs.actions) {
-            if (action.has("game_loop")) {
+            if (action.hasGameLoop()) {
               const delay = action.game_loop - this._last_obs_game_loop
               if (delay > 0) {
                 const num_slots = this._action_delays[i].length
@@ -832,7 +832,7 @@ class SC2Env extends environment.Base {
     if (this._score_index >= 0) {
       // Game score, not win/loss reward.
       this._agent_obs.forEach((o) => {
-        cur_score.push(o["score_cumulative"][this._score_index])
+        cur_score.push(o['score_cumulative'][this._score_index])
       })
       if (this._episode_steps == 0) {
         // First reward is always 0.
@@ -856,7 +856,7 @@ class SC2Env extends environment.Base {
       } else if (cmd == renderer_human.ActionCmd.RESTART) {
         this._state = environment.StepType.LAST
       } else if (cmd == renderer_human.ActionCmd.QUIT) {
-        throw new Error("KeyboardInterrup: Quit?")
+        throw new Error('KeyboardInterrup: Quit?')
       }
     }
 
@@ -868,7 +868,7 @@ class SC2Env extends environment.Base {
         const discount = 0.0
       }
       if (this._episode_steps >= MAX_STEP_COUNT) {
-        console.log("Cut short to avoid SC2's max step count of 2^19=524288.")
+        console.log('Cut short to avoid SC2\'s max step count of 2^19=524288.')
       }
     }
 
@@ -878,10 +878,10 @@ class SC2Env extends environment.Base {
       }
       let score_val = []
       this._agent_obs.forEach((o) => {
-        score_val.push(o["score_cumulative"][0])
+        score_val.push(o['score_cumulative'][0])
       })
-      console.log("Episode ${this._episode_count} finished after ${this._episode_steps} game steps.\n"
-        "Outcome: ${outcome}, reward: ${reward}, score: ${score_val}")
+      console.info(`Episode ${this._episode_count} finished after ${this._episode_steps} game steps.\n
+        Outcome: ${outcome}, reward: ${reward}, score: ${score_val}`)
     }
 
     function zero_on_first_step(value) {
@@ -894,7 +894,7 @@ class SC2Env extends environment.Base {
 
     let tuple = []
     zip(reward, this._agent_obs).forEach(([r, o]) => {
-      tuple.push(environment.TimeStep({
+      tuple.push(new environment.TimeStep({
         step_type: this._state,
         reward: zero_on_first_step(r * this._score_multiplier),
         discount: zero_on_first_step(discount),
@@ -908,9 +908,9 @@ class SC2Env extends environment.Base {
     // Useful for logging messages into the replay.
     zip(this._controllers, messages).forEach(([c, messages]) =>{
       if (broadcast) {
-        this._parallel.run(c.chat, messages, sc_pb.ActionChat.Broadcast)
+        this._parallel.run(c.chat, messages, new sc_pb.ActionChat.Broadcast())
       } else {
-        this._parallel.run(c.chat, messages, sc_pb.ActionChat.Team)
+        this._parallel.run(c.chat, messages, new sc_pb.ActionChat.Team())
       }
     })
   }
@@ -920,34 +920,34 @@ class SC2Env extends environment.Base {
       prefix = this._map_name
     }
     replay_path = this._run_config.save_replay(this._controllers[0].save_replay(), replay_dir, prefix)
-    console.log("Wrote replay to: ${replay_path}")
+    console.info(`Wrote replay to: ${replay_path}`)
     return replay_path
   }
 
   close() {
-    console.log("Environment Close")
-    if (this.hasAttribute("_metrics") && this._metrics) {
+    console.info('Environment Close')
+    if (this.hasOwnProperty('_metrics') && this._metrics) {
       this._metrics.close()
       this._metrics = null
     }
-    if (this.hasAttribute("_renderer_human") && this._renderer_human) {
+    if (this.hasOwnProperty('_renderer_human') && this._renderer_human) {
       this._renderer_human.close()
       this._renderer_human = null
     }
     // Don't use parallel since it might be broken by an exception.
-    if (this.hasAttribute("_controllers") && this._controllers) {
+    if (this.hasOwnProperty('_controllers') && this._controllers) {
       this._controllers.forEach((c) => {
         c.quit()
       })
       this._controllers = null
     }
-    if (this.hasAttribute("_sc2_procs") && this._sc2_procs) {
+    if (this.hasOwnProperty('_sc2_procs') && this._sc2_procs) {
       this._sc2_procs.forEach((p) => {
         p.close()
       })
       this._sc2_procs = null
     }
-    if (this.hasAttribute("_ports") && this._ports) {
+    if (this.hasOwnProperty('_ports') && this._ports) {
       portspicker.return_ports(this._ports)
       this._ports = null
     }

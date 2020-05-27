@@ -576,8 +576,10 @@ class SC2Env(environment.Base):
     if not self._realtime:
       actions = self._apply_action_delays(actions)
 
-    self._parallel.run((c.actions, sc_pb.RequestAction(actions=a))
-                       for c, a in zip(self._controllers, actions))
+    self._parallel.run(
+      (c.actions, sc_pb.RequestAction(actions=a))
+                       for c, a in zip(self._controllers, actions)
+    )
 
     self._state = environment.StepType.MID
     return self._step(step_mul)
