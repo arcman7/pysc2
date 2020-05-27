@@ -417,8 +417,8 @@ class SC2Env extends environment.Base {
   }
 
   _create_join() {
-  // Create the game, and join it.
-    const map_list = randomChoice(this._maps)
+    // Create the game, and join it.//
+    const map_inst = randomChoice(this._maps)
     this._map_name = map_inst.name
     this._step_mul = Math.max(1, this._default_step_mul || map_inst.step_mul)
     this._score_index = get_default(this._default_score_index, map_inst.score_index)
@@ -429,105 +429,94 @@ class SC2Env extends environment.Base {
     }
 
     // Create the game. Set the first instance as the host.
-    const create = sc_pb.RequestCreateGame({
-      disable_fog: this._disable_fog,
-      realtime: this._realtime
-    })
+    const create = new sc_pb.RequestCreateGame()
+    create.setDisableFog(this._disable_fog)
+    create.setRealtime(this._realtime)
 
     if (this._battle_net_map) {
-      create.battlenet_map_name = map_inst.battle_net
+      create.setBattlenetMapName(map_inst.battle_net)
     } else {
-      create.local_map.map_path = map_inst.path
-      map_data = map_inst.data(this._run_config)
-      if (this._num_agents == 1) {
-        create.local_map.map_data = map_data
+      create.getLocalMap().setMapPath(map_inst.path)
+      const map_data = map_inst.data(this._run_config)
+      if (this._num_agents === 1) {
+        create.getLocalMap().setMapData(map_data)
       } else {
-        Object.keys(this._controllers).map((key) => {
-          const c = this._controllers[key]
-          return c.save_map(map_inst.path, map_data)
+        // Save the maps so they can access it. Don't do it in parallel since SC2
+        // doesn't respect tmpdir on windows, which leads to a race condition:
+        // https://github.com/Blizzard/s2client-proto/issues/102
+        this._controllers.forEach((c) => {
+          c.save_map(map_inst.path, map_data)
         })
       }
     }
 
     if(this._random_seed !== null) {
-      create.random_seed = this._random_seed
+      create.setRandomSeed(this._random_seed)
     }
 
-    Object.keys(this._players).map((key) => {
-      const p = this._players[key]
+    this._players.forEach((p) => {
       if (p instanceof Agent) {
-        return create.player_setup.add({type: sc_pb.Participant})
+        const playerSetup = new sc_pb.PlayerSetup()
+        playerSetup.setType(sc_pb.PlayerType.PARTICIPANT)
+        create.addPlayerSetup(playerSetup)
       } else {
-        return create.player_setup.add({
-          type: sc_pb.Computer,
-          race: randomChoice(p.race),
-          difficulty: p.difficulty,
-          ai_build: randomChoice(p.build)
-        })
+        const playerSetup = new sc_pb.PlayerSetup()
+        playerSetup.setType(sc_pb.PlayerType.COMPUTER)
+        playerSetup.setDifficutly(p.difficulty)
+        playerSetup.setAiBuild(randomChoice(p.build))
+        create.addPlayerSetup(playerSetup)
       }
     })
     this._controllers[0].create_game(create)
 
     // Create the join requests.
-    let agent_players = []
-    Object.keys(this._players).forEach((key) => {
-      const p = this._players[key]
-      if (p instanceof Agent) {
-        agent_players.push(p)
-      }
-    })
-    let sanitized_names
-    Object.keys(agent_players).map((key) => {
-      const p = agent_players[key]
-      return crop_and_deduplicate_names(p.name)
-    })
-
+    const agent_players = this._players.filter((p) => p instanceof Agent)
+    const sanitized_names = crop_and_deduplicate_names(
+      agent_players.map((p) => p.name)
+    )
     const join_reqs = []
-    zip(agent_players, sanitized_names, this._interface_options).forEach((keys) => {
-      const [p, name, interface] = keys
-      const join = sc_pb.RequestCreateGame({options: interface})
-      join.race = randomChoice(p.race)
-      join.player_name = name
+    zip(agent_players, sanitized_names, this._interface_options).forEach(([p, name, interfacee]) => {
+      const join = new sc_pb.RequestJoinGame()
+      join.setOptions(interfacee)
+      join.setRace(randomChoice(p.race))
+      join.setPlayerName(name)
       if (this._ports) {
-        join.shared_port = 0
-        join.server_ports.game_port = this._ports[0]
-        join.server_ports.base_port = this._ports[1]
-        for (var i = 0; i < this._num_agents -1; i++) {
-          join.client_ports.add({
-            game_port: this._ports[i * 2 + 2],
-            base_port: this._ports[i * 2 + 3]
-          })
+        join.setSharedPort(0)
+        join.getServerPorts().setGamePort(this._ports[0])
+        join.getServerPorts().setBasePort(this._ports[1])
+        for (var i = 0; i < this._num_agents; i++) {
+          const ports = new sc_pb.PortSet()
+          port.setGamePort(this._ports[i * 2 + 2])
+          port.setBasePort(this._ports[i * 2 + 3])
+          join.addClientPorts(ports)
         }
       }
       join_reqs.push(join)
     })
     
     // Join the game. This must be run in parallel because Join is a blocking call to the game that waits until all clients have joined.
-    zip(this._controllers, join_reqs).forEach((keys) => {
-      const [c, join] = keys
-      this._parallel.run((c.join_game, join))
+    zip(this._controllers, join_reqs).forEach(([c, join]) => {
+      this._parallel.run([c.join_game, join])
     })
 
-    Object.keys(this._controllers).forEach((key) => {
-      const c = this._controllers[key]
+    this._controllers.forEach((c) => {
       this._game_info = this._parallel(c.game_info)       
     })
 
-    zip(this._game_info, this._interface_options).forEach((keys) => {
-      const [g, interface] = keys
-      if (g.options.render !== interface.render) {
-        console.warn("Actual interface options don't match requested options: \n"
-          "Requested: ${interface} \n\nActual: ${g.options}")
+    zip(this._game_info, this._interface_options).forEach(([g, interfacee]) => {
+      if (g.getOptions().getRender() !== interfacee.getRender()) {
+        console.warn(`Actual interface options don't match requested options: \n
+          Requested: ${interfacee} \n\nActual: ${g.options}`)
       }
     })
 
-    zip(this._game_info, this._interface_formats).forEach((keys) => {
-      const [g, aif] = keys
-      this._features = [features.features_from_game_info({
+    this._features = zip(this._game_info, this._interface_formats)
+      .map(([g, aif]) => {
+      return features.features_from_game_info({
         game_info: g,
         agent_interface_format: aif,
-        map_name: this._map_name
-      })]
+        map_name: this._map_name,
+      })
     })
   }
 
@@ -545,22 +534,13 @@ class SC2Env extends environment.Base {
   }
 
   observation_spec() {
-  // Look at Features for full specs.
-    let tuple = []
-    Object.keys(this._features).forEach((key) => {
-      const f = this._features[key]
-      tuple.push(f.observation_spec())
-    })
-    return tuple 
+    // Look at Features for full specs.//
+    return this._features.map((f) => f.observation_spec())
   }
 
   action_spec() {
-    let tuple = []
-    Object.keys(this._features).forEach((key) => {
-      const f = this._features[key]
-      tuple.push(f.action_spec())
-    })
-    return tuple
+    //Look at Features for full specs.//
+    return this._features.map((f) => f.action_spec())
   }
 
   action_delays() {
@@ -575,22 +555,21 @@ class SC2Env extends environment.Base {
     Raises:
       ValueError: If called when not in realtime mode.
     */
-    if (!(this._realtime)) {
+    if (!this._realtime) {
       throw new Error("ValueError: This method is only supported in realtime mode.")
     }
     return this._action_delays
   }
 
   _restart() {
-    if (this._players.length == 1 && this._players[0].race == 1 && this._maps.length == 1) {
+    if (this._players.length === 1 && this._players[0].race.length == 1 && this._maps.length == 1) {
       // Need to support restart for fast-restart of mini-games.
       this._controllers[0].restart()
     } else {
       if (this._controllers.length > 1) {
-        Object.keys(this._controllers).map((key) => {
-          const c = this._controllers[key]
-          return this._parallel.run(c.leave)
-        })
+        this._parallel.run(
+          this._controllers.map((c) => c.leave)
+        )
       }
       this._create_join()
     }
@@ -605,13 +584,11 @@ class SC2Env extends environment.Base {
     }
 
     this._episode_count += 1
-    let races = []
-    const array = this._features[0].requested_races.items().sort()
-    Object.keys(array).forEach((key) => {
-      const r = array[key]
-      races.push(Race(r).name)
-    })
-    console.log("Starting episode ${this._episode_count}: [${", ".join(races)}] on ${this._map_name}")
+    const sorted = Object.keys(this._features[0].requested_races)
+      .sort()
+      .map((key) => [key, this._features[0].requested_races[key]]) // [key, value]
+    const races = sorted.map(([_, r]) => Race(r).name)
+    console.info(`Starting episode ${this._episode_count}: [${races.join(', ')}] on ${this._map_name}`)
     this._metrics.increment_episode()
     this._last_score = Array(this._num_agents.length).fill(0)
     this._state = environment.StepType.FIRST
@@ -659,7 +636,7 @@ class SC2Env extends environment.Base {
 
     zip(this._controllers, actions).forEach((keys) => {
       const [c,a] = keys
-      this._parallel.run((c.actions, sc_pb.RequestAction({actions: a})))
+      this._parallel.run([c.actions, sc_pb.RequestAction({actions: a})])
     })
 
     this._state = environment.StepType.MID
