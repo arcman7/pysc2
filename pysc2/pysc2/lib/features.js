@@ -829,36 +829,35 @@ function features_from_game_info(game_info, agent_interface_format = null, map_n
   let fl_opts
   let feature_dimensions
   let camera_width_world_units
-  if (game_info.options.has('features_layer')) {
-    fl_opts = game_info.options.feature_layer
+  if (game_info.getOptions().hasFeatureLayer()) {
+    fl_opts = game_info.getOptions().getFeatureLayer()
     feature_dimensions = new Dimensions({
-      screen: [fl_opts.resolution.x, fl_opts.resolution.y],
-      minimap: [fl_opts.minimap_resolution.x, fl_opts.minimap_resolution.y],
+      screen: [fl_opts.getResolution().getX(), fl_opts.getResolution().getY()],
+      minimap: [fl_opts.getMinimapResolution().getX(), fl_opts.getMinimapResolution().getY()],
     })
-    camera_width_world_units = game_info.options.feature_layer.width
+    camera_width_world_units = game_info.getOptions().getFeatureLayer().getWidth()
   } else {
     feature_dimensions = null
     camera_width_world_units = null
   }
   let rgb_opts
   let rgb_dimensions
-  if (game_info.options.has("render")) {
-    rgb_opts = game_info.options.render
+  if (game_info.getOptions().hasRender()) {
+    rgb_opts = game_info.getOptions().getRender()
     rgb_dimensions = new Dimensions({
-      screen: [rgb_opts.resolution.x, rgb_opts.resolution.y],
-      minimap: [rgb_opts.minimap_resolution.x, rgb_opts.minimap_resolution.y],
+      screen: [rgb_opts.getResolution().getX(), rgb_opts.getResolution().getY()],
+      minimap: [rgb_opts.getMinimapResolution().getX(), rgb_opts.getMinimapResolution().getY()],
     })
   } else {
     rgb_dimensions = null
   }
 
-  const map_size = game_info.start_raw.map_size
+  const map_size = game_info.getStartRaw().getMapSize()
 
   const requested_races = {}
-  Object.keys(game_info.player_info).forEach((key) => {
-    const info = game_info.player_info[key]
-    if (info.type !== sc_pb.Observer) {
-      requested_races[info.player_id] = info.race_requested
+  game_info.getPlayerInfo().forEach((info) => {
+    if (info.getType() !== sc_pb.PlayerType.OBSERVER) {
+      requested_races[info.getPlayerId()] = info.getRaceRequested()
     }
   })
 
