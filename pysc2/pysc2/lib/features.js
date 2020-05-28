@@ -233,6 +233,7 @@ class Feature extends all_collections_generated_classes.Feature {
 
   constructor(kwargs) {
     super(kwargs)
+    // javascript only set up
     this.color = sw.decorate(this.color)
   }
 

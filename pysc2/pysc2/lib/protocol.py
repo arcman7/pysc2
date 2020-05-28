@@ -90,7 +90,7 @@ class StarcraftProtocol(object):
     if self._sock:
       self._sock.close()
       self._sock = None
-    self._status = Status.quit
+    self._status = Status.quit 
 
   @sw.decorate
   def read(self):

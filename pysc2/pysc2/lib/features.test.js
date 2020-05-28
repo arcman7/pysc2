@@ -25,9 +25,6 @@ function hideSpecificActions(hide_specific_actions) {
     })
   )
 }
-function eqSet(as, bs) {
-  return as.size === bs.size && all(isIn(bs), as) //eslint-disable-line
-}
 function all(pred, as) {
   for (var a of as) if (!pred(a)) return false; //eslint-disable-line
   return true
