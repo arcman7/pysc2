@@ -1,3 +1,4 @@
+const os = require('os') //eslint-disable-line
 const s2clientprotocol = require('s2clientprotocol') //eslint-disable-line
 
 const { common_pb, raw_pb, spatial_pb, ui_pb } = s2clientprotocol
@@ -66,6 +67,14 @@ function eq(a, b) {
     return b.__eq__(a)
   }
   return a === b
+}
+
+function expanduser(path) {
+  const homedir = os.homedir()
+  path = path.replace(/~user/g, homedir)
+  path = path.replace(/~/g, homedir)
+  path = path.replace(/\\/g, '/')
+  return path
 }
 
 function getArgNames(func) {
@@ -171,6 +180,52 @@ function map(func, collection) {
   Object.keys(copy).forEach((key) => {
     collection[key] = func(collection[key])
   })
+}
+
+function namedtuple(name, fields) {
+  let consLogic = '';
+  let consArgs = '';
+  fields.forEach((field, i) => {
+    consArgs += i < fields.length - 1 ? `${field}, ` : `${field}`;
+    consLogic += i < fields.length - 1 ? `this.${field} = ${field};\n    ` : `this.${field} = ${field};`;
+  });
+  const classStr = `const _fields = ${JSON.stringify(fields)}; return class ${name} extends Array {
+  static get classname() { return '${name}' }
+  static get _fields() { return ${JSON.stringify(fields)} }
+  constructor(${consArgs}) {
+    if (typeof arguments[0] === 'object' && arguments.length === 1 && _fields.length > 1) {
+      const args = []
+      const kwargs = arguments[0]
+      _fields.forEach((field, index) => {
+        args[index] = kwargs[field]
+      })
+      super(...args)
+      _fields.forEach((field, index) => {
+        args[index] = kwargs[field]
+        this[field] = kwargs[field]
+      })
+      return
+    }
+    super(...arguments)
+    ${consLogic}
+  }
+  static _make(kwargs) {
+    return new this.prototype.constructor(kwargs);
+  }
+  _replace(kwargs) {
+    this.constructor._fields.forEach((field) => {
+        kwargs[field] = kwargs[field] || this[field];
+    });
+    return this.constructor._make(kwargs);
+  }
+  __reduce__() {
+    return [this.constructor, this.constructor._fields.map((field) => this[field])];
+  }
+${fields.map((field, index) => { //eslint-disable-line
+    return `  get ${field}() {\n    return this[${index}]\n  }\n  set ${field}(val) {\n    this[${index}] = val; return val\n  }`
+  }).join('\n')}
+}`;
+  return Function(classStr)() //eslint-disable-line
 }
 
 function randomUniform(min, max) {
@@ -481,6 +536,7 @@ module.exports = {
   Array,
   DefaultDict,
   eq,
+  expanduser,
   getArgsArray,
   len,
   int,
@@ -488,6 +544,7 @@ module.exports = {
   isinstance,
   isObject,
   map,
+  namedtuple,
   NotImplementedError,
   randomUniform,
   setUpProtoAction,
