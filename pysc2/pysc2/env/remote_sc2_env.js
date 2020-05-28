@@ -1,0 +1,1 @@
+A Starcraft II environment for playing using remote SC2 instances.

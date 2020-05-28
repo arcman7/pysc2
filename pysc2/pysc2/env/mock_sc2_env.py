@@ -245,7 +245,6 @@ class SC2TestEnv(_TestEnvironment):
     self._features = [
         features.Features(interface_format, map_size=DUMMY_MAP_SIZE)
         for interface_format in agent_interface_format]
-
     super(SC2TestEnv, self).__init__(
         num_agents=num_agents,
         action_spec=tuple(f.action_spec() for f in self._features),

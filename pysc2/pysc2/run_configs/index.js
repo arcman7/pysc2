@@ -21,9 +21,7 @@ function get(version = null) {
   }
   if (FLAGS.sc2_run_config === null && FLAGS.sc2_run_config === 'null') {
     // Find the highest priority as default.
-    const highest = Object.keys(configs).sort((kA, kB) => {
-      return (configs[kB].priority() || 0) - (configs[kA].priority() || 0)
-    })[0]
+    const highest = Object.keys(configs).sort((kA, kB) => (configs[kB].priority() || 0) - (configs[kA].priority() || 0))[0]
     return new configs[highest](version)
   }
   try {
