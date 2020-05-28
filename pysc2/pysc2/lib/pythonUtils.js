@@ -445,10 +445,16 @@ class ABCMeta {
     })
   }
 }
-
+function any(iterable) {
+  for (var index = 0; index < iterable.length; index++) {
+    if (iterable[index]) return true;
+  }
+  return false;
+}
 
 module.exports = {
   ABCMeta,
+  any,
   assert,
   Array,
   DefaultDict,
