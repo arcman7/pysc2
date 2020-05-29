@@ -32,7 +32,14 @@ class Executor {
       self.resolve = res
       self.reject = rej
     })
-    this._wait = Promise.all(funcs.map((f) => f()))
+    this._wait = Promise.all(funcs.map((f) => {
+      try { //eslint-disable-line
+        return f()
+      } catch (err) {
+        // return Promise.reject(err)
+        throw err
+      }
+    }))
     this._wait.then((results) => self.resolve(results))
     this._wait.catch((err) => self.reject(err))
   }
@@ -64,7 +71,7 @@ class RunParallel {
     Raises:
       Propagates the first exception encountered in one of the functions.
     */
-    funcs = funcs.map((f) => (typeof f === 'function' ? f : partial(...f)))
+    funcs = funcs.map((f) => (typeof f === 'function' ? f : partial(f)))
     if (this._executor) {
       this.shutdown()
     }
