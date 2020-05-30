@@ -47,4 +47,6 @@ const Buffs = Enum.IntEnum('Buffs', {
   TemporalField: 121,
   ViperConsumeStructure: 59,
   VoidRaySpeedUpgrade: 288,
-}) 
+})
+
+module.exports - { Buffs }
