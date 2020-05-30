@@ -288,5 +288,9 @@ function get_unit_type(unit_id) {
 }
 
 module.exports = {
+  Neutral,
+  Protoss,
+  Terran,
+  Zerg,
   get_unit_type,
 }
