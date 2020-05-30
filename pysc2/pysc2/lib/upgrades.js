@@ -93,3 +93,5 @@ const Upgrades = Enum.IntEnum('Upgrades', {
   ZergMissileWeaponsLevel2: 60,
   ZergMissileWeaponsLevel3: 61,
 })
+
+module.exports = { Upgrades }
