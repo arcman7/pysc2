@@ -13,6 +13,9 @@ class Ladder extends lib.Map {
   }
 }
 
+Ladder._subclasses = []
+lib.Map._subclasses.push(Ladder)
+
 const ladder_seasons = [
   'Ladder2017Season1',
   'Ladder2017Season2',
@@ -38,6 +41,8 @@ ladder_seasons.forEach((name) => {
       return directory
     }
   }
+  Map._subclasses.push(modExports[name])
+  Ladder._subclasses.push(modExports[name])
 })
 
 const ladder_maps = [
@@ -119,6 +124,8 @@ ladder_maps.forEach(([parent, bnet, players]) => {
       return bnet
     }
   }
+  lib.Map._subclasses.push(modExports[name])
+  Ladder._subclasses.push(modExports[name])
 })
 
 module.exports = modExports

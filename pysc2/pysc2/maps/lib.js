@@ -51,42 +51,6 @@ class Map {
     players: Max number of players for this map.
     battle_net: The map name on battle.net, if it exists.
   */
-  static get directory() {
-    return ''
-  }
-
-  static get filename() {
-    return null
-  }
-
-  static get download() {
-    return null
-  }
-
-  static get game_steps_per_episode() {
-    return 0
-  }
-
-  static get step_mul() {
-    return 8
-  }
-
-  static get score_index() {
-    return -1
-  }
-
-  static get score_multiplier() {
-    return 1
-  }
-
-  static get players() {
-    return null
-  }
-
-  static get battle_net() {
-    return null
-  }
-
   get path() {
     //The full path to the map file: directory, filename and file ending.//
     if (this.filename) {
@@ -116,12 +80,64 @@ class Map {
   }
 
   toString() {
-    
+    return [
+      this.path ? ` file: ${this.path}` : null,
+      this.battle_net ? ` battle_net: ${this.battle_net}` : null,
+      ` players: ${this.players}, score_index: ${this.score_index}, score_multiplier: ${this.score_multiplier}\n\tstep_mul: ${this.step_mul}, game_steps_per_episode: ${this.game_steps_per_episode}`,
+    ].filter((str) => str !== null).join('\n')
   }
+
+  static all_subclasses() {
+    return Map._subclasses
+  }
+}
+
+Map._subclasses = []
+Map.directory = ''
+Map.filename = null
+Map.download = null
+Map.game_steps_per_episode = 0
+Map.step_mul = 8
+Map.score_index = -1
+Map.score_multiplier = 1
+Map.players = null
+Map.battle_net = null
+
+function get_maps() {
+  //Get the full dict of maps {map_name: map_class}.//
+  const maps = {}
+  for (let i = 0; i < Map._subclasses.length; i++) {
+    const mp = Map._subclasses[i]
+    if (mp.filename || mp.battle_net) {
+      const map_name = mp.name
+      if (maps[map_name]) {
+        throw new DuplicateMapError(`Duplicate map found: ${map_name}`)
+      }
+      maps[map_name] = mp
+    }
+  }
+  return maps
+}
+
+function get(map_name) {
+  //Get an instance of a map by name. Errors if the map doesn't exist.//
+  if (map_name instanceof Map) {
+    return map_name
+  }
+  // Get the list of maps. This isn't at module scope to avoid problems of maps
+  // being defined after this module is imported.
+  const maps = get_maps()
+  const map_class = maps.get(map_name)
+  if (map_class) {
+    return new map_class() //eslint-disable-line
+  }
+  throw new NoMapError(`Map doesn't exist: ${map_name}`)
 }
 
 module.exports = {
   DuplicateMapError,
+  'get': get,
+  get_maps,
   Map,
   NoMapError,
 }
