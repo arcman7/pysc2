@@ -54,7 +54,7 @@ function assertAvail(expected) {
     throw new Error(`Sets not equal:\n   expected:\n    [${setForEach(actual_names, (val, _, results) => results.push(val))}]\n   recieved:\n    [${setForEach(compareTo, (val, _, results) => results.push(val))}]`)
   }
 }
-describe('features:', () => {
+describe('features.js:', () => {
   beforeEach(() => {
     const playerCommon = new sc_pb.PlayerCommon()
     playerCommon.setPlayerId(1)

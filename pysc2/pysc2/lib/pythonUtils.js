@@ -26,6 +26,13 @@ class ABCMeta {
   }
 }
 
+function any(iterable) {
+  for (var index = 0; index < iterable.length; index++) {
+    if (iterable[index]) return true
+  }
+  return false
+}
+
 function assert(cond, errMsg) {
   if (cond === false) {
     throw new Error(errMsg)
@@ -520,13 +527,6 @@ function nonZero(arr) {
     }
   }
   return [rows, cols]
-}
-
-function any(iterable) {
-  for (var index = 0; index < iterable.length; index++) {
-    if (iterable[index]) return true;
-  }
-  return false;
 }
 
 module.exports = {
