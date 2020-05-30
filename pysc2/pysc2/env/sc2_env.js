@@ -1,4 +1,3 @@
-// A Starcraft II environment.
 const path = require('path') //eslint-disable-line
 const { performance } = require('perf_hooks') //eslint-disable-line
 const s2clientprotocol = require('s2clientprotocol') //eslint-disable-line
@@ -22,6 +21,9 @@ const sc_common = common_pb
 const sc_pb = sc2api_pb
 const sw = stopwatch.sw
 const actions_lib = actions
+
+/* A Starcraft II environment. */
+
 
 const possible_results = {}
 possible_results[sc_pb.Result.VICTORY] = 1
