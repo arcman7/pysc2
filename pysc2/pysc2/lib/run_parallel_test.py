@@ -21,7 +21,7 @@ from __future__ import print_function
 import threading
 
 from absl.testing import absltest
-import run_parallel
+from pysc2.lib import run_parallel
 
 
 class Barrier(object):

@@ -17,7 +17,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-# import functools
+import functools
 from absl import logging
 
 from absl.testing import absltest
@@ -37,9 +37,10 @@ from s2clientprotocol import error_pb2 as sc_error
 from s2clientprotocol import raw_pb2 as sc_raw
 from s2clientprotocol import sc2api_pb2 as sc_pb
 
-import my_functools
+# import my_functools
 
-wraps = my_functools.wraps
+wraps = functools.wraps
+# wraps = my_functools.wraps
 
 class TestCase(absltest.TestCase):
   """A test base class that enables stopwatch profiling."""

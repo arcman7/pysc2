@@ -31,7 +31,7 @@ from pysc2.lib import features
 from pysc2.lib import point
 from pysc2.lib import renderer_ascii
 from pysc2.lib import units
-import utils
+from pysc2.tests import utils
 
 from s2clientprotocol import common_pb2 as sc_common
 from s2clientprotocol import sc2api_pb2 as sc_pb

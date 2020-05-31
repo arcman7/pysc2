@@ -22,7 +22,7 @@ from absl.testing import absltest
 
 from pysc2 import run_configs
 from pysc2.lib import stopwatch
-import utils
+from pysc2.tests import utils
 
 
 class TestPing(utils.TestCase):

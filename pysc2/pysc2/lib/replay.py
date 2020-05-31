@@ -27,6 +27,8 @@ from pysc2.run_configs import lib as run_configs_lib
 
 def get_replay_version(replay_data):
   replay_io = six.BytesIO()
+  print('(O*&(*&(*&^(*&^(*&^(&*^(*&^ replay_data:')
+  print(replay_data)
   replay_io.write(replay_data)
   replay_io.seek(0)
   archive = mpyq.MPQArchive(replay_io).extract()

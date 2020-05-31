@@ -25,7 +25,7 @@ import numpy as np
 from pysc2 import maps
 from pysc2 import run_configs
 from pysc2.lib import features
-import utils
+from pysc2.tests import utils
 
 from s2clientprotocol import common_pb2 as sc_common
 from s2clientprotocol import sc2api_pb2 as sc_pb
