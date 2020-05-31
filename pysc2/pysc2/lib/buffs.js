@@ -49,4 +49,4 @@ const Buffs = Enum.IntEnum('Buffs', {
   VoidRaySpeedUpgrade: 288,
 })
 
-module.exports - { Buffs }
+module.exports = { Buffs }
