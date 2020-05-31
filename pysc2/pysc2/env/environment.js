@@ -3,11 +3,10 @@
 
 const path = require('path') //eslint-disable-line
 const Enum = require('python-enum') //eslint-disable-line
-const collections = require(path.resolve(__dirname, './collections.js'))
 const pythonUtils = require(path.resolve(__dirname, '..', 'lib', 'pythonUtils.js'))
-const { ABCMeta } = pythonUtils
+const { ABCMeta, namedtuple } = pythonUtils
 
-class TimeStep extends collections.namedtuple('TimeStep', ['step_type', 'reward', 'discount', 'observation']) {
+class TimeStep extends namedtuple('TimeStep', ['step_type', 'reward', 'discount', 'observation']) {
   /*Returned with every call to `step` and `reset` on an environment.
 
   A `TimeStep` contains the data emitted by an environment at each step of

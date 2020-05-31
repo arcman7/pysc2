@@ -51,6 +51,12 @@ class RunParallel(object):
     Raises:
       Propagates the first exception encountered in one of the functions.
     """
+    """
+    self._parallel.run((c.act, a) for c, a in zip(self._controllers, actions))
+    self._obs, self._agent_obs = zip(*self._parallel.run(
+      (parallel_observe, c, f)
+      for c, f in zip(self._controllers, self._features)))
+    """
     funcs = [f if callable(f) else functools.partial(*f) for f in funcs]
     if len(funcs) == 1:  # Ignore threads if it's not needed.
       return [funcs[0]()]

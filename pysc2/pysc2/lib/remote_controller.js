@@ -399,7 +399,7 @@ class RemoteController {
 
   actions(req_action) {
     //Send a `sc_pb.RequestAction`, which may include multiple actions.//
-    if (FLAGS.sc2_log_actions && req_action.getActionsList) {
+    if (FLAGS.sc2_log_actions && req_action.getActionsList().length) {
       process.stderr.write(' Sending observer actions '.center(60, '>') + '\n')
       const acts = req_action.getActionsList()
       acts.forEach((act) => {
@@ -458,9 +458,9 @@ class RemoteController {
     })
   }
 
-  save_replay() {
+  async save_replay() {
     //Save a replay, returning the data.//
-    const res = this._client.send({
+    const res = await this._client.send({
       save_replay: new sc_pb.RequestSaveReplay()
     })
     return res.data
