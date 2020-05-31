@@ -41,31 +41,33 @@ require('@tensorflow/tfjs-node'); //eslint-disable-line
 const foo = tf.tensor([1])
 const TensorMeta = foo.constructor // currently unknown where else to get this value
 module.exports = {
-  cumsum() {
-    return tf.cumsum(...arguments).dataSync() //eslint-disable-line
-  },
+  absolute: tf.abs,
+  abs: tf.abs,
   arange() {
     if (arguments.length === 1) {
       return tf.range(0, arguments[0])
     }
     return tf.range(...arguments)
   },
-  range: tf.range,
-  ndarray: tf.tensor,
   array: tf.tensor,
-  TensorMeta, // used for type checking
-  zeros: tf.zeros,
-  ones: tf.ones,
-  absolute: tf.abs,
-  abs: tf.abs,
-  tensor: tf.tensor,
-  mod: tf.mod,
-  where: tf.where,
-  mean: tf.mean,
   argMin: tf.argMin,
   argMax: tf.argMax,
-  norm: tf.norm,
-  round: tf.round,
+  cumsum() {
+    return tf.cumsum(...arguments).dataSync() //eslint-disable-line
+  },
+  getValueAt(arr, index) {
+    if (arr instanceof TensorMeta) {
+      arr = arr.arraySync()
+    }
+    if (Number.isInteger(index)) {
+      return arr[index]
+    }
+    let curVal = arr
+    for (let i = 0; i < index.length; i++) {
+      curVal = curVal[index[i]]
+    }
+    return curVal
+  },
   getCol(tensor, col) {
     const temp = tf.transpose(tensor)
     return temp.slice(col, 1)
@@ -73,10 +75,28 @@ module.exports = {
   greater: tf.greater,
   greaterEqual: tf.greaterEqual,
   less: tf.less,
+  mean: tf.mean,
+  mod: tf.mod,
+  ndarray: tf.tensor,
+  norm: tf.norm,
+  ones: tf.ones,
+  round: tf.round,
+  range: tf.range,
   stack: tf.stack,
+  tensor: tf.tensor,
+  TensorMeta, // used for type checking
   transpose: tf.transpose,
+  where: tf.where,
+  whereAsync: tf.whereAsync,
   util: tf.util,
+  zeros: tf.zeros,
   zip(tensorA, tensorB) {
+    if (Array.isArray(tensorA)) {
+      tensorA = tf.tensor(tensorA)
+    }
+    if (Array.isArray(tensorB)) {
+      tensorA = tf.tensor(tensorB)
+    }
     return tf.transpose(tf.stack([tensorA, tensorB]))
-  }
+  },
 }
