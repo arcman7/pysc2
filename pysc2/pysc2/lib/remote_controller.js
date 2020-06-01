@@ -471,7 +471,7 @@ class RemoteController {
     let req = debug_commands
     if (debug_commands instanceof sc_debug.DebugCommand) {
       req = new sc_pb.RequestDebug()
-      req.addDebug(debug_commands)
+      req.setDebugList(debug_commands)
     } else if (!(debug_commands instanceof sc_pb.RequestDebug)) {
       throw new Error(`debug_commands an instance of either sc_debug.DebugCommand or sc2ai_pb.RequestDebug, got instead:\n ${debug_commands}`)
     }

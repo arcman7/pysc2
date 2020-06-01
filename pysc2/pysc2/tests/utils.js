@@ -11,7 +11,7 @@ const np = require(path.resolve(__dirname, '..', 'lib', 'numpy.js'))
 
 const pythonUtils = require(path.resolve(__dirname, '..', 'lib', 'pythonUtils.js'))
 
-const { assert, String } = pythonUtils //eslint-disable-line
+const { assert, snakeToPascal, String } = pythonUtils //eslint-disable-line
 
 const sc_common = s2clientprotocol.common_pb
 const sc_debug = s2clientprotocol.debug_pb
@@ -36,7 +36,7 @@ class TestCase {
   }
 }
 
-function get_units(obs, filter_fn = null, owner = null, unit_type = null, tag = null) {
+function get_units({ obs, filter_fn = null, owner = null, unit_type = null, tag = null }) {
   //Return a dict of units that match the filter.//
   if (unit_type && !Array.isArray(unit_type)) {
     unit_type = [unit_type]
@@ -54,9 +54,9 @@ function get_units(obs, filter_fn = null, owner = null, unit_type = null, tag = 
   return out
 }
 
-function get_unit() {
+function get_unit(kwargs) {
   //Return the first unit that matches, or None.//
-  const out = get_unit(...arguments) //eslint-disable-line
+  const out = get_unit(kwargs) //eslint-disable-line
   return out[Object.keys(out)[0]] || null
 }
 
@@ -75,8 +75,16 @@ function only_in_game(func) {
   return decorator
 }
 
+const noPlayerIdNeeded = 0
+
 class GameReplayTestCase extends TestCase {
   //Tests that run through a game, then verify it still works in a replay.//
+  constructor() {
+    super()
+    this.move_camera = only_in_game.call(this, this.move_camera.bind(this))
+    this.raw_unit_command = only_in_game.call(this, this.raw_unit_command.bind(this))
+    this.debug = only_in_game.call(this, this.debug.bind(this))
+  }
 
   static setup(kwargs) {
     //A decorator to replace unittest.setUp so it can take args.//
@@ -251,7 +259,7 @@ class GameReplayTestCase extends TestCase {
     return Promise.all(this._controllers.map((c) => c.act(action)))
   }
 
-  async raw_unit(player, ability_id, unit_tags, pos = null, target = null) {
+  async raw_unit_command(player, ability_id, unit_tags, pos = null, target = null) {
     //Issue a raw unit command.//
     if (typeof ability_id === 'string') {
       ability_id = actions.FUNCTION[ability_id].ability_id
@@ -276,15 +284,37 @@ class GameReplayTestCase extends TestCase {
       cmd.setTargetUnitTag(target)
     }
     const response = await this._controllers[player].act(action)
-    Object.keys(response.result).forEach((key) => {
+    const keys = Object.keys(response.result)
+    for (let i = 0; i < keys.length; i++) {
+      const key = keys[i]
       const result = response.result[key]
       assert(result == sc_error.ActionResult.SUCCESS, 'result == sc_error.ActionResult.SUCCESS')
-    })
+    }
   }
 
-  debug(player = 0, { game_state }) {
+  debug(player = 0, { create_unit, draw, end_game, game_state, kill_unit, test_process, score, unit_value }) {
     const req = new sc_debug.DebugCommand()
-    req.setGameState(game_state)
+    if (create_unit) {
+      req.setGameState(create_unit)
+    } else if (draw) {
+      req.setGameState(draw)
+    } else if (end_game) {
+      req.setGameState(end_game)
+    } else if (game_state) {
+      req.setGameState(game_state)
+    } else if (kill_unit) {
+      req.setGameState(kill_unit)
+    } else if (test_process) {
+      req.setGameState(test_process)
+    } else if (score) {
+      req.setGameState(score)
+    } else if (unit_value) {
+      req.setGameState(unit_value)
+    } else {
+      const key = Object.keys(arguments[1])[0] //eslint-disable-line
+      const value = arguments[1][key] //eslint-disable-line
+      throw new Error(`Unrecognized debug command '${key}': ${value}`)
+    }
     return this._controllers[player].debug([req])
   }
 
@@ -303,7 +333,77 @@ class GameReplayTestCase extends TestCase {
       usedPos.setX(pos.getX())
       usedPos.setY(pos.getY())
     }
-    return this.debug
+    const debugReq = new sc_debug.DebugCreateUnit()
+    debugReq.setUnitType(unit_type)
+    debugReq.setOwner(owner)
+    debugReq.setPos(usedPos)
+    debugReq.setQuantity(quantity)
+    return this.debug(noPlayerIdNeeded, { create_unit: debugReq })
+  }
+
+  kill_unit(unit_tags) {
+    const debugReq = new sc_debug.DebugKillUnit()
+    if (!Array.isArray(unit_tags)) {
+      debugReq.addTag(unit_tags)
+    } else {
+      unit_tags.forEach((unit_tag) => {
+        debugReq.addTag(unit_tag)
+      })
+    }
+    return this.debug(noPlayerIdNeeded, { kill_unit: debugReq })
+  }
+
+  set_energy(tag, energy) {
+    const debugReq = new sc_debug.DebugSetUnitValue()
+    debugReq.setUnitValue(sc_debug.DebugSetUnitValue.UnitValue.ENERGY)
+    debugReq.setValue(energy)
+    debugReq.setUnitTag(tag)
+    this.debug(noPlayerIdNeeded, { unit_value: debugReq })
+  }
+
+  assert_point(proto_pos, pos) { //eslint-disable-line
+    assert(proto_pos.getX().toFixed(7) === pos[0].toFixed(7), 'assertAlmostEqual')
+    assert(proto_pos.getY().toFixed(7) === pos[1].toFixed(7), 'assertAlmostEqual')
+  }
+
+  assert_layers(layers, pos, kwargs) { //eslint-disable-line
+    const keys = Object.keys(kwargs)
+    for (let i = 0; i < keys.length; i++) {
+      const k = keys[i]
+      const v = kwargs[k]
+      assert(layers[k][pos.y][pos.x] === v, `${k}[${pos.y}, ${pos.x}]: expected: ${v}, got: ${layers[k][pos.y][pos.x]}`)
+    }
+  }
+
+  assert_unit(unit, kwargs) {
+    assert(unit, 'unit')
+    assert(unit instanceof sc_raw.Unit, 'unit instanceof sc_raw.Unit')
+    const keys = Object.keys(kwargs)
+    for (let i = 0; i < keys.length; i++) {
+      const k = keys[i]
+      let v = kwargs[k]
+      if (k === 'pos') {
+        this.assert_point(unit.getPos(), v)
+      } else {
+        const getterName = snakeToPascal(k)
+        let compare = unit[getterName] ? unit[getterName]() : unit[k]
+        if (compare.toObject) {
+          compare = compare.toObject()
+        }
+        if (v.toObject) {
+          v = v.toObject()
+        }
+        if (typeof compare === 'object') {
+          const compareKeys = Object.keys(compare)
+          for (let j = 0; j < compareKeys; j++) {
+            const cKey = compareKeys[j]
+            assert(compare[cKey] == v[cKey], `${k}: expected: ${v}, got: ${compare}`)
+          }
+        } else {
+          assert(compare == v, `${k}: expected: ${v}, got: ${compare}`)
+        }
+      }
+    }
   }
 }
 
