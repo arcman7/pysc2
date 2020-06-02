@@ -87,6 +87,7 @@ class StarcraftProcess(object):
     self._host = host or "127.0.0.1"
     self._port = FLAGS.sc2_port or port or portpicker.pick_unused_port()
     self._version = version
+    print('timeout_seconds: ', timeout_seconds)
 
     args = [
         exec_path,

@@ -7,9 +7,9 @@ const protocol = require(path.resolve(__dirname, 'protocol.js'))
 const stopwatch = require(path.resolve(__dirname, 'stopwatch.js'))
 const static_data = require(path.resolve(__dirname, 'static_data.js'))
 
-const { debug_pb, sc2ai_pb } = s2clientprotocol
+const { debug_pb, sc2api_pb } = s2clientprotocol
 const sc_debug = debug_pb
-const sc_pb = sc2ai_pb
+const sc_pb = sc2api_pb
 //eslint-disable-next-line
 String.prototype.center = String.prototype.center || function(space, char) {
   const usedSpace = Math.floor(space / 2)
@@ -18,8 +18,6 @@ String.prototype.center = String.prototype.center || function(space, char) {
 
 flags.defineBoolean('sc2_log_actions', false, 'Print all the actions sent to SC2. If you want observations\n as well, consider using `sc2_verbose_protocol`.')
 flags.defineInteger('sc2_timeout', 120, 'Timeout to connect and wait for rpc responses.')
-
-const FLAGS = flags.FLAGS
 
 const sw = stopwatch.sw
 
@@ -140,7 +138,9 @@ class RemoteController {
   take a value and construct the Request itself, or return something more useful
   than a Response* object.
   */
-  constructor(host, port, proc = null, timeout_seconds = FLAGS.sc2_timeout) {
+  constructor(host, port, proc = null, timeout_seconds = null) {
+    flags.parse(null, true)
+    timeout_seconds = timeout_seconds || flags.get('sc2_timeout')
     this._connect = sw.decorate(this._connect.bind(this))
     // apply @decorators
     this.create_game = valid_status.call(this, Status.launched, Status.ended, Status.in_game, Status.in_replay)(
@@ -221,7 +221,8 @@ class RemoteController {
     // })
   }
 
-  async _setClientConnection(host, port, proc, timeout_seconds = FLAGS.sc2_timeout) {
+  async _setClientConnection(host, port, proc, timeout_seconds) {
+    timeout_seconds = timeout_seconds || flags.get('sc2_timeout')
     const sock = await this._connect(host, port, proc, timeout_seconds)
     this._client = new protocol.StarcraftProtocol(sock)
     await this.ping()
@@ -230,6 +231,7 @@ class RemoteController {
 
   _connect(host, port, proc, timeout_seconds) { //eslint-disable-line
     timeout_seconds = Number(timeout_seconds)
+    const milisecond = 1000
     //Connect to the websocket, retrying as needed. Returns the socket.//
     if (host.match(':') && host[0] !== '[') { // Support ipv6 addresses.
       host = `[${host}]`
@@ -242,7 +244,7 @@ class RemoteController {
     })
     let i = 0
     const connectTimeout = setInterval(() => {
-      const is_running = proc && proc.is_running
+      const is_running = proc && !proc._hasExited
       was_running = was_running || is_running
       if ((i >= Math.floor(timeout_seconds / 4) || was_running) && !is_running) {
         console.warn('SC2 isn\'t running, so bailing early on the websocket connection.')
@@ -260,7 +262,7 @@ class RemoteController {
           // sends out pings plus a conservative assumption of the latency.
           this.pingTimeout = setTimeout(() => {
             this.terminate()
-          }, timeout_seconds * 1200)
+          }, timeout_seconds * milisecond)
         }
         ws.on('open', () => {
           clearInterval(connectTimeout)
@@ -277,6 +279,7 @@ class RemoteController {
         if (err.status_code === 404) {
           // SC2 is listening, but hasn't set up the /sc2api endpoint yet.
         } else {
+          console.error(err)
           throw err
         }
       }
@@ -285,7 +288,7 @@ class RemoteController {
         clearInterval(connectTimeout)
         throw new ConnectError('Failed to connect to the SC2 websocket. Is it up?')
       }
-    }, 1000)
+    }, 6 * 1000)
     return p
   }
 
@@ -519,7 +522,7 @@ class RemoteController {
   }
 }
 
-async function RemoteControllerFacory(host, port, proc, timeout_seconds) {
+async function RemoteControllerFactory(host, port, proc, timeout_seconds) {
   const rm = new RemoteController(host, port, proc, timeout_seconds)
   await rm._setClientConnection(host, port, proc, timeout_seconds)
   return rm
@@ -527,5 +530,5 @@ async function RemoteControllerFacory(host, port, proc, timeout_seconds) {
 
 module.exports = {
   RemoteController,
-  RemoteControllerFacory,
+  RemoteControllerFactory,
 }

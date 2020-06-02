@@ -9,14 +9,12 @@ const remote_controller = require(path.resolve(__dirname, './remote_controller.j
 const stopwatch = require(path.resolve(__dirname, './stopwatch.js'))
 const pythonUtils = require(path.resolve(__dirname, './pythonUtils.js'))
 const { platform } = process
-const { withPython } = pythonUtils
+const { Array, withPython } = pythonUtils //eslint-disable-line
 flags.defineBoolean('sc2_verbose', false, 'Enable SC2 verbose logging.' /*, allow_hide_cpp=true*/)
 flags.defineBoolean('sc2_verbose_mp', false, 'Enable SC2 verbose multiplayer logging.')
 flags.defineBoolean('sc2_gdb', false, 'Run SC2 in gdb.')
 flags.defineBoolean('sc2_strace', false, 'Run SC2 in strace.')
 flags.defineInteger('sc2_port', null, 'If set, connect to the instance on \nlocalhost:sc2_port instead of\n launching one.')
-
-const FLAGS = flags.FLAGS
 
 const sw = stopwatch.sw
 
@@ -55,20 +53,28 @@ class StarcraftProcess {
       window_loc: Screen location if not full screen.
       **kwargs: Extra arguments for _launch (useful for subclasses).
     */
+    flags.parse(null, true)
+
     this._proc = null
     this._controller = null
     this._check_exists(exec_path)
+    // exec_path = `'${exec_path}'`
     const dir = run_config.tmp_dir
     const prefix = 'sc-'
     this._tmp_dir = tempfile.directory(prefix, dir) // these arguments are ignored
     this._host = host || '127.0.0.1'
-    this._port = FLAGS.sc2_port || port || getPort()
-      .then((p) => { this._port = p })
+    let args
+    this._port = flags.get('sc2_port') || port || getPort()
+      .then((p) => {
+        args[args.indexOf(this._port)] = p
+        this._port = p
+        return p
+      })
     this._version = version
-    let args = [
+    args = [
       exec_path,
       '-listen', this._host,
-      '-port', String(this._port),
+      '-port', this._port,
       '-dataDir', path.join(run_config.data_dir, ''),
       '-tempDir', path.join(this._tmp_dir, ''),
     ]
@@ -77,9 +83,9 @@ class StarcraftProcess {
     }
     if (platform != 'Linux') {
       if (full_screen) {
-        args.extends(['-displayMode', '1'])
+        args.extend(['-displayMode', '1'])
       } else {
-        args.extends([
+        args.extend([
           '-displayMode', '0',
           '-windowwidth', String(window_size[0]),
           '-windowheight', String(window_size[1]),
@@ -88,37 +94,24 @@ class StarcraftProcess {
         ])
       }
     }
-    if (verbose || FLAGS.sc2_verbose) {
-      args.extends(['-verbose'])
+    if (verbose || flags.get('sc2_verbose')) {
+      args.extend(['-verbose'])
     }
-    if (FLAGS.sc2_verbose_mp) {
-      args.extends(['-verboseMP'])
+    if (flags.get('sc2_verbose_mp')) {
+      args.extend(['-verboseMP'])
     }
     if (this._version && this._version.data_version) {
-      args.extends(['-dataVersion', this._version.data_version.toUpperCase()])
+      args.extend(['-dataVersion', this._version.data_version.toUpperCase()])
     }
     if (extra_args) {
-      args.extends(extra_args)
+      args.extend(extra_args)
     }
 
-    if (FLAGS.sc2_gdb) {
-      console.log('Launching: gdb', args[0])
-      console.log('GDB run command:')
-      console.log(`  run ${args.slice(1, args.length)}`)
-      console.log('\n')
-      args = ['gdb', args[0]]
-      timeout_seconds = 3600 * 6
-    } else if (FLAGS.sc2_strace) {
-      const strace_out = '/tmp/sc2-strace.txt'
-      console.log('Launching in strace. Redirecting output to', strace_out)
-      args = ['strace', '-f', '-o', strace_out].concat(args)
-    } else {
-      console.info(`Launching SC2:${args}`)
-    }
+
     // rest of set up happens in _setupController called by factory
     const self = this
     this._setupController = this._setupController.bind(this)
-    this._setupController = function _setupController() {
+    this._setupControllerLockedArgs = function _setupController() {
       return self._setupController({ run_config, args, timeout_seconds, connect })
     }
     // apply @decorators
@@ -126,13 +119,30 @@ class StarcraftProcess {
   }
 
   async _setupController({ run_config, args, timeout_seconds, connect }) {
+    if (this._port instanceof Promise) {
+      await this._port
+    }
+    if (flags.get('sc2_gdb')) {
+      console.log('Launching: gdb', args[0])
+      console.log('GDB run command:')
+      console.log(`  run ${args.slice(1, args.length)}`)
+      console.log('\n')
+      args = ['gdb', args[0]]
+      timeout_seconds = 3600 * 6
+    } else if (flags.get('sc2_strace')) {
+      const strace_out = '/tmp/sc2-strace.txt'
+      console.log('Launching in strace. Redirecting output to', strace_out)
+      args = ['strace', '-f', '-o', strace_out].concat(args)
+    } else {
+      console.info(`Launching SC2:\n${args.join(' ')}`)
+    }
     try {
-      withPython(sw('startup'), async () => {
-        if (!FLAGS.sc2_port) {
-          this._proc = this._launch(run_config, args)
+      await withPython(sw('startup'), async () => {
+        if (!flags.get('sc2_port')) {
+          this._proc = await this._launch(run_config, args)
         }
         if (connect) {
-          this._controller = await remote_controller.RemoteControllerFacotry(
+          this._controller = await remote_controller.RemoteControllerFactory(
             this._host, this._port, this, timeout_seconds
           )
         }
@@ -152,8 +162,9 @@ class StarcraftProcess {
     }
     this._shutdown()
     if (this.hasOwnProperty('_port') && this._port) {
-      if (!FLAGS.sc2_port) {
-        // can't do this in javascript yet
+      flags.parse(null, true)
+      if (!flags.get('sc2_port')) {
+        // can't do this yet
         // portpicker.return_port(this._port)
       }
       this._port = null
@@ -204,18 +215,45 @@ class StarcraftProcess {
     }
   }
 
-  _launch(run_config, args) { //eslint-disable-line
+  async _launch(run_config, args) { //eslint-disable-line
     //Launch the process and return the process object.//
+    // let resolve
+    // let reject
+    // const prom = new Promise((res, rej) => {
+    //   resolve = res
+    //   reject = rej
+    // })
     try {
       const { cwd, env } = run_config
-      const proc = withPython(sw('popen'), () => spawn(args.join(' '), { cwd, env }))
+      // console.log('cwd: ', cwd)
+      // console.log(JSON.stringify(args))
+      const proc = withPython(sw('popen'), () => spawn(args[0], args, { cwd, env }))
       this._proc_exited = false
+      proc.on('message', (msg) => {
+        console.log('proc.on message => msg:', msg)
+        // resolve(msg)
+        proc._hasExited = false
+      })
+      proc.stdout.on('data', (data) => {
+        console.log('proc.stdout: data:', data)
+        // resolve(data)
+        proc._hasExited = false
+      })
+      proc.stderr.on('data', (data) => {
+        console.error('proc.stderr: data: ', data)
+        // reject(data)
+      })
       proc.on('exit', () => {
         this._proc_exited = true
+        proc._hasExited = true
       })
-      proc.on('error', () => {
+      proc.on('error', (err) => {
+        console.error('proc.on error => err: ', err)
+        // reject(err)
         this._proc_exited = true
+        proc._hasExited = true
       })
+      // console.log('proc: ', proc)
       return proc
     } catch (err) {
       console.error('Failed to launch')
@@ -234,7 +272,8 @@ class StarcraftProcess {
   }
 
   get running() {
-    if (FLAGS.sc2_port) {
+    flags.parse(null, true)
+    if (flags.get('sc2_port')) {
       return true
     }
     // poll returns None if it's running, otherwise the exit code.
@@ -255,7 +294,8 @@ function _shutdown_proc(p, timeout) {
   })
   let _ = 1
   const killTimer = setInterval(() => {
-    const ret = p.kill('SIGTERM ')
+    // const ret = p.kill('SIGTERM ') //not supported on windows
+    const ret = p.kill()
     if (ret) {
       clearInterval(killTimer)
       console.info('Shutdown gracefully.')
@@ -274,11 +314,12 @@ function _shutdown_proc(p, timeout) {
 
 async function StarcraftProcessFactory({ run_config, exec_path, version, full_screen, extra_args, verbose, host, port, connect, timeout_seconds, window_size, window_loc }) {
   const scP = new StarcraftProcess(run_config, exec_path, version, full_screen, extra_args, verbose, host, port, connect, timeout_seconds, window_size, window_loc)
-  await scP._setupController()
+  await scP._setupControllerLockedArgs()
   return scP
 }
 
 module.exports = {
+  SC2LaunchError,
   StarcraftProcess,
   StarcraftProcessFactory,
   _shutdown_proc,

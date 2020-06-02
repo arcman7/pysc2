@@ -27,7 +27,7 @@ class ABCMeta {
 }
 
 function any(iterable) {
-  for (var index = 0; index < iterable.length; index++) {
+  for (let index = 0; index < iterable.length; index++) {
     if (iterable[index]) return true
   }
   return false
@@ -158,18 +158,18 @@ function isinstance(a, compare) {
   }
   return a instanceof compare;
 }
-
 function isObject(a) {
   return a === Object(a)
 }
-
+function int(numOrStr) {
+  return Math.floor(numOrStr)
+}
 function len(container) {
   if (container.__len__) {
     return container.__len__()
   }
   return Object.keys(container).length;
 }
-
 function map(func, collection) {
   function clone(obj) {
     if (obj === null || typeof obj !== 'object') {
@@ -188,7 +188,6 @@ function map(func, collection) {
     collection[key] = func(collection[key])
   })
 }
-
 function namedtuple(name, fields) {
   let consLogic = '';
   let consArgs = '';
@@ -234,12 +233,69 @@ ${fields.map((field, index) => { //eslint-disable-line
 }`;
   return Function(classStr)() //eslint-disable-line
 }
+function NotImplementedError(message) {
+  ///<summary>The error thrown when the given function isn't implemented.</summary>
+  const sender = (new Error) //eslint-disable-line
+    .stack
+    .split('\n')[2]
+    .replace(' at ', '');
 
+  this.message = `The method ${sender} isn't implemented.`;
+
+  // Append the message if given.
+  if (message) {
+    this.message += ` Message: "${message}".`;
+  }
+
+  let str = this.message;
+
+  while (str.indexOf('  ') > -1) {
+    str = str.replace('  ', ' ');
+  }
+
+  this.message = str;
+}
+function nonZero(arr) {
+  // This function outputs a array of indices of nonzero elements
+  const rows = []
+  const cols = []
+  const shape = arr.shape
+  arr = arr.arraySync()
+  for (let row = 0; row < shape[0]; row++) {
+    for (let col = 0; col < shape[1]; col++) {
+      if (arr[row][col] !== 0) {
+        rows.push(row)
+        cols.push(col)
+      }
+    }
+  }
+  return [rows, cols]
+}
+function randomChoice(arr) {
+  // This function does not support "size" of output shape.
+  if (Array.isArray(arr)) {
+    arr = [Array(arr).key()]
+  }
+  return arr[Math.floor(Math.random() * arr.length)]
+}
 function randomUniform(min, max) {
   return Math.random() * (max - min) + min;
 }
 randomUniform.int = function (min, max) {
   return Math.round(randomUniform(min, max))
+}
+async function sequentialTaskQueue(tasks) {
+  const results = []
+  const reducer = (promiseChain, currentTask) => {
+    return promiseChain.then((result) => {
+      if (result) {
+        results.push(result)
+      }
+      return currentTask()
+    })
+  }
+  await tasks.reduce(reducer, Promise.resolve())
+  return results
 }
 function setUpProtoAction(action, name) {
   if (name === 'no_op') {
@@ -419,51 +475,6 @@ function snakeToPascal(str) {
   const usedStr = snakeToCamel(str)
   return usedStr[0].toUpperCase() + usedStr.slice(1, usedStr.length)
 }
-
-function withPython(withInterface, callback) {
-  if (!withInterface.__enter__ || !withInterface.__exit__) {
-    throw new Error('ValueError: withInterface must define a __enter__ and __exit__ method')
-  }
-  let tempResult = withInterface.__enter__()
-  tempResult = callback(tempResult)
-  withInterface.__exit__()
-  return tempResult
-}
-
-function int(numOrStr) {
-  return Math.floor(numOrStr)
-}
-
-/**
- From:
- https://gist.github.com/tregusti/0b37804798a7634bc49c#gistcomment-2193237
-
- * @summary A error thrown when a method is defined but not implemented (yet).
- * @param {any} message An additional message for the error.
- */
-function NotImplementedError(message) {
-  ///<summary>The error thrown when the given function isn't implemented.</summary>
-  const sender = (new Error) //eslint-disable-line
-    .stack
-    .split('\n')[2]
-    .replace(' at ', '');
-
-  this.message = `The method ${sender} isn't implemented.`;
-
-  // Append the message if given.
-  if (message) {
-    this.message += ` Message: "${message}".`;
-  }
-
-  let str = this.message;
-
-  while (str.indexOf('  ') > -1) {
-    str = str.replace('  ', ' ');
-  }
-
-  this.message = str;
-}
-
 function ValueError(value) {
   /*
   The error thrown when an invalid argument is passed.
@@ -488,7 +499,22 @@ function ValueError(value) {
 
   this.message = str;
 }
+function withPython(withInterface, callback) {
+  if (!withInterface.__enter__ || !withInterface.__exit__) {
+    throw new Error('ValueError: withInterface must define a __enter__ and __exit__ method')
+  }
+  let tempResult = withInterface.__enter__()
+  tempResult = callback(tempResult)
+  withInterface.__exit__()
+  return tempResult
+}
+/**
+ From:
+ https://gist.github.com/tregusti/0b37804798a7634bc49c#gistcomment-2193237
 
+ * @summary A error thrown when a method is defined but not implemented (yet).
+ * @param {any} message An additional message for the error.
+ */
 function zip() {
   var args = [].slice.call(arguments); //eslint-disable-line
   var shortest = args.length === 0 ? [] : args.reduce(function(a, b) {
@@ -504,30 +530,6 @@ function zip() {
 //     return arrays.map(function(array){ return array[i] }) //eslint-disable-line
 //   });
 // }
-
-function randomChoice(arr) {
-  // This function does not support "size" of output shape.
-  if (Array.isArray(arr)) {
-    arr = [Array(arr).key()]
-  }
-  return arr[Math.floor(Math.random() * arr.length)]
-}
-function nonZero(arr) {
-  // This function outputs a array of indices of nonzero elements
-  const rows = []
-  const cols = []
-  const shape = arr.shape
-  arr = arr.arraySync()
-  for (let row = 0; row < shape[0]; row++) {
-    for (let col = 0; col < shape[1]; col++) {
-      if (arr[row][col] !== 0) {
-        rows.push(row)
-        cols.push(col)
-      }
-    }
-  }
-  return [rows, cols]
-}
 
 module.exports = {
   ABCMeta,
@@ -546,7 +548,10 @@ module.exports = {
   map,
   namedtuple,
   NotImplementedError,
+  nonZero,
+  randomChoice,
   randomUniform,
+  sequentialTaskQueue,
   setUpProtoAction,
   String,
   snakeToCamel,
@@ -555,6 +560,4 @@ module.exports = {
   ValueError,
   withPython,
   zip,
-  randomChoice,
-  nonZero,
 }

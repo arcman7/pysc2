@@ -86,28 +86,31 @@ class GameReplayTestCase extends TestCase {
     this.debug = only_in_game.call(this, this.debug.bind(this))
   }
 
-  static setup(kwargs) {
+  static setup() {
     //A decorator to replace unittest.setUp so it can take args.//
+    const args = arguments //eslint-disable-line
     function decorator(func) {
-      function _setup() {
-        function test_in_game() {
+      async function _setup(self) {
+        async function test_in_game() {
           console.log(` ${func.name}: Starting game `.center(80, '-'))
-          this.start_game(kwargs)
-          func(this)
+          await self.start_game(...args) //eslint-disable-line
+          func(self)
         }
 
-        function test_in_replay() {
-          this.start_replay()
+        async function test_in_replay() {
+          await self.start_replay()
           console.log(`${func.name}: Starting replay `.center(80, '-'))
-          func(this)
+          func(self)
         }
 
         try {
-          test_in_game()
-          test_in_replay()
+          await test_in_game()
+          await test_in_replay()
+          return true
         } catch (err) {
           console.error(err)
-          this.close()
+          self.close()
+          return false
         }
       }
       return _setup

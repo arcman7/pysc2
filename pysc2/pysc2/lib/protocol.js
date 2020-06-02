@@ -29,7 +29,6 @@ flags.defineInteger('sc2_verbose_protocol', 0, `
   'packet. 20 is a good starting value.`
 ) //eslint-disable-line
 
-const FLAGS = flags.FLAGS
 
 const sw = stopwatch.sw
 
@@ -58,10 +57,12 @@ class ProtocolError extends Error {
 //   /* not sure we need this in javascript */
 // }
 class StarcraftProtocol {
-  constructor(sock) {
+  constructor(ws) {
+    flags.parse(null, true)
     this._status = Status.LAUNCHED
-    this._sock = sock
-    this._port = sock.address().port
+    this._sock = ws._socket
+    this._port = this._sock.address().port
+    this._ws = ws
     this._count = 1
     // apply @decoraters
     this.read = sw.decorate(this.read.bind(this))
@@ -69,7 +70,7 @@ class StarcraftProtocol {
     // set up sync-like read
     this._trigger = null
     this._que = []
-    this._sock.on('data', (response) => {
+    this._ws.on('message', (response) => {
       withPython(sw("read_response"), () => {
         if (!response) {
           throw new ProtocolError('Got an empty response from SC2.')
@@ -98,7 +99,8 @@ class StarcraftProtocol {
 
   close() {
     if (this._sock) {
-      this._sock.terminate()
+      this._ws.terminate()
+      this._ws = null
       this._sock = null
     }
     this._status = Status.QUIT
@@ -107,13 +109,14 @@ class StarcraftProtocol {
   async read() {
     //Read a Response, do some validation, and return it.//
     let start
-    if (FLAGS.sc2_verbose_protocol) {
+    if (flags.get('sc2_verbose_protocol')) {
       this._log(`-------------- [${this._port}] Reading response --------------`)
       // performance.now() => measured in milliseconds.
       start = performance.now() * 1000
     }
     const response = await this._read()
-    if (FLAGS.sc2_verbose_protocol) {
+    // console.log('response: ', response.toObject())
+    if (flags.get('sc2_verbose_protocol')) {
       this.log(`-------------- [${this._port}] Read ${response.getResponseCase()} in ${performance.now() * 1000 - start} msec --------------\n${this._packet_str(response)}`)
     }
     if (response.getStatus && !response.getStatus()) {
@@ -131,7 +134,7 @@ class StarcraftProtocol {
 
   write(request) {
     //Write a Request.//
-    if (FLAGS.sc2_verbose_protocol) {
+    if (flags.get('sc2_verbose_protocol')) {
       this._log(`-------------- [${this._port}] Writing request: ${request.getResponseCase()} --------------\n${this._packet_str(request)}`)
     }
     this._write(request)
@@ -173,8 +176,8 @@ class StarcraftProtocol {
     } catch (err) {
       throw new ConnectionError(`Error during ${name}: ${err}`)
     }
-    if (res.getId && res.getId() !== req.id) {
-      throw new ConnectionError(`Error during ${name}: Got a response with a different id`)
+    if (res.getId && res.getId() !== req.getId()) {
+      throw new ConnectionError(`Error during ${name}: Got a response with a different id\n expected: ${req.getId()}, got: ${res.getId()}`)
     }
 
     // proto getters: getFoo, getFooList
@@ -183,7 +186,7 @@ class StarcraftProtocol {
 
   _packet_str(packet) { //eslint-disable-line
     //Return a string form of this packet.//
-    const max_lines = FLAGS.sc2_verbose_protocol
+    const max_lines = flags.get('sc2_verbose_protocol')
     const packet_str = String(packet).trim()
     if (max_lines <= 0) {
       return packet_str
@@ -222,7 +225,8 @@ class StarcraftProtocol {
     })
     withPython(sw('write_request'), () => {
       try { //eslint-disable-line
-        this._sock.send(request_str)
+        // this._sock.write(request_str)
+        this._ws.send(request_str)
       } catch (err) {
         /* TODO: Handling of different error types
             raise ConnectionError("Connection already closed. SC2 probably crashed. "

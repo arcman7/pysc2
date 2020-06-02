@@ -1,5 +1,5 @@
 const path = require('path') //eslint-disable-line
-const lib = require(path.resolve(__dirname), './lib.js')
+const lib = require(path.resolve(__dirname, './lib.js'))
 
 class Ladder extends lib.Map {
   static get players() { return 2 }
@@ -41,7 +41,7 @@ ladder_seasons.forEach((name) => {
       return directory
     }
   }
-  Map._subclasses.push(modExports[name])
+  lib.Map._subclasses.push(modExports[name])
   Ladder._subclasses.push(modExports[name])
 })
 
