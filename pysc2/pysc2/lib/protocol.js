@@ -170,9 +170,21 @@ class StarcraftProtocol {
     // proto setters: setFoo, setFooList
     req[`set${name + (isList ? 'List' : '')}`](val)
     req.setId(this.next(this._count))
+    // console.log(req.toObject())
+
     let res
     try {
       res = await this.send_req(req)
+      // console.log('********************res:\n', res.toObject())
+      // if (res.getCreateGame) {
+      //   const cg = res.getCreateGame()
+      //   if (cg) {
+      //     console.log(cg.toObject())
+      //     if (cg) {
+      //       console.log(cg.getError())
+      //     }
+      //   }
+      // }
     } catch (err) {
       throw new ConnectionError(`Error during ${name}: ${err}`)
     }

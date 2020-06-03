@@ -104,7 +104,7 @@ class RunConfig {
       const name = map_names[i]
       const fPath = path.join(this.data_dir, 'Maps', name)
       if (gfile.Exists(fPath)) {
-        return gfile.Open(path /*, { encoding: 'utf8' }*/)
+        return gfile.Open(fPath /*, { encoding: 'utf8' }*/)
       }
     }
     throw new ValueError(`Map ${map_name}  not found.`)

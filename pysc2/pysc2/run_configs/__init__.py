@@ -27,7 +27,6 @@ flags.DEFINE_string("sc2_run_config", None,
                     "Which run_config to use to spawn the binary.")
 FLAGS = flags.FLAGS
 
-
 def get(version=None):
   """Get the config chosen by the flags."""
   configs = {c.name(): c

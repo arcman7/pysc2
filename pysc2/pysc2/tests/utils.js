@@ -95,12 +95,14 @@ class GameReplayTestCase extends TestCase {
           console.log(` ${func.name}: Starting game `.center(80, '-'))
           await self.start_game(...args) //eslint-disable-line
           func(self)
+          return true
         }
 
         async function test_in_replay() {
           await self.start_replay()
           console.log(`${func.name}: Starting replay `.center(80, '-'))
           func(self)
+          return true
         }
 
         try {
@@ -127,10 +129,12 @@ class GameReplayTestCase extends TestCase {
     this._map_data = map_inst.data(run_config)
 
     this._ports = players === 2 ? await portspicker.pick_unused_ports(4) : []
-    this._sc2_procs = Array(players)
-      .map(() => run_config.start({ extra_ports: this._ports, want_rgb: false }))
+    this._sc2_procs = []
+    for (let _ = 0; _ < players; _++) {
+      this._sc2_procs.push(run_config.start({ want_rgb: false }))
+    }
     this._sc2_procs = await Promise.all(this._sc2_procs)
-    this.controllers = this._sc2_procs.map((p) => p.controller)
+    this._controllers = this._sc2_procs.map((p) => p._controller)
 
     if (players === 2) {
       // Serial due to a race condition on Windows.
@@ -183,8 +187,8 @@ class GameReplayTestCase extends TestCase {
     if (players === 2) {
       join.setSharedPort(0) //unused
       const serverPorts = new sc_pb.PortSet()
-      serverPorts.setGamePort(this.ports[0])
-      serverPorts.setBasePort(this.ports[1])
+      serverPorts.setGamePort(this._ports[0])
+      serverPorts.setBasePort(this._ports[1])
       join.setServerPorts(serverPorts)
       const clientPorts = new sc_pb.PortSet()
       clientPorts.setGamePort(this._ports[2])
@@ -196,12 +200,16 @@ class GameReplayTestCase extends TestCase {
     await Promise.all(this._controllers.map((c) => c.join_game(join)))
 
     this._info = await this._controllers[0].game_info()
-    this._features = features.features_from_game_info(this._info, true)
+    this._features = features.features_from_game_info({
+      game_info: this._info,
+      kwargs: { use_raw_units: true },
+    })
 
     this._map_size = point.Point.build(this._info.getStartRaw().getMapSize())
-    console.log('Map size: ', this._map_size)
+    console.log('Map size: ', this._map_size, '\nfrom: ', this._info.getStartRaw().getMapSize().toObject())
     this.in_game = true
     await this.step() // Get into the game properly.
+    return true
   }
 
   async start_replay() {

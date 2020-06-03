@@ -63,7 +63,7 @@ class Map {
     return ''
   }
 
-  date(run_config) {
+  data(run_config) {
     //Return the map data.//
     try {
       return run_config.map_data(this.path, this.players)
@@ -111,7 +111,7 @@ function get_maps() {
     if (mp.filename || mp.battle_net) {
       const map_name = mp.name
       if (maps[map_name]) {
-        throw new DuplicateMapError(`Duplicate map found: ${map_name}`)
+        throw new DuplicateMapError(`Duplicate map found: "${map_name}"\n  existing:\n${mp}\n  Duplicate:\n${maps[map_name]}`)
       }
       maps[map_name] = mp
     }
@@ -127,7 +127,7 @@ function get(map_name) {
   // Get the list of maps. This isn't at module scope to avoid problems of maps
   // being defined after this module is imported.
   const maps = get_maps()
-  const map_class = maps.get(map_name)
+  const map_class = maps[map_name]
   if (map_class) {
     return new map_class() //eslint-disable-line
   }

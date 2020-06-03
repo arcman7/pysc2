@@ -426,7 +426,14 @@ class Dimensions {
       minimap: A (width, height) int tuple or a single int to be used for both.
     */
     if (!screen || !minimap) {
-      throw new Error(`ValueError: screen and minimap must both be set, screen=${screen}, minimap=${minimap}.`)
+      // arguments got passed as object
+      if (screen.screen && screen.minimap) {
+        const args = arguments[0] //eslint-disable-line
+        screen = args.screen
+        minimap = args.minimap
+      } else {
+        throw new Error(`ValueError: screen and minimap must both be set, screen=${screen}, minimap=${minimap}.`)
+      }
     }
     this._screen = _to_point(screen)
     this._minimap = _to_point(minimap)
@@ -806,7 +813,7 @@ function parse_agent_interface_format({
   return new AgentInterfaceFormat(usedArgs)
 }
 
-function features_from_game_info(game_info, agent_interface_format = null, map_name = null, kwargs) {
+function features_from_game_info({ game_info, agent_interface_format = null, map_name = null, kwargs }) {
   /*Construct a Features object using data extracted from game info.
 
   Args:
@@ -825,7 +832,7 @@ function features_from_game_info(game_info, agent_interface_format = null, map_n
         game_info's resolutions.
   */
   if (!map_name) {
-    map_name = game_info.map_name
+    map_name = game_info.getMapName()
   }
   let fl_opts
   let feature_dimensions
@@ -856,7 +863,7 @@ function features_from_game_info(game_info, agent_interface_format = null, map_n
   const map_size = game_info.getStartRaw().getMapSize()
 
   const requested_races = {}
-  game_info.getPlayerInfo().forEach((info) => {
+  game_info.getPlayerInfoList().forEach((info) => {
     if (info.getType() !== sc_pb.PlayerType.OBSERVER) {
       requested_races[info.getPlayerId()] = info.getRaceRequested()
     }
@@ -867,22 +874,25 @@ function features_from_game_info(game_info, agent_interface_format = null, map_n
       throw new Error('ValueError: Either give an agent_interface_format or kwargs, not both.')
     }
     const aif = agent_interface_format
-    if (aif.rgb_dimensions !== rgb_dimensions ||
-      aif.feature_dimensions !== feature_dimensions ||
-      (feature_dimensions &&
-       aif.camera_width_world_units !== camera_width_world_units)) {
+    if (aif.rgb_dimensions !== rgb_dimensions
+      || aif.feature_dimensions !== feature_dimensions
+      || (feature_dimensions
+      && aif.camera_width_world_units !== camera_width_world_units)) {
       throw new Error(`The supplied agent_interface_format doesn't match the resolutions computed from the game_info:
   rgb_dimensions: ${aif.rgb_dimensions} !== ${rgb_dimensions}
   feature_dimensions: ${aif.feature_dimensions} !== ${feature_dimensions}
   camera_width_world_units: ${aif.camera_width_world_units} !== ${camera_width_world_units}`)
     }
   } else {
-    agent_interface_format = new AgentInterfaceFormat({
+    const args = {
       feature_dimensions,
       rgb_dimensions,
       camera_width_world_units,
-      kwargs,
+    }
+    Object.keys(kwargs).forEach((key) => {
+      args[key] = kwargs[key]
     })
+    agent_interface_format = new AgentInterfaceFormat(args)
   }
   return new Feature({
     agent_interface_format,

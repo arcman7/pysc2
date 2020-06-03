@@ -144,7 +144,6 @@ class RemoteController(object):
 
   def __init__(self, host, port, proc=None, timeout_seconds=None):
     timeout_seconds = timeout_seconds or FLAGS.sc2_timeout
-    print('timeout_seconds: ', timeout_seconds)
     sock = self._connect(host, port, proc, timeout_seconds)
     self._client = protocol.StarcraftProtocol(sock)
     self._last_obs = None

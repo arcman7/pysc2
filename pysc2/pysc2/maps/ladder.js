@@ -4,11 +4,21 @@ const lib = require(path.resolve(__dirname, './lib.js'))
 class Ladder extends lib.Map {
   static get players() { return 2 }
 
+  get players() { return 2 } //eslint-disable-line
+
   static get game_steps_per_episode() {
     return 16 * 60 * 30 // 30 minute limit.
   }
 
+  get game_steps_per_episode() { //eslint-disable-line
+    return 16 * 60 * 30 // 30 minute limit.
+  }
+
   static get download() {
+    return 'https://github.com/Blizzard/s2client-proto#map-packs'
+  }
+
+  get download() { //eslint-disable-line
     return 'https://github.com/Blizzard/s2client-proto#map-packs'
   }
 }
@@ -35,11 +45,12 @@ const modExports = {
 }
 
 ladder_seasons.forEach((name) => {
-  const directory = name
   modExports[name] = class extends Ladder {
-    static get directory() {
-      return directory
-    }
+    static get directory() { return name }
+
+    get directory() { return name } //eslint-disable-line
+
+    static get name() { return name }
   }
   lib.Map._subclasses.push(modExports[name])
   Ladder._subclasses.push(modExports[name])
@@ -109,20 +120,23 @@ modExports.ladder_maps = ladder_maps
 */
 
 ladder_maps.forEach(([parent, bnet, players]) => {
-  const name = bnet.replace(`[ '-]|[LTRS]E$`, '')
-  const map_file = bnet.replace(`'[ ']`, '')
+  const name = bnet.replace(/[ '-]|[LTRS]E$/, '')
+  const map_file = bnet.replace(/'[ ']/, '')
+  // console.log('map_file: ', map_file)
   modExports[name] = class extends parent {
-    static get filename() {
-      return map_file
-    }
+    static get filename() { return map_file }
 
-    static get players() {
-      return players
-    }
+    get filename() { return map_file } //eslint-disable-line
 
-    static get battle_net() {
-      return bnet
-    }
+    static get players() { return players }
+
+    get players() { return players } //eslint-disable-line
+
+    static get battle_net() { return bnet }
+
+    get battle_net() { return bnet } //eslint-disable-line
+
+    static get name() { return name }
   }
   lib.Map._subclasses.push(modExports[name])
   Ladder._subclasses.push(modExports[name])

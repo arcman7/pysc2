@@ -17,156 +17,120 @@ function log_center(s) { //eslint-disable-next-line
   console.info(` ${s} ${Array.from(arguments).slice(1)}`.center(80, '-'))
 }
 
-(async function test_version_numbers() { //eslint-disable-line
-  console.log('test_version_numbers (1/2)')
-  let run_config = run_configs.get()
-  const failures = []
-  const versions = run_config.get_versions()
-  const keys = Object.keys(versions)
-  const tasks = []
-  for (let i = 0; i < keys.length; i++) {
-    const game_version = keys[i]
-    const version = versions[game_version]
-    assert(game_version == version.game_version, 'game_version == version.game_version')
-    log_center(`starting version check: ${game_version}`)
-    run_config = run_configs.get(game_version)
-    let sc_process
-    tasks.push(async () => { //eslint-disable-line
-      try {
-        sc_process = await run_config.start({ want_rgb: false })
-        const controller = sc_process._controller
-        const ping = (await controller.ping()).toObject()
-        console.info(`expected:\n  game_version:${version.game_version}\n  data_verion: ${version.data_version}\n  build_version: ${version.build_version}`)
-        console.info('actual: ', ping)
-        assert(version.build_version == ping.baseBuild, 'version.build_version == ping.base_build')
-        if (version.game_version !== 'latest') {
-          assert(version.data_version == ping.dataVersion, 'version.data_version == ping.data_version')
-          assert(version.data_version.toLowerCase() == ping.data_version.toLowerCase(), 'version.data_version.toLowerCase() == ping.data_version.toLowerCase()')
+async function main() {
+  await (async function test_version_numbers() { //eslint-disable-line
+    console.log('test_version_numbers (1/2)')
+    let run_config = run_configs.get()
+    const failures = []
+    const versions = run_config.get_versions()
+    const keys = Object.keys(versions)
+    const tasks = []
+    for (let i = 0; i < keys.length; i++) {
+      const game_version = keys[i]
+      const version = versions[game_version]
+      assert(game_version == version.game_version, 'game_version == version.game_version')
+      log_center(`starting version check: ${game_version}`)
+      run_config = run_configs.get(game_version)
+      let sc_process
+      tasks.push(async () => { //eslint-disable-line
+        try {
+          sc_process = await run_config.start({ want_rgb: false })
+          const controller = sc_process._controller
+          const ping = (await controller.ping()).toObject()
+          console.info(`expected:\n  game_version:${version.game_version}\n  data_verion: ${version.data_version}\n  build_version: ${version.build_version}`)
+          console.info('actual: ', ping)
+          assert(version.build_version == ping.baseBuild, 'version.build_version == ping.base_build')
+          if (version.game_version !== 'latest') {
+            assert(version.data_version == ping.dataVersion, 'version.data_version == ping.data_version')
+            assert(version.data_version.toLowerCase() == ping.data_version.toLowerCase(), 'version.data_version.toLowerCase() == ping.data_version.toLowerCase()')
+          }
+          log_center(`success: ${game_version}`)
+        } catch (err) {
+          log_center(`failure: ${game_version}`)
+          console.error('Failed\nerror:', err)
+          failures.push(game_version)
+        } finally {
+          sc_process.close()
         }
-        log_center(`success: ${game_version}`)
-      } catch (err) {
-        log_center(`failure: ${game_version}`)
-        console.error('Failed\nerror:', err)
-        failures.push(game_version)
-      } finally {
-        sc_process.close()
-      }
-    })
-  }
-  await sequentialTaskQueue(tasks)
-  assert(failures.length === 0, 'expected failures to be empty')
-})();
+      })
+    }
+    await sequentialTaskQueue(tasks)
+    assert(failures.length === 0, 'expected failures to be empty')
+  })();
 
-(async function test_versions_create_game() { //eslint-disable-line
-  console.log('test_versions_create_game (2/2)')
-  let run_config = run_configs.get()
-  const failures = []
-  const versions = run_config.get_versions()
-  const keys = Object.keys(versions)
-  const tasks = []
-  for (let i = 0; i < keys.length; i++) {
-    const game_version = keys[i]
-    log_center(`starting create game: ${game_version}`)
-    run_config = run_configs.get(game_version)
-    let sc_process
-    tasks.push(async () => { //eslint-disable-line
-      try {
-        sc_process = await run_config.start({ want_rgb: false })
-        const controller = sc_process._controller
-        const Interface = new sc_pb.InterfaceOptions()
-        Interface.setRaw(true)
-        Interface.setScore(true)
-        const featureLayer = new sc_pb.SpatialCameraSetup()
-        featureLayer.setWidth(24)
-        const resolution = new sc_pb.Size2DI()
-        resolution.setX(84)
-        resolution.setY(84)
-        featureLayer.setResolution(resolution)
-        const minimapResolution = new sc_pb.Size2DI()
-        minimapResolution.setX(64)
-        minimapResolution.setY(64)
-        featureLayer.setMinimapResolution(minimapResolution)
-        Interface.setFeatureLayer(Interface)
+  await (async function test_versions_create_game() { //eslint-disable-line
+    console.log('test_versions_create_game (2/2)')
+    let run_config = run_configs.get()
+    const failures = []
+    const versions = run_config.get_versions()
+    const keys = Object.keys(versions)
+    const tasks = []
+    for (let i = 0; i < keys.length; i++) {
+      const game_version = keys[i]
+      log_center(`starting create game: ${game_version}`)
+      run_config = run_configs.get(game_version)
+      let sc_process
+      tasks.push(async () => { //eslint-disable-line
+        try {
+          sc_process = await run_config.start({ want_rgb: false })
+          const controller = sc_process._controller
+          const Interface = new sc_pb.InterfaceOptions()
+          Interface.setRaw(true)
+          Interface.setScore(true)
+          const featureLayer = new sc_pb.SpatialCameraSetup()
+          featureLayer.setWidth(24)
+          const resolution = new sc_pb.Size2DI()
+          resolution.setX(84)
+          resolution.setY(84)
+          featureLayer.setResolution(resolution)
+          const minimapResolution = new sc_pb.Size2DI()
+          minimapResolution.setX(64)
+          minimapResolution.setY(64)
+          featureLayer.setMinimapResolution(minimapResolution)
+          Interface.setFeatureLayer(featureLayer)
 
-        const map_inst = maps.get('Simple64')
-        const create = new sc_pb.RequestCreateGame()
-        const localMap = new sc_pb.LocalMap()
-        localMap.setMapPath(map_inst.path)
-        localMap.setMapData(map_inst.data(run_config))
-        create.setLocalMap(localMap)
-        let playerSetup = new sc_pb.PlayerSetup()
-        playerSetup.setType(sc_pb.PlayerType.PARTICIPANT)
-        create.addPlayerSetup(playerSetup)
-        playerSetup = new sc_pb.PlayerSetup()
-        playerSetup.setType(sc_pb.PlayerType.COMPUTER)
-        playerSetup.setRace(sc_common.Race.PROTOSS)
-        playerSetup.setDifficulty(sc_pb.Difficulty.VERYEASY)
-        create.addPlayerSetup(playerSetup)
+          const map_inst = maps.get('Simple64')
+          const create = new sc_pb.RequestCreateGame()
+          const localMap = new sc_pb.LocalMap()
+          localMap.setMapPath(map_inst.path)
+          localMap.setMapData(map_inst.data(run_config))
+          create.setLocalMap(localMap)
+          let playerSetup = new sc_pb.PlayerSetup()
+          playerSetup.setType(sc_pb.PlayerType.PARTICIPANT)
+          create.addPlayerSetup(playerSetup)
+          playerSetup = new sc_pb.PlayerSetup()
+          playerSetup.setType(sc_pb.PlayerType.COMPUTER)
+          playerSetup.setRace(sc_common.Race.PROTOSS)
+          playerSetup.setDifficulty(sc_pb.Difficulty.VERYEASY)
+          create.addPlayerSetup(playerSetup)
 
-        const join = new sc_pb.RequestJoinGame()
-        join.setRace(sc_common.Race.TERRAN)
-        join.setOptions(Interface)
+          const join = new sc_pb.RequestJoinGame()
+          join.setRace(sc_common.Race.TERRAN)
+          join.setOptions(Interface)
 
-        await controller.create_game(create)
-        await controller.join_game(join)
-        const tempTasks = []
-        for (let _ = 0; _ < 5; _++) {
-          tempTasks.push(async () => {
-            await controller.step(16)
-            await controller.observe()
-          })
+          await controller.create_game(create)
+          await controller.join_game(join)
+          const tempTasks = []
+          for (let _ = 0; _ < 5; _++) {
+            tempTasks.push(async () => {
+              await controller.step(16)
+              await controller.observe()
+            })
+          }
+          await sequentialTaskQueue(tempTasks)
+          log_center(`success: ${game_version}`)
+        } catch (err) {
+          log_center(`failure: ${game_version}`)
+          console.error('Failed\nerror:', err)
+          failures.push(game_version)
+        } finally {
+          sc_process.close()
         }
-        await sequentialTaskQueue(tempTasks)
-        log_center(`success: ${game_version}`)
-      } catch (err) {
-        log_center(`failure: ${game_version}`)
-        console.error('Failed\nerror:', err)
-        failures.push(game_version)
-      } finally {
-        sc_process.close()
-      }
-    })
-  }
-  await sequentialTaskQueue(tasks)
-  assert(failures.length === 0, 'failures to be empty')
-})()
+      })
+    }
+    await sequentialTaskQueue(tasks)
+    assert(failures.length === 0, 'failures to be empty')
+  })()
+}
 
-
-// describe('versions.test.js:', () => {
-//   describe('  TestVersions:', () => {
-//     test('test_version_numbers', async () => {
-//       let run_config = run_configs.get()
-//       const failures = []
-//       const versions = run_config.get_versions()
-//       const keys = Object.keys(versions)
-//       const tasks = []
-//       for (let i = 0; i < keys.length; i++) {
-//         const game_version = keys[i]
-//         const version = versions[game_version]
-//         expect(game_version).toBe(version.game_version)
-//         log_center(`starting version check: ${game_version}`)
-//         run_config = run_configs.get(game_version)
-//         tasks.push(async () => { //eslint-disable-line
-//           try {
-//             const controller = await run_config.start({ want_rgb: false })
-//             const ping = await controller.ping()
-//             console.info(`expected: ${version}`)
-//             console.info(`actual: ${ping.trim().split('\n').join(', ')}`)
-//             expect(version.build_version).toBe(ping.base_build)
-//             if (version.game_version !== 'latest') {
-//               expect(major_version(ping.game_version)).toBe(major_version(version.game_version))
-//               expect(version.data_version.toLowerCase()).toBe(ping.data_version.toLowerCase())
-//             }
-//             log_center(`success: ${game_version}`)
-//           } catch (err) {
-//             log_center(`failure: ${game_version}`)
-//             console.error('Failed\nerror:', err)
-//             failures.push(game_version)
-//           }
-//         })
-//       }
-//       await sequentialTaskQueue(tasks)
-//       expect(failures.length).toBe(0)
-//     })
-//   })
-// })
+main()
