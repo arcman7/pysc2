@@ -306,10 +306,10 @@ class RemoteController {
 
   save_map(map_path, map_data) {
     //Save a map into temp dir so create game can access it in multiplayer.//
-    const req = new sc_pb.RequestSaveMap()
-    req.setMapPath(map_path)
-    req.setMapData(map_data)
-    return this._client.send({ save_map: req })
+    const saveReq = new sc_pb.RequestSaveMap()
+    saveReq.setMapPath(map_path)
+    saveReq.setMapData(map_data)
+    return this._client.send({ save_map: saveReq })
   }
 
   join_game(req_join_game) {
@@ -462,10 +462,9 @@ class RemoteController {
 
   async save_replay() {
     //Save a replay, returning the data.//
-    const res = await this._client.send({
-      save_replay: new sc_pb.RequestSaveReplay()
-    })
-    return res.data
+    const res = await this._client.send({ save_replay: new sc_pb.RequestSaveReplay() })
+    // console.log(res.toObject())
+    return res.getData()
   }
 
   debug(debug_commands) {

@@ -119,9 +119,12 @@ class GameReplayTestCase extends TestCase {
           return true
         }
 
+        // self.setUp()
         try {
           await test_in_game()
           await test_in_replay()
+          // self.tearDown()
+          self.close()
           return true
         } catch (err) {
           console.error(err)
@@ -151,9 +154,7 @@ class GameReplayTestCase extends TestCase {
     }
     // await sequentialTaskQueue() // currently in consideration
     this._sc2_procs = await Promise.all(this._sc2_procs)
-    // console.log(this._sc2_procs)
     this._controllers = this._sc2_procs.map((p) => p._controller)
-    // console.log(this._controllers)
 
     if (players === 2) {
       // Serial due to a race condition on Windows.
@@ -216,8 +217,10 @@ class GameReplayTestCase extends TestCase {
     }
 
     await this._controllers[0].create_game(create)
+
     // must be done in tandem
     await Promise.all(this._controllers.map((c) => c.join_game(join)))
+
     // await sequentialTaskQueue(this._controllers.map((c) => () => c.join_game(join)))
     this._info = await this._controllers[0].game_info()
     this._features = features.features_from_game_info({
@@ -274,7 +277,8 @@ class GameReplayTestCase extends TestCase {
   }
 
   observe(disable_fog = false) {
-    return sequentialTaskQueue(this._controllers.map((c) => () => c.observe(disable_fog)))
+    // return sequentialTaskQueue(this._controllers.map((c) => () => c.observe(disable_fog)))
+    return Promise.all(this._controllers.map((c) => c.observe(disable_fog)))
   }
 
   move_camera(x, y) {

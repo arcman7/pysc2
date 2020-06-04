@@ -46,13 +46,11 @@ class TestCase(absltest.TestCase):
   """A test base class that enables stopwatch profiling."""
 
   def setUp(self):
-    # super(TestCase, self).setUp()
     super().setUp()
     stopwatch.sw.clear()
     stopwatch.sw.enable()
 
   def tearDown(self):
-    # super(TestCase, self).tearDown()
     super().tearDown()
     s = str(stopwatch.sw)
     if s:
@@ -187,6 +185,7 @@ class GameReplayTestCase(TestCase):
     """Switch from the game to a replay."""
     self.step(300)
     replay_data = self._controllers[0].save_replay()
+    # print('replay_data: ', replay_data)
     self._parallel.run(c.leave for c in self._controllers)
     for player_id, controller in enumerate(self._controllers):
       controller.start_replay(sc_pb.RequestStartReplay(

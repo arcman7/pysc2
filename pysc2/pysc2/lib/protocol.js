@@ -118,14 +118,15 @@ class StarcraftProtocol {
     const response = await this._read()
     // console.log('response: ', response.toObject())
     if (flags.get('sc2_verbose_protocol')) {
-      this.log(`-------------- [${this._port}] Read ${response.getResponseCase()} in ${performance.now() * 1000 - start} msec --------------\n${this._packet_str(response)}`)
+      this._log(`-------------- [${this._port}] Read ${response.getResponseCase()} in ${performance.now() * 1000 - start} msec --------------\n${this._packet_str(response)}`)
     }
     if (response.getStatus && !response.getStatus()) {
       throw new ProtocolError('Got an incomplete response without a status')
     }
     const prev_status = this._status
     this._status = Status(response.getStatus())
-    if (response.getError && response.getError()) {
+    if (response.hasError && response.hasError() && response.getError()) {
+    // if (response.getError && response.getError()) {
       const err_str = `Error in RPC response (likely a bug).\n Prev status: ${prev_status}, new status: ${this._status} \n ${response.getError()}`
       this._log(err_str)
       throw new ProtocolError(err_str)
@@ -136,7 +137,15 @@ class StarcraftProtocol {
   write(request) {
     //Write a Request.//
     if (flags.get('sc2_verbose_protocol')) {
-      this._log(`-------------- [${this._port}] Writing request: ${request.getResponseCase()} --------------\n${this._packet_str(request)}`)
+      const printObj = request.toObject()
+      if (printObj.saveMap && printObj.saveMap.mapData) {
+        printObj.saveMap.mapData = `<buffer ${printObj.saveMap.mapData.length} bytes>`
+      }
+      if (printObj.startReplay && printObj.startReplay.mapData) {
+        printObj.startReplay.mapData = `<buffer ${printObj.startReplay.mapData.length} bytes>`
+        printObj.startReplay.replayData = `<buffer ${printObj.startReplay.replayData.length} bytes>`
+      }
+      this._log(`-------------- [${this._port}] Writing request: ${JSON.stringify(printObj)} --------------\n${this._packet_str(request)}`)
     }
     this._write(request)
   }
@@ -229,13 +238,11 @@ class StarcraftProtocol {
   _write(request) {
     //Actually serialize and write the request.//
     let request_str
-    // console.log(request.toObject())
     withPython(sw('serialize_request'), () => {
       request_str = request.serializeBinary()
     })
     withPython(sw('write_request'), () => {
       try { //eslint-disable-line
-        // this._sock.write(request_str)
         this._ws.send(request_str)
       } catch (err) {
         /* TODO: Handling of different error types

@@ -80,7 +80,6 @@ class StarcraftProtocol(object):
     self._status = Status.launched
     self._sock = sock
     self._port = sock.sock.getpeername()[1]
-    print('****************** port: ', self._port)
     self._count = itertools.count(1)
 
   @property

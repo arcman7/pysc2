@@ -44,8 +44,8 @@ async function main() {
       console.log('test_general_attack run: ', ++runCount)
       await testState.create_unit(units.Protoss.Zealot, 1, [30, 30])
       await testState.create_unit(units.Protoss.Observer, 1, [30, 30])
-
       await testState.step()
+
       let obs = await testState.observe()
 
       let zealot = utils.get_unit({ obs: obs[0], unit_type: units.Protoss.Zealot })
@@ -55,6 +55,7 @@ async function main() {
 
       await testState.step(64)
       obs = await testState.observe()
+
 
       zealot = utils.get_unit({ obs: obs[0], unit_type: units.Protoss.Zealot })
       observer = utils.get_unit({ obs: obs[0], unit_type: units.Protoss.Observer })
@@ -67,6 +68,7 @@ async function main() {
         ),
         'raw_ability_ids(obs[0]) == [actions.FUNCTIONS.Attack_Attack_screen.ability_id]'
       )
+      return true
     }
     const boundedArgsDecorator = utils.GameReplayTestCase.setup() // no bounded args
     const decoratedFunc = boundedArgsDecorator(test_general_attack)
