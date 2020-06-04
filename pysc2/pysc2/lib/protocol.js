@@ -74,14 +74,6 @@ class StarcraftProtocol {
       if (!response) {
         throw new ProtocolError('Got an empty response from SC2.')
       }
-      // withPython(sw("read_response"), () => {
-      //   if (!response) {
-      //     throw new ProtocolError('Got an empty response from SC2.')
-      //   }
-      // })
-      // withPython(sw('parse_response'), () => {
-      //   response = sc_pb.Response.deserializeBinary(response)
-      // })
       if (this._trigger) {
         this._trigger(response)
         this._trigger = null

@@ -30,7 +30,7 @@ class TestCase {
   tearDown() { //eslint-disable-line
     const s = stopwatch.sw.toString()
     if (s) {
-      console.info(`Stop watch profile:\n ${s}`)
+      console.info(`Stop watch profile:\n${s}`)
     }
     stopwatch.sw.disable()
   }

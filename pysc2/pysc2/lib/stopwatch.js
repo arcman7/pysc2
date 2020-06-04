@@ -345,13 +345,13 @@ class StopWatch {
     let width
     table.forEach((row) => {
       //eslint-disable-next-line
-      out += ' ' + row[0].ljust(col_widths[0]) + ' '
-      out += zip(row.slice(1, row.length), col_widths.slice(1, col_widths.length))
+      out += '  ' + row[0].ljust(col_widths[0]) + '  '
+      out += zip(row.slice(1), col_widths.slice(1))
         .map((zipPair) => {
           val = zipPair[0]
           width = zipPair[1]
           return val.rjust(width)
-        }).join(' ')
+        }).join('  ')
       out += '\n'
     })
     return out

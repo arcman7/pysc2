@@ -127,7 +127,7 @@ String.prototype.ljust = function(length, char = ' ') {
   while (fill.length + this.length < length) {
     fill[fill.length] = char;
   }
-  return fill.join('') + this;
+  return this + fill.join('');
 }
 //eslint-disable-next-line
 String.prototype.rjust = function(length, char = ' ') {
@@ -135,7 +135,7 @@ String.prototype.rjust = function(length, char = ' ') {
   while (fill.length + this.length < length) {
     fill[fill.length] = char;
   }
-  return this + fill.join('');
+  return fill.join('') + this;
 }
 function isinstance(a, compare) {
   const keys = Object.keys(compare);
