@@ -508,6 +508,15 @@ function withPython(withInterface, callback) {
   withInterface.__exit__()
   return tempResult
 }
+async function withPythonAsync(withInterface, callback) {
+  if (!withInterface.__enter__ || !withInterface.__exit__) {
+    throw new Error('ValueError: withInterface must define a __enter__ and __exit__ method')
+  }
+  let tempResult = withInterface.__enter__()
+  tempResult = await callback(tempResult)
+  withInterface.__exit__()
+  return tempResult
+}
 /**
  From:
  https://gist.github.com/tregusti/0b37804798a7634bc49c#gistcomment-2193237
@@ -559,5 +568,6 @@ module.exports = {
   sum,
   ValueError,
   withPython,
+  withPythonAsync,
   zip,
 }

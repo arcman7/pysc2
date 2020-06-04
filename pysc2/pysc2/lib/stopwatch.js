@@ -8,6 +8,7 @@ const pythonUtils = require(path.resolve(__dirname, './pythonUtils.js'))
 const { DefaultDict, withPython, zip } = pythonUtils
 String = pythonUtils.String //eslint-disable-line
 Array = pythonUtils.Array //eslint-disable-line
+const msToS = 1 / 1000
 
 class Stat {
   static get _fields() { return ["num", "min", "max", "sum", "sum_sq"] }
@@ -100,11 +101,11 @@ class StopWatchContext {
 
   // performance.now() => measured in milliseconds.
   __enter__() {
-    this._start = performance.now() * 1000
+    this._start = performance.now() * msToS
   }
 
   __exit__() {
-    this._sw.add(this._sw.pop(), (performance.now() * 1000) - this._start)
+    this._sw.add(this._sw.pop(), (performance.now() * msToS) - this._start)
   }
 }
 
@@ -192,11 +193,11 @@ class StopWatch {
   }
 
   enable() {
-    this._factory = name => new StopWatchContext(this, name)
+    this._factory = (name) => new StopWatchContext(this, name)
   }
 
   trace() {
-    this._factory = name => new TracingStopWatchContext(this, name)
+    this._factory = (name) => new TracingStopWatchContext(this, name)
   }
 
   custom(factory) {
@@ -292,7 +293,7 @@ class StopWatch {
         const parts = line.match(/\S+/g)
         const name = parts[0]
         if (name !== '%') { // ie not the header line
-          const rest = parts.slice(2, parts.length).map(v => Number(v))
+          const rest = parts.slice(2, parts.length).map((v) => Number(v))
           stopwatch.times[parts[0]].merge(Stat.build(...rest))
         }
       }

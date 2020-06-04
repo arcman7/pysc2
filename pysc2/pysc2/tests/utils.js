@@ -119,11 +119,11 @@ class GameReplayTestCase extends TestCase {
           return true
         }
 
-        // self.setUp()
+        self.setUp()
         try {
           await test_in_game()
           await test_in_replay()
-          // self.tearDown()
+          self.tearDown()
           self.close()
           return true
         } catch (err) {

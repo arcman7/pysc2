@@ -21,7 +21,7 @@ You are allowed to send additional requests before receiving a response to an ea
 const { sc2api_pb } = s2clientprotocol
 const sc_pb = sc2api_pb
 // const { socket } = net
-const { assert, withPython, snakeToPascal } = pythonUtils
+const { assert, snakeToPascal, withPython, withPythonAsync } = pythonUtils
 
 flags.defineInteger('sc2_verbose_protocol', 0, `
   Print the communication packets with SC2. 0 disables.
@@ -62,7 +62,6 @@ class StarcraftProtocol {
     this._status = Status.LAUNCHED
     this._sock = ws._socket
     this._port = this._sock.address().port
-    // console.log('protocol: ', this._port)
     this._ws = ws
     this._count = 1
     // apply @decoraters
@@ -72,14 +71,17 @@ class StarcraftProtocol {
     this._trigger = null
     this._que = []
     this._ws.on('message', (response) => {
-      withPython(sw("read_response"), () => {
-        if (!response) {
-          throw new ProtocolError('Got an empty response from SC2.')
-        }
-      })
-      withPython(sw('parse_response'), () => {
-        response = sc_pb.Response.deserializeBinary(response)
-      })
+      if (!response) {
+        throw new ProtocolError('Got an empty response from SC2.')
+      }
+      // withPython(sw("read_response"), () => {
+      //   if (!response) {
+      //     throw new ProtocolError('Got an empty response from SC2.')
+      //   }
+      // })
+      // withPython(sw('parse_response'), () => {
+      //   response = sc_pb.Response.deserializeBinary(response)
+      // })
       if (this._trigger) {
         this._trigger(response)
         this._trigger = null
@@ -116,7 +118,6 @@ class StarcraftProtocol {
       start = performance.now() * 1000
     }
     const response = await this._read()
-    // console.log('response: ', response.toObject())
     if (flags.get('sc2_verbose_protocol')) {
       this._log(`-------------- [${this._port}] Read ${response.getResponseCase()} in ${performance.now() * 1000 - start} msec --------------\n${this._packet_str(response)}`)
     }
@@ -229,10 +230,16 @@ class StarcraftProtocol {
 
   async _read() {
     //Actually read the response and parse it, returning a Response.//
-    if (this._que.length) {
-      return this._que.shift()
-    }
-    return new Promise((resolve) => { this._trigger = resolve })
+    let response = await withPythonAsync(sw('read_response'), async () => {
+      if (this._que.length) {
+        return this._que.shift()
+      }
+      return new Promise((resolve) => { this._trigger = resolve })
+    })
+    withPython(sw('parse_response'), () => {
+      response = sc_pb.Response.deserializeBinary(response)
+    })
+    return response
   }
 
   _write(request) {
