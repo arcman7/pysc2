@@ -862,7 +862,7 @@ def features_from_game_info(game_info, agent_interface_format=None,
     map_name = game_info.map_name
 
   if game_info.options.HasField("feature_layer"):
-    fl_opts = game_info.options.feature_layer`
+    fl_opts = game_info.options.feature_layer
     feature_dimensions = Dimensions(
         screen=(fl_opts.resolution.x, fl_opts.resolution.y),
         minimap=(fl_opts.minimap_resolution.x, fl_opts.minimap_resolution.y))

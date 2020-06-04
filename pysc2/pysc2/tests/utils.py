@@ -180,7 +180,6 @@ class GameReplayTestCase(TestCase):
         self._info, use_raw_units=True)
 
     self._map_size = point.Point.build(self._info.start_raw.map_size)
-    print("Map size:", self._map_size)
     self.in_game = True
     self.step()  # Get into the game properly.
 

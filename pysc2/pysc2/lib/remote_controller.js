@@ -478,7 +478,7 @@ class RemoteController {
     } else {
       throw new Error(`debug_commands an instance of sc_debug.DebugCommand got instead:\n ${debug_commands}`)
     }
-    this._client.send({ debug: debugReq })
+    return this._client.send({ debug: debugReq })
   }
 
   query(query) {

@@ -292,7 +292,7 @@ async function sequentialTaskQueue(tasks) {
         results.push(result)
       }
       return currentTask()
-    })
+    }).catch((err) => { throw new Error(err) })
   }
   await tasks.reduce(reducer, Promise.resolve())
   return results

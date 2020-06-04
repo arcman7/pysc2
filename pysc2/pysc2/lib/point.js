@@ -23,7 +23,7 @@ class Point extends all_collections_generated_classes.Point {
       const point = x.x
       this.x = point.getX() || 0.0
       this.y = point.getY() || 0.0
-    } else if (isinstance(x, [common_pb.Point, spatial_pb.PointI, common_pb.Point2D])) {
+    } else if (isinstance(x, [common_pb.Point, spatial_pb.PointI, common_pb.Point2D]) || x.toObject) {
       const point = x
       this.x = point.getX() || 0.0
       this.y = point.getY() || 0.0

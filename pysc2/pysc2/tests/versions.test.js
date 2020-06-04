@@ -2,6 +2,7 @@ const path = require('path') //eslint-disable-line
 const s2clientprotocol = require('s2clientprotocol') //eslint-disable-line
 const maps = require(path.resolve(__dirname, '..', 'maps'))
 const run_configs = require(path.resolve(__dirname, '..', 'run_configs'))
+const portspicker = require(path.resolve(__dirname, '..', 'lib', 'portspicker.js'))
 const pythonUtils = require(path.resolve(__dirname, '..', 'lib', 'pythonUtils.js'))
 
 const { assert, sequentialTaskQueue, String } = pythonUtils //eslint-disable-line
@@ -34,7 +35,8 @@ async function main() {
       let sc_process
       tasks.push(async () => { //eslint-disable-line
         try {
-          sc_process = await run_config.start({ want_rgb: false })
+          const port = (await portspicker.pick_unused_ports(1))[0]
+          sc_process = await run_config.start({ want_rgb: false, port })
           const controller = sc_process._controller
           const ping = (await controller.ping()).toObject()
           console.info(`expected:\n  game_version:${version.game_version}\n  data_verion: ${version.data_version}\n  build_version: ${version.build_version}`)
@@ -72,7 +74,8 @@ async function main() {
       let sc_process
       tasks.push(async () => { //eslint-disable-line
         try {
-          sc_process = await run_config.start({ want_rgb: false })
+          const port = (await portspicker.pick_unused_ports(1))[0]
+          sc_process = await run_config.start({ want_rgb: false, port })
           const controller = sc_process._controller
           const Interface = new sc_pb.InterfaceOptions()
           Interface.setRaw(true)

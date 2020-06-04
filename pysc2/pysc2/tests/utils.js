@@ -11,7 +11,7 @@ const np = require(path.resolve(__dirname, '..', 'lib', 'numpy.js'))
 
 const pythonUtils = require(path.resolve(__dirname, '..', 'lib', 'pythonUtils.js'))
 
-const { assert, snakeToPascal, String } = pythonUtils //eslint-disable-line
+const { assert, sequentialTaskQueue, snakeToPascal, String } = pythonUtils //eslint-disable-line
 
 const sc_common = s2clientprotocol.common_pb
 const sc_debug = s2clientprotocol.debug_pb
@@ -38,15 +38,29 @@ class TestCase {
 
 function get_units({ obs, filter_fn = null, owner = null, unit_type = null, tag = null }) {
   //Return a dict of units that match the filter.//
-  if (unit_type && !Array.isArray(unit_type)) {
-    unit_type = [unit_type]
+  let checkUnitType
+  if (unit_type) {
+    if (Array.isArray(unit_type)) {
+      checkUnitType = (type) => {
+        for (let i = 0; i < unit_type.length; i++) {
+          if (unit_type[i] == type) {
+            return true
+          }
+        }
+      }
+    } else if (typeof unit_type === 'function') {
+      checkUnitType = (type) => unit_type(type)
+    } else {
+      checkUnitType = (type) => unit_type == type
+    }
   }
   const out = {}
   const units = obs.getObservation().getRawData().getUnitsList()
+  // console.log(units.map((u) => u.toObject()))
   units.forEach((u) => {
     if ((filter_fn === null || filter_fn(u))
       && (owner === null || u.getOwner() === owner)
-      && (unit_type === null || unit_type[u.getUnitType()])
+      && (unit_type === null || checkUnitType(u.getUnitType()))
       && (tag === null || u.getTag() === tag)) {
       out[u.getTag()] = u
     }
@@ -56,7 +70,7 @@ function get_units({ obs, filter_fn = null, owner = null, unit_type = null, tag 
 
 function get_unit(kwargs) {
   //Return the first unit that matches, or None.//
-  const out = get_unit(kwargs) //eslint-disable-line
+  const out = get_units(kwargs) //eslint-disable-line
   return out[Object.keys(out)[0]] || null
 }
 
@@ -94,14 +108,14 @@ class GameReplayTestCase extends TestCase {
         async function test_in_game() {
           console.log(` ${func.name}: Starting game `.center(80, '-'))
           await self.start_game(...args) //eslint-disable-line
-          func(self)
+          await func(self)
           return true
         }
 
         async function test_in_replay() {
-          await self.start_replay()
           console.log(`${func.name}: Starting replay `.center(80, '-'))
-          func(self)
+          await self.start_replay()
+          await func(self)
           return true
         }
 
@@ -129,12 +143,17 @@ class GameReplayTestCase extends TestCase {
     this._map_data = map_inst.data(run_config)
 
     this._ports = players === 2 ? await portspicker.pick_unused_ports(4) : []
+    // using an the extra 2 to ensure each sc_process is started on a unique port
+    const unique_ports = await portspicker.pick_unused_ports(players || 1)
     this._sc2_procs = []
-    for (let _ = 0; _ < players; _++) {
-      this._sc2_procs.push(run_config.start({ want_rgb: false }))
+    for (let i = 0; i < players; i++) {
+      this._sc2_procs.push(run_config.start({ want_rgb: false, port: unique_ports[i] }))
     }
+    // await sequentialTaskQueue() // currently in consideration
     this._sc2_procs = await Promise.all(this._sc2_procs)
+    // console.log(this._sc2_procs)
     this._controllers = this._sc2_procs.map((p) => p._controller)
+    // console.log(this._controllers)
 
     if (players === 2) {
       // Serial due to a race condition on Windows.
@@ -197,8 +216,9 @@ class GameReplayTestCase extends TestCase {
     }
 
     await this._controllers[0].create_game(create)
+    // must be done in tandem
     await Promise.all(this._controllers.map((c) => c.join_game(join)))
-
+    // await sequentialTaskQueue(this._controllers.map((c) => () => c.join_game(join)))
     this._info = await this._controllers[0].game_info()
     this._features = features.features_from_game_info({
       game_info: this._info,
@@ -206,7 +226,6 @@ class GameReplayTestCase extends TestCase {
     })
 
     this._map_size = point.Point.build(this._info.getStartRaw().getMapSize())
-    console.log('Map size: ', this._map_size, '\nfrom: ', this._info.getStartRaw().getMapSize().toObject())
     this.in_game = true
     await this.step() // Get into the game properly.
     return true
@@ -227,7 +246,8 @@ class GameReplayTestCase extends TestCase {
       return controller.start_replay(req)
     }))
     this.in_game = false
-    this.step() // Get into the game properly.
+    await this.step() // Get into the game properly.
+    return true
   }
 
   async close() { // Instead of tearDown.
@@ -254,7 +274,7 @@ class GameReplayTestCase extends TestCase {
   }
 
   observe(disable_fog = false) {
-    return Promise.all(this._controllers.map((c) => c.observe(disable_fog)))
+    return sequentialTaskQueue(this._controllers.map((c) => () => c.observe(disable_fog)))
   }
 
   move_camera(x, y) {
@@ -273,7 +293,7 @@ class GameReplayTestCase extends TestCase {
   async raw_unit_command(player, ability_id, unit_tags, pos = null, target = null) {
     //Issue a raw unit command.//
     if (typeof ability_id === 'string') {
-      ability_id = actions.FUNCTION[ability_id].ability_id
+      ability_id = actions.FUNCTIONS[ability_id].ability_id
     }
     const action = new sc_pb.Action()
     const actionRaw = new sc_raw.ActionRaw()
@@ -295,32 +315,33 @@ class GameReplayTestCase extends TestCase {
       cmd.setTargetUnitTag(target)
     }
     const response = await this._controllers[player].act(action)
-    const keys = Object.keys(response.result)
-    for (let i = 0; i < keys.length; i++) {
-      const key = keys[i]
-      const result = response.result[key]
+    // console.log('response:\n', response.toObject())
+    const resultList = response.getResultList()
+    for (let i = 0; i < resultList.length; i++) {
+      const result = resultList[i]
       assert(result == sc_error.ActionResult.SUCCESS, 'result == sc_error.ActionResult.SUCCESS')
     }
+    return true
   }
 
   debug(player = 0, { create_unit, draw, end_game, game_state, kill_unit, test_process, score, unit_value }) {
     const req = new sc_debug.DebugCommand()
     if (create_unit) {
-      req.setGameState(create_unit)
+      req.setCreateUnit(create_unit)
     } else if (draw) {
-      req.setGameState(draw)
+      req.setDraw(draw)
     } else if (end_game) {
-      req.setGameState(end_game)
+      req.setEndGame(end_game)
     } else if (game_state) {
       req.setGameState(game_state)
     } else if (kill_unit) {
-      req.setGameState(kill_unit)
+      req.setKillUnit(kill_unit)
     } else if (test_process) {
-      req.setGameState(test_process)
+      req.setTestProcess(test_process)
     } else if (score) {
-      req.setGameState(score)
+      req.setScore(score)
     } else if (unit_value) {
-      req.setGameState(unit_value)
+      req.setUnitValue(unit_value)
     } else {
       const key = Object.keys(arguments[1])[0] //eslint-disable-line
       const value = arguments[1][key] //eslint-disable-line
@@ -329,10 +350,10 @@ class GameReplayTestCase extends TestCase {
     return this._controllers[player].debug([req])
   }
 
-  god() {
+  async god() {
     //Stop the units from killing each other so we can observe them.//
-    this.debug(0, { game_state: sc_debug.DebugGameState.GOD })
-    this.debug(1, { game_state: sc_debug.DebugGameState.GOD })
+    await this.debug(0, { game_state: sc_debug.DebugGameState.GOD })
+    await this.debug(1, { game_state: sc_debug.DebugGameState.GOD })
   }
 
   create_unit(unit_type, owner, pos, quantity = 1) {

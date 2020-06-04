@@ -64,14 +64,20 @@ class StarcraftProcess {
     this._tmp_dir = tempfile.directory(prefix, dir) // these arguments are ignored
     this._host = host || '127.0.0.1'
     let args
-    this._port = flags.get('sc2_port') || port || getPort()
+    this._port = flags.get('sc2_port') || port /* || getPort()
       .then((p) => {
         args[args.indexOf(this._port)] = p
         this._port = p
         return p
       })
+
+      A race condition exists where two or more instances of sc_process.js are communicatiing on the same port because from the node process running the two instances, the call to get free port returns the same value
+      */
+    if (!Number.isInteger(this._port)) {
+      throw new Error('A port is required to instantiate an sc_process instance.')
+    }
     this._version = version
-    args = [
+    args = [ //eslint-disable-line
       exec_path,
       '-listen', this._host,
       '-port', this._port,

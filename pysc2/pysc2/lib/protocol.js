@@ -62,6 +62,7 @@ class StarcraftProtocol {
     this._status = Status.LAUNCHED
     this._sock = ws._socket
     this._port = this._sock.address().port
+    // console.log('protocol: ', this._port)
     this._ws = ws
     this._count = 1
     // apply @decoraters
@@ -169,26 +170,22 @@ class StarcraftProtocol {
     const isList = Array.isArray(val)
     // proto setters: setFoo, setFooList
     req[`set${name + (isList ? 'List' : '')}`](val)
+    // if (name === 'Action') {
+    //   const stuff = req.getAction().getActionsList().map((a) => a.toObject())
+    //   console.log(stuff[0].actionRaw.unitCommand)
+    // }
     req.setId(this.next(this._count))
-    // console.log(req.toObject())
-
     let res
     try {
+    // console.log(req.toObject())
       res = await this.send_req(req)
       // console.log('********************res:\n', res.toObject())
-      // if (res.getCreateGame) {
-      //   const cg = res.getCreateGame()
-      //   if (cg) {
-      //     console.log(cg.toObject())
-      //     if (cg) {
-      //       console.log(cg.getError())
-      //     }
-      //   }
-      // }
     } catch (err) {
+      console.warn('PORT: ', this._port, '\nreq:\n', req.toObject(), '\nres:\n', res ? res.toObject() : 'undefined')
       throw new ConnectionError(`Error during ${name}: ${err}`)
     }
     if (res.getId && res.getId() !== req.getId()) {
+      console.warn('PORT: ', this._port, '\nreq:\n', req.toObject(), '\nres:\n', res ? res.toObject() : 'undefined')
       throw new ConnectionError(`Error during ${name}: Got a response with a different id\n expected: ${req.getId()}, got: ${res.getId()}`)
     }
 
@@ -232,6 +229,7 @@ class StarcraftProtocol {
   _write(request) {
     //Actually serialize and write the request.//
     let request_str
+    // console.log(request.toObject())
     withPython(sw('serialize_request'), () => {
       request_str = request.serializeBinary()
     })
