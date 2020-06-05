@@ -1,4 +1,5 @@
 const path = require('path') //eslint-disable-line
+const { performance } = require('perf_hooks') //eslint-disable-line
 const actions = require(path.resolve(__dirname, '..', 'lib', 'actions.js'))
 const units = require(path.resolve(__dirname, '..', 'lib', 'units.js'))
 const utils = require(path.resolve(__dirname, './utils.js'))
@@ -68,6 +69,40 @@ async function main() {
         ),
         'raw_ability_ids(obs[0]) == [actions.FUNCTIONS.Attack_Attack_screen.ability_id]'
       )
+
+      await testState.raw_unit_command(0, 'Attack_screen', zealot.getTag(), [34, 34])
+
+      await testState.step(64)
+      obs = await testState.observe()
+
+      zealot = utils.get_unit({ obs: obs[0], unit_type: units.Protoss.Zealot })
+      observer = utils.get_unit({ obs: obs[0], unit_type: units.Protoss.Observer })
+      testState.assert_point(zealot.getPos(), [34, 34])
+      testState.assert_point(observer.getPos(), [32, 32])
+      assert(
+        arrayCompare(
+          raw_ability_ids(obs[0]),
+          [actions.FUNCTIONS.Attack_Attack_screen.ability_id]
+        ),
+        'raw_ability_ids(obs[0]) == [actions.FUNCTIONS.Attack_Attack_screen.ability_id]'
+      )
+
+      await testState.raw_unit_command(0, 'Attack_screen', observer.getTag(), [34, 34])
+
+      await testState.step(64)
+      obs = await testState.observe()
+      zealot = utils.get_unit({ obs: obs[0], unit_type: units.Protoss.Zealot })
+      observer = utils.get_unit({ obs: obs[0], unit_type: units.Protoss.Observer })
+      testState.assert_point(zealot.getPos(), [34, 34])
+      testState.assert_point(observer.getPos(), [34, 34])
+      assert(
+        arrayCompare(
+          raw_ability_ids(obs[0]),
+          [actions.FUNCTIONS.Scan_Move_screen.ability_id]
+        ),
+        'raw_ability_ids(obs[0]) == [actions.FUNCTIONS.Scan_Move_screen.ability_id]'
+      )
+
       return true
     }
     const boundedArgsDecorator = utils.GameReplayTestCase.setup() // no bounded args

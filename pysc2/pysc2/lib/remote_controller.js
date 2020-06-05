@@ -20,7 +20,7 @@ String.prototype.center = String.prototype.center || function(space, char) {
 flags.defineBoolean('sc2_log_actions', false, 'Print all the actions sent to SC2. If you want observations\n as well, consider using `sc2_verbose_protocol`.')
 flags.defineInteger('sc2_timeout', 120, 'Timeout to connect and wait for rpc responses.')
 
-let sw = stopwatch.sw
+// let sw = stopwatch.sw
 
 const Status = protocol.Status
 
@@ -143,7 +143,8 @@ class RemoteController {
   */
   constructor(host, port, proc = null, timeout_seconds = null, passedSw) {
     // set the stop watch to a specific instance if provided
-    sw = passedSw || sw
+    this._sw = passedSw || stopwatch.sw
+    const sw = this._sw
     flags.parse(null, true)
     timeout_seconds = timeout_seconds || flags.get('sc2_timeout')
     this._connect = sw.decorate(this._connect.bind(this))

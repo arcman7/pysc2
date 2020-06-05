@@ -1,4 +1,5 @@
 const path = require('path') //eslint-disable-line
+const { performance } = require('perf_hooks') //eslint-disable-line
 const s2clientprotocol = require('s2clientprotocol') //eslint-disable-line
 const maps = require(path.resolve(__dirname, '..', 'maps'))
 const run_configs = require(path.resolve(__dirname, '..', 'run_configs'))
@@ -19,12 +20,15 @@ const sc_error = s2clientprotocol.error_pb
 const sc_raw = s2clientprotocol.raw_pb
 const sc_pb = s2clientprotocol.sc2api_pb
 
+const msToS = 1 / 1000
+
 class TestCase {
   //A test base class that enables stopwatch profiling.
 
   setUp() { //eslint-disable-line
     stopwatch.sw.clear()
     stopwatch.sw.enable()
+    this._start_timer = performance.now() * msToS
   }
 
   tearDown() { //eslint-disable-line
@@ -33,9 +37,9 @@ class TestCase {
     let sw
     if (this._sc2_procs) {
       sw = this._sc2_procs[0]._sw
-    }
-    for (let i = 1; i < this._sc2_procs.length; i++) {
-      sw.merge(this._sc2_procs[i]._sw)
+      for (let i = 1; i < this._sc2_procs.length; i++) {
+        sw.merge(this._sc2_procs[i]._sw)
+      }
     }
     if (sw) {
       s = sw.toString()
@@ -45,6 +49,7 @@ class TestCase {
     }
     stopwatch.sw.disable();
     (this._sc2_procs || []).forEach((p) => p._sw.disable())
+    console.log(`\n----------------------------------------------------------------------\nRan 1 test in ${(performance.now() * msToS) - this._start_timer}s\n\n`)
   }
 }
 
