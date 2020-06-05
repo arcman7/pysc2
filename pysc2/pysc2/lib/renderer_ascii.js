@@ -138,3 +138,10 @@ function minimap(obs) {
   }
   return out
 }
+
+module.exports = {
+  get_printable_unit_types,
+  _summary,
+  screen,
+  minimap,
+}
