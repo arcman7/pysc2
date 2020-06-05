@@ -1,11 +1,12 @@
-const stopwatch = require('./stopwatch.js')
-const pythonUtils = require('./pythonUtils.js')
+const path = require('path') //eslint-disable-line
+const stopwatch = require(path.resolve(__dirname, './stopwatch.js'))
+const pythonUtils = require(path.resolve(__dirname, './pythonUtils.js'))
 
-const { DefaultDict, withPython, zip } = pythonUtils
-const { Stat, StopWatchContext, TracingStopWatchContext, FakeStopWatchContext, fake_context, StopWatch, StopWatchRef } = stopwatch
+const { withPython } = pythonUtils
+// const { Stat, StopWatchContext, TracingStopWatchContext, FakeStopWatchContext, fake_context, StopWatch, StopWatchRef } = stopwatch
 
 jest.mock('perf_hooks')
-const perf_hooks = require('perf_hooks')
+const perf_hooks = require('perf_hooks') //eslint-disable-line
 
 function ham_dist(str1, str2) {
   //Hamming distance. Count the number of differences between str1 and str2.//
@@ -22,18 +23,14 @@ function ham_dist(str1, str2) {
   return sum
 }
 
-const jsConv = (10 ** -3)
+// const jsConv = (10 ** -3)
+const jsConv = 1000
 
-describe('stopwatch.js: ', () => {
-  describe('Stat:', () => {
+describe('stopwatch.js:', () => {
+  describe('StatTest:', () => {
     let stat
-    let sw
     beforeEach(() => {
       stat = new stopwatch.Stat()
-      sw = new stopwatch.StopWatch()
-    })
-    afterEach(() => {
-      delete process.env['SC2_NO_STOPWATCH']
     })
     test('Range', () => {
       stat.add(1)
@@ -51,6 +48,16 @@ describe('stopwatch.js: ', () => {
       const out = stat.toString()
       expect(out).toBe("sum: 4.0000, avg: 2.0000, dev: 1.0000, min: 1.0000, max: 3.0000, num: 2")
       expect(ham_dist(out, stopwatch.Stat.parse(out).toString()) < 5).toBe(true)
+    })
+  })
+  describe('StopwatchTest', () => {
+    let sw
+    beforeEach(() => {
+      perf_hooks.useRealish = false
+      sw = new stopwatch.StopWatch()
+    })
+    afterEach(() => {
+      delete process.env['SC2_NO_STOPWATCH']
     })
     test('StopWatch', () => {
       perf_hooks.return_val = 0
@@ -74,9 +81,9 @@ describe('stopwatch.js: ', () => {
       foo()
       const out = sw.toString()
       // The names should be in sorted order.
-      let names = out.splitlines().map(l => l.trim())
+      let names = out.splitlines().map((l) => l.trim())
       names = names.slice(1, names.length - 1)
-        .map(l => l.split(' ')[0])
+        .map((l) => l.split(' ')[0])
       expect(names.join(', ')).toBe('five, four, one, two, two.three')
       const one_line = out.splitlines()
         .map((line) => line.match(/\S+/g))[3]
@@ -89,6 +96,7 @@ describe('stopwatch.js: ', () => {
       expect(ham_dist(out, round_trip) < 15).toBe(true)
     })
     test('Divide zero', () => {
+      perf_hooks.return_val = 0
       withPython(sw('zero'), () => {})
       // Just make sure this doesn't have a divide by 0 for when the total is 0.
       expect(sw.toString().includes('zero')).toBe(false)
@@ -103,18 +111,24 @@ describe('stopwatch.js: ', () => {
       expect(sw.decorate('name')(Math.round)).not.toBe(Math.round)
     })
     test('Speed', () => {
+      perf_hooks.useRealish = true
+
       const count = 100
       function run() {
         for (let _ = 0; _ < count; _++) {
           withPython(sw('name'), () => {})
         }
       }
+
       for (let _ = 0; _ < 10; _++) {
         sw.enable()
-        withPython(sw('enabled'), () => { run() })
+        withPython(sw('enabled'), run)
+
         sw.trace()
-        withPython(sw('trace'), () => { run() })
+        withPython(sw('trace'), run)
+
         sw.enable()
+        //eslint-disable-next-line
         withPython(sw('disabled'), () => { sw.disable(); run() })
       }
       // No asserts. Succeed but print the timings.

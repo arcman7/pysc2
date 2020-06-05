@@ -1,8 +1,8 @@
-const path = require('path');
+const path = require('path') //eslint-disable-line
 
 /*A stopwatch to check how much time is used by bits of code.*/
 
-const { performance } = require('perf_hooks')
+const { performance } = require('perf_hooks') //eslint-disable-line
 const pythonUtils = require(path.resolve(__dirname, './pythonUtils.js'))
 
 const { DefaultDict, withPython, zip } = pythonUtils
@@ -97,6 +97,8 @@ class StopWatchContext {
   constructor(stopwatch, name) {
     this._sw = stopwatch
     this._sw.push(name)
+    this.__enter__ = this.__enter__.bind(this)
+    this.__exit__ = this.__exit__.bind(this)
   }
 
   // performance.now() => measured in milliseconds.
@@ -111,6 +113,11 @@ class StopWatchContext {
 
 class TracingStopWatchContext extends StopWatchContext {
   //Time an individual call, but also output all the enter/exit calls.//
+  constructor() {
+    super()
+    this.__enter__ = this.__enter__.bind(this)
+    this.__exit__ = this.__exit__.bind(this)
+  }
 
   __enter__() {
     super.__enter__()
@@ -241,7 +248,7 @@ class StopWatch {
       return _stopwatch
     }
     if (typeof (name_or_func) === 'function') {
-      return decorator(name_or_func.name, name_or_func)
+      return decorator(name_or_func.name.replace('bound ', ''), name_or_func)
     }
     return (func) => decorator(name_or_func, func)
   }
@@ -281,6 +288,9 @@ class StopWatch {
     let value
     Object.keys(other.times).forEach((key) => {
       value = other[key]
+      if (!value) {
+        return
+      }
       this._times[key].merge(value)
     })
   }
@@ -311,7 +321,7 @@ class StopWatch {
       cur = this._times[key]
       return !(key.includes('.')) ? cur.sum + acc : acc
     }, 0)
-    const table = [["", "% total", "sum", "avg", "dev", "min", "max", "num"]]
+    const table = [['', '% total', 'sum', 'avg', 'dev', 'min', 'max', 'num']]
     let percent
     let v
     Object.keys(this._times).sort().forEach((key) => {

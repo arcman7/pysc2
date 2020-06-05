@@ -503,9 +503,13 @@ function withPython(withInterface, callback) {
   if (!withInterface.__enter__ || !withInterface.__exit__) {
     throw new Error('ValueError: withInterface must define a __enter__ and __exit__ method')
   }
-  let tempResult = withInterface.__enter__()
+  let tempResult = withInterface.__enter__.call(withInterface)
   tempResult = callback(tempResult)
-  withInterface.__exit__()
+  if (tempResult instanceof Promise) {
+    tempResult.then(() => withInterface.__exit__.call(withInterface))
+  } else {
+    withInterface.__exit__.call(withInterface)
+  }
   return tempResult
 }
 async function withPythonAsync(withInterface, callback) {

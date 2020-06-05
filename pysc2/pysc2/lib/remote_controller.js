@@ -20,7 +20,7 @@ String.prototype.center = String.prototype.center || function(space, char) {
 flags.defineBoolean('sc2_log_actions', false, 'Print all the actions sent to SC2. If you want observations\n as well, consider using `sc2_verbose_protocol`.')
 flags.defineInteger('sc2_timeout', 120, 'Timeout to connect and wait for rpc responses.')
 
-const sw = stopwatch.sw
+let sw = stopwatch.sw
 
 const Status = protocol.Status
 
@@ -141,7 +141,9 @@ class RemoteController {
   take a value and construct the Request itself, or return something more useful
   than a Response* object.
   */
-  constructor(host, port, proc = null, timeout_seconds = null) {
+  constructor(host, port, proc = null, timeout_seconds = null, passedSw) {
+    // set the stop watch to a specific instance if provided
+    sw = passedSw || sw
     flags.parse(null, true)
     timeout_seconds = timeout_seconds || flags.get('sc2_timeout')
     this._connect = sw.decorate(this._connect.bind(this))
@@ -220,10 +222,10 @@ class RemoteController {
     /** must call from factory  _setClientConnection() **/
   }
 
-  async _setClientConnection(host, port, proc, timeout_seconds) {
+  async _setClientConnection(host, port, proc, timeout_seconds, passedSw) {
     timeout_seconds = timeout_seconds || flags.get('sc2_timeout')
     const sock = await this._connect(host, port, proc, timeout_seconds)
-    this._client = new protocol.StarcraftProtocol(sock)
+    this._client = new protocol.StarcraftProtocol(sock, passedSw)
     await this.ping()
     return true
   }
@@ -463,7 +465,6 @@ class RemoteController {
   async save_replay() {
     //Save a replay, returning the data.//
     const res = await this._client.send({ save_replay: new sc_pb.RequestSaveReplay() })
-    // console.log(res.toObject())
     return res.getData()
   }
 
@@ -521,9 +522,9 @@ class RemoteController {
   }
 }
 
-async function RemoteControllerFactory(host, port, proc, timeout_seconds) {
-  const rm = new RemoteController(host, port, proc, timeout_seconds)
-  await rm._setClientConnection(host, port, proc, timeout_seconds)
+async function RemoteControllerFactory(host, port, proc, timeout_seconds, passedSw) {
+  const rm = new RemoteController(host, port, proc, timeout_seconds, passedSw)
+  await rm._setClientConnection(host, port, proc, timeout_seconds, passedSw)
   return rm
 }
 

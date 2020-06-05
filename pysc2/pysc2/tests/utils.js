@@ -28,11 +28,23 @@ class TestCase {
   }
 
   tearDown() { //eslint-disable-line
-    const s = stopwatch.sw.toString()
+    // const s = stopwatch.sw.toString()
+    let s
+    let sw
+    if (this._sc2_procs) {
+      sw = this._sc2_procs[0]._sw
+    }
+    for (let i = 1; i < this._sc2_procs.length; i++) {
+      sw.merge(this._sc2_procs[i]._sw)
+    }
+    if (sw) {
+      s = sw.toString()
+    }
     if (s) {
       console.info(`Stop watch profile:\n${s}`)
     }
-    stopwatch.sw.disable()
+    stopwatch.sw.disable();
+    (this._sc2_procs || []).forEach((p) => p._sw.disable())
   }
 }
 
@@ -154,6 +166,7 @@ class GameReplayTestCase extends TestCase {
     }
     // await sequentialTaskQueue() // currently in consideration
     this._sc2_procs = await Promise.all(this._sc2_procs)
+    this._sc2_procs.forEach((p) => p._sw.enable())
     this._controllers = this._sc2_procs.map((p) => p._controller)
 
     if (players === 2) {

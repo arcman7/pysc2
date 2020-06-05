@@ -16,7 +16,8 @@ flags.defineBoolean('sc2_gdb', false, 'Run SC2 in gdb.')
 flags.defineBoolean('sc2_strace', false, 'Run SC2 in strace.')
 flags.defineInteger('sc2_port', null, 'If set, connect to the instance on \nlocalhost:sc2_port instead of\n launching one.')
 
-const sw = stopwatch.sw
+// const sw = stopwatch.sw
+// let sw = new stopwatch.StopWatch(false)
 
 class SC2LaunchError extends Error {
   constructor(msg) {
@@ -34,7 +35,7 @@ class StarcraftProcess {
   It is important to call `close` or use it as a context manager, otherwise
   you'll likely leak temp files and SC2 processes.
   */
-  constructor(run_config, exec_path, version, full_screen = false, extra_args = null, verbose = false, host = null, port = null, connect = true, timeout_seconds = null, window_size = [640, 480], window_loc = [50, 50]) {
+  constructor(run_config, exec_path, version, full_screen = false, extra_args = null, verbose = false, host = null, port = null, connect = true, timeout_seconds = null, window_size = [640, 480], window_loc = [50, 50], passedSw) {
     /*    Launch the SC2 process.
 
     Args:
@@ -54,11 +55,10 @@ class StarcraftProcess {
       **kwargs: Extra arguments for _launch (useful for subclasses).
     */
     flags.parse(null, true)
-
+    this._sw = passedSw || new stopwatch.StopWatch(false)
     this._proc = null
     this._controller = null
     this._check_exists(exec_path)
-    // exec_path = `'${exec_path}'`
     const dir = run_config.tmp_dir
     const prefix = 'sc-'
     this._tmp_dir = tempfile.directory(prefix, dir) // these arguments are ignored
@@ -121,7 +121,7 @@ class StarcraftProcess {
       return self._setupController({ run_config, args, timeout_seconds, connect })
     }
     // apply @decorators
-    this.close = sw.decorate(this.close.bind(this))
+    this.close = this._sw.decorate(this.close.bind(this))
   }
 
   async _setupController({ run_config, args, timeout_seconds, connect }) {
@@ -143,13 +143,13 @@ class StarcraftProcess {
       console.info(`Launching SC2:\n${args.join(' ')}`)
     }
     try {
-      await withPython(sw('startup'), async () => {
+      await withPython(this._sw('startup'), async () => {
         if (!flags.get('sc2_port')) {
           this._proc = await this._launch(run_config, args)
         }
         if (connect) {
           this._controller = await remote_controller.RemoteControllerFactory(
-            this._host, this._port, this, timeout_seconds
+            this._host, this._port, this, timeout_seconds, this._sw
           )
         }
       })
@@ -223,31 +223,20 @@ class StarcraftProcess {
 
   async _launch(run_config, args) { //eslint-disable-line
     //Launch the process and return the process object.//
-    // let resolve
-    // let reject
-    // const prom = new Promise((res, rej) => {
-    //   resolve = res
-    //   reject = rej
-    // })
     try {
       const { cwd, env } = run_config
-      // console.log('cwd: ', cwd)
-      // console.log(JSON.stringify(args))
-      const proc = withPython(sw('popen'), () => spawn(args[0], args, { cwd, env }))
+      const proc = withPython(this._sw('popen'), () => spawn(args[0], args, { cwd, env }))
       this._proc_exited = false
       proc.on('message', (msg) => {
         console.log('proc.on message => msg:', msg)
-        // resolve(msg)
         proc._hasExited = false
       })
       proc.stdout.on('data', (data) => {
         console.log('proc.stdout: data:', data)
-        // resolve(data)
         proc._hasExited = false
       })
       proc.stderr.on('data', (data) => {
         console.error('proc.stderr: data: ', data)
-        // reject(data)
       })
       proc.on('exit', () => {
         this._proc_exited = true
@@ -255,11 +244,9 @@ class StarcraftProcess {
       })
       proc.on('error', (err) => {
         console.error('proc.on error => err: ', err)
-        // reject(err)
         this._proc_exited = true
         proc._hasExited = true
       })
-      // console.log('proc: ', proc)
       return proc
     } catch (err) {
       console.error('Failed to launch')
@@ -318,8 +305,8 @@ function _shutdown_proc(p, timeout) {
   return prom
 }
 
-async function StarcraftProcessFactory({ run_config, exec_path, version, full_screen, extra_args, verbose, host, port, connect, timeout_seconds, window_size, window_loc }) {
-  const scP = new StarcraftProcess(run_config, exec_path, version, full_screen, extra_args, verbose, host, port, connect, timeout_seconds, window_size, window_loc)
+async function StarcraftProcessFactory({ run_config, exec_path, version, full_screen, extra_args, verbose, host, port, connect, timeout_seconds, window_size, window_loc, passedSw }) {
+  const scP = new StarcraftProcess(run_config, exec_path, version, full_screen, extra_args, verbose, host, port, connect, timeout_seconds, window_size, window_loc, passedSw)
   await scP._setupControllerLockedArgs()
   return scP
 }

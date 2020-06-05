@@ -1,5 +1,4 @@
 const path = require('path') //eslint-disable-line
-// const net = require('net') //eslint-disable-line
 const Enum = require('python-enum') //eslint-disable-line
 const s2clientprotocol = require('s2clientprotocol') //eslint-disable-line
 const websocket = require('ws') //eslint-disable-line
@@ -20,7 +19,6 @@ You are allowed to send additional requests before receiving a response to an ea
 */
 const { sc2api_pb } = s2clientprotocol
 const sc_pb = sc2api_pb
-// const { socket } = net
 const { assert, snakeToPascal, withPython, withPythonAsync } = pythonUtils
 
 flags.defineInteger('sc2_verbose_protocol', 0, `
@@ -30,7 +28,7 @@ flags.defineInteger('sc2_verbose_protocol', 0, `
 ) //eslint-disable-line
 
 
-const sw = stopwatch.sw
+// let sw = stopwatch.sw
 
 // Create a python version of the Status enum in the proto.
 const Status = Enum.Enum('Status', sc_pb.Status)
@@ -57,7 +55,10 @@ class ProtocolError extends Error {
 //   /* not sure we need this in javascript */
 // }
 class StarcraftProtocol {
-  constructor(ws) {
+  constructor(ws, passedSw) {
+    // set the stop watch to a specific instance if provided
+    this._sw = passedSw || stopwatch.sw
+    const sw = this._sw
     flags.parse(null, true)
     this._status = Status.LAUNCHED
     this._sock = ws._socket
@@ -172,10 +173,6 @@ class StarcraftProtocol {
     const isList = Array.isArray(val)
     // proto setters: setFoo, setFooList
     req[`set${name + (isList ? 'List' : '')}`](val)
-    // if (name === 'Action') {
-    //   const stuff = req.getAction().getActionsList().map((a) => a.toObject())
-    //   console.log(stuff[0].actionRaw.unitCommand)
-    // }
     req.setId(this.next(this._count))
     let res
     try {
@@ -222,13 +219,13 @@ class StarcraftProtocol {
 
   async _read() {
     //Actually read the response and parse it, returning a Response.//
-    let response = await withPythonAsync(sw('read_response'), async () => {
+    let response = await withPythonAsync(this._sw('read_response'), async () => {
       if (this._que.length) {
         return this._que.shift()
       }
       return new Promise((resolve) => { this._trigger = resolve })
     })
-    withPython(sw('parse_response'), () => {
+    withPython(this._sw('parse_response'), () => {
       response = sc_pb.Response.deserializeBinary(response)
     })
     return response
@@ -237,10 +234,10 @@ class StarcraftProtocol {
   _write(request) {
     //Actually serialize and write the request.//
     let request_str
-    withPython(sw('serialize_request'), () => {
+    withPython(this._sw('serialize_request'), () => {
       request_str = request.serializeBinary()
     })
-    withPython(sw('write_request'), () => {
+    withPython(this._sw('write_request'), () => {
       try { //eslint-disable-line
         this._ws.send(request_str)
       } catch (err) {
