@@ -538,11 +538,6 @@ function zip() {
     return args.map(function(array) { return array[i] })
   });
 }
-// function zip(arrays) {
-//   return Array.apply(null,Array(arrays[0].length)).map(function(_, i) { //eslint-disable-line
-//     return arrays.map(function(array){ return array[i] }) //eslint-disable-line
-//   });
-// }
 
 module.exports = {
   ABCMeta,
