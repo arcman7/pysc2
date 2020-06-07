@@ -5,8 +5,8 @@ https://docs.scipy.org/doc/numpy/user/basics.rec.html are not enough since they
 actually change the type and don't interoperate well with tensorflow.
 */
 
-const path = require('path')
-const Enum = require('python-enum')
+const path = require('path') //eslint-disable-line
+const Enum = require('python-enum') //eslint-disable-line
 const np = require(path.resolve(__dirname, './numpy.js'))
 const pythonUtils = require(path.resolve(__dirname, './pythonUtils.js'))
 const { isinstance } = pythonUtils
@@ -161,6 +161,14 @@ class NamedNumpyArray extends Array {// extends np.ndarray:
   Look at the tests for more examples including using enums and named tuples.
   */
   constructor(values, names) {
+    let tensor
+    if (values instanceof np.TensorMeta) {
+      console.log(values.shape)
+      tensor = values
+      values = values.arraySync()
+    } else {
+      tensor = np.tensor(values)
+    }
     super(...values)
     if (isinstance(names, Enum.EnumMeta)) {
       names = names.member_names_
@@ -170,7 +178,7 @@ class NamedNumpyArray extends Array {// extends np.ndarray:
       names = Object.keys(names)
     }
     this.__pickleArgs = [values, names]
-    this.tensor = np.tensor(values)
+    this.tensor = tensor
     this.shape = this.tensor.shape
     if (this.shape.length === 0) {
       throw new Error('ValueError: Scalar arrays are unsupported')

@@ -1,45 +1,8 @@
-/* list comprehensions
-
-Python:
-cumulative_sum = np.cumsum([delay / total for delay in delays])
-
-JavaScript:
-
-// 1st version (simple way)
-var result = []
-Object.keys(delays).forEach((key) => {
-    var delay = delays[key]
-    result.push(delay / total)
-})
-np.cumsum(result)
-
-
-// 2nd version
-np.cumsum(Object.keys(delays).map((key) => {
-    var delay = delays[key]
-    return delay / total
-}))
-
-
-**** Simplified ****
-
-Python:
-
-a = [delay / total for delay in delays]
-
-JavaScript:
-
-var a = Object.keys(delays).map((key) => {
-    var delay = delays[key]
-    return delay / total
-})
-
-*/
-/*eslint-disable prefer-rest-params*/
-const tf = require('@tensorflow/tfjs')
-require('@tensorflow/tfjs-node'); //eslint-disable-line
+const tf = require('@tensorflow/tfjs') //eslint-disable-line
+require('@tensorflow/tfjs-node') //eslint-disable-line
 const foo = tf.tensor([1])
 const TensorMeta = foo.constructor // currently unknown where else to get this value
+/*eslint-disable prefer-rest-params*/
 module.exports = {
   absolute: tf.abs,
   abs: tf.abs,
@@ -52,6 +15,7 @@ module.exports = {
   array: tf.tensor,
   argMin: tf.argMin,
   argMax: tf.argMax,
+  buffer: tf.buffer,
   cumsum() {
     return tf.cumsum(...arguments).dataSync() //eslint-disable-line
   },
@@ -99,4 +63,13 @@ module.exports = {
     }
     return tf.transpose(tf.stack([tensorA, tensorB]))
   },
+  // dtypes
+  int8: Int8Array,
+  int16: Int16Array,
+  int32: Int32Array,
+  uint8: Uint8Array,
+  uint16: Uint16Array,
+  uint32: Uint32Array,
+  float32: Float32Array,
+  float64: Float64Array,
 }

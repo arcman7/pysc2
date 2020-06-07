@@ -246,6 +246,15 @@ class Feature extends all_collections_generated_classes.Feature {
     }
   }
 
+  static get sdtypes() {
+    return {
+      1: 'uint8',
+      8: 'uint8',
+      16: 'uint16',
+      32: 'int32',
+    }
+  }
+
   unpack(obs) {
     //Return a correctly shaped numpy array for this feature.//
     // const planes = obs.getFeatureLayerData()[this.layer_set]
@@ -256,23 +265,7 @@ class Feature extends all_collections_generated_classes.Feature {
   }
 
   unpack_layer(plane) {//eslint-disable-line
-    //Return a correctly shaped numpy array given the feature layer bytes.//
-    const size = point.Point.build(plane.getSize())
-    if (size[0] === 0 && size[1] === 0) {
-      // New layer that isn't implemented in this SC2 version.
-      return null
-    }
-    let data = np.frombuffer(plane.getData(), Feature.dtypes[plane.bits_per_pixel])
-    if (plane.bits_per_pixel === 1) {
-      data = np.unpackbits(data)
-      if (data.shape[0] != (size.x * size.y)) {
-        // This could happen if the correct length isn't a multiple of 8, leading
-        // to some padding bits at the end of the string which are incorrectly
-        // interpreted as data.
-        data = data.slice(0, size.x * size.y)
-      }
-    }
-    return data.reshape(size.y, size.x)
+    return Feature.unpack_layer(plane)
   }
 
   static unpack_layer(plane) {
@@ -282,8 +275,10 @@ class Feature extends all_collections_generated_classes.Feature {
       // New layer that isn't implemented in this SC2 version.
       return null
     }
-    let data = np.frombuffer(plane.getData(), Feature.dtypes[plane.bits_per_pixel])
-    if (plane.bits_per_pixel === 1) {
+    let data = plane.getData()
+    // data = np.buffer([data.length], Feature.sdtypes[plane.getBitsPerPixel()], data)
+    data = np.buffer([size.y, size.x], Feature.sdtypes[plane.getBitsPerPixel()], data)
+    if (plane.getBitsPerPixel() === 1) {
       data = np.unpackbits(data)
       if (data.shape[0] !== (size.x * size.y)) {
         // This could happen if the correct length isn't a multiple of 8, leading
@@ -292,17 +287,25 @@ class Feature extends all_collections_generated_classes.Feature {
         data = data.slice(0, size.x * size.y)
       }
     }
-    return data.reshape(size.y, size.x)
+    // return data.reshape( size.y, size.x)
+    return data
+  }
+
+  unpack_rgb_image(plane) {//eslint-disable-line
+    return Feature.unpack_rgb_image(plane)
   }
 
   static unpack_rgb_image(plane) {
     //Return a correctly shaped numpy array given the image bytes.//
-    if (plane.bits_per_pixel !== 24) {
-      throw new ValueError(`plane.bits_per_pixel ${plane.bits_per_pixel} !== 24`)
+    if (plane.getBitsPerPixel() !== 24) {
+      throw new ValueError(`plane.bits_per_pixel ${plane.getBitsPerPixel()} !== 24`)
     }
-    const size = point.Point.build(plane.size)
-    const data = np.frombuffer(plane.data, np.uint8)
-    return data.reshape(size.y, size.x, 3)
+    const size = point.Point.build(plane.getSize())
+    let data = plane.getData()
+    // data = np.buffer([data.length], 'uint8', data)
+    data = np.buffer([size.y, size.x, 3], 'uint8', data)
+    // return data.reshape(size.y, size.x, 3)
+    return data
   }
 
   color(plane) {
@@ -315,8 +318,7 @@ class Feature extends all_collections_generated_classes.Feature {
 
 Feature.unpack_layer = sw.decorate(Feature.unpack_layer)
 Feature.unpack_rgb_image = sw.decorate(Feature.unpack_rgb_image)
-// const ScreenFeatures_fields = all_collections_generated_classes.ScreenFeatures._fields
-// class ScreenFeatures extends all_collections_generated_classes.ScreenFeatures {
+
 class ScreenFeatures extends namedtuple('ScreenFeatures', [
   'height_map', 'visibility_map', 'creep', 'power', 'player_id',
   'player_relative', 'unit_type', 'selected', 'unit_hit_points',
@@ -345,8 +347,7 @@ class ScreenFeatures extends namedtuple('ScreenFeatures', [
     super(feats)
   }
 }
-// const MinimapFeatures_fields = all_collections_generated_classes.MinimapFeatures._fields
-// class MinimapFeatures extends all_collections_generated_classes.MinimapFeatures {
+
 class MinimapFeatures extends namedtuple('MinimapFeatures', [
   'height_map', 'visibility_map', 'creep', 'camera', 'player_id',
   'player_relative', 'selected', 'unit_type', 'alerts', 'pathable',
@@ -1240,27 +1241,29 @@ class Features {
 
   transform_obs(obs) {
     //Render some SC2 observations into something an agent can handle.//
-    const empty_unit = np.array([], /*dtype=*/np.int32).reshape([0, UnitLayer._keys.length])
+    const dtype = 'int32'
+    const empty_unit = np.array(Array(UnitLayer._keys.length).fill(0), [UnitLayer._keys.length], dtype)
     const out = new named_array.NamedDict({ // Fill out some that are sometimes empty.
       'single_select': empty_unit,
       'multi_select': empty_unit,
       'build_queue': empty_unit,
       'cargo': empty_unit,
-      'production_queue': np.array([], /*dtype=*/np.int32).reshape(
-        [0, ProductionQueue._keys.length]
-      ),
-      'last_actions': np.array([], /*dtype=*/np.int32),
-      'cargo_slots_available': np.array([0], /*dtype=*/np.int32),
-      'home_race_requested': np.array([0], /*dtype=*/np.int32),
-      'away_race_requested': np.array([0], /*dtype=*/np.int32),
+      'production_queue': np.array(Array(ProductionQueue._keys.length).fill(0), [ProductionQueue._keys.length], dtype),
+      'last_actions': np.array([0], [1], dtype),
+      'cargo_slots_available': np.array([0], [1], dtype),
+      'home_race_requested': np.array([0], [1], dtype),
+      'away_race_requested': np.array([0], [1], dtype),
       'map_name': this._map_name,
     })
     let raw // defined on line 1497
     function or_zeros(layer, size) {
       if (layer !== null) {
-        return layer.astype(np.int32, /*copy=*/false)
+        // console.log(layer)
+        // python uses np.astype <Copy of the array, cast to a specified type.>
+        return Array(...layer.values) // tensorflow buffer.values
+        // return layer.toTensor().arraySync()
       }
-      return np.zeros([size.y, size.x], /*dtype=*/np.int32)
+      return np.zeros([size.y, size.x], 'int32')
     }
     const aif = this._agent_interface_format
 
@@ -1269,6 +1272,7 @@ class Features {
         const stacks = SCREEN_FEATURES.map((f) => {
           return or_zeros(f.unpack(obs.getObservation()), aif.feature_dimensions.screen)
         })
+        console.log(stacks[0][0])
         out['feature_screen'] = named_array.NamedNumpyArray(
           np.stack(stacks),
           /*names=*/[ScreenFeatures, null, null]
@@ -1279,7 +1283,7 @@ class Features {
           return or_zeros(f.unpack(obs.getObservation()), aif.feature_dimensions.minimap)
         })
         out['feature_minimap'] = new named_array.NamedNumpyArray(
-          np.stack(stacks),
+          np.stack(stacks.arraySync()),
           /*names=*/[MinimapFeatures, null, null]
         )
       })

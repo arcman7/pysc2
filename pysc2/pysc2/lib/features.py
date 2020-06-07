@@ -1182,18 +1182,21 @@ class Features(object):
 
     def or_zeros(layer, size):
       if layer is not None:
+        print('in layer is not none')
         return layer.astype(np.int32, copy=False)
       else:
+        print('in else')
         return np.zeros((size.y, size.x), dtype=np.int32)
 
     aif = self._agent_interface_format
 
     if aif.feature_dimensions:
       with sw("feature_screen"):
-        out["feature_screen"] = named_array.NamedNumpyArray(
-            np.stack([or_zeros(f.unpack(obs.observation),
+        stacks = np.stack([or_zeros(f.unpack(obs.observation),
                                aif.feature_dimensions.screen)
-                      for f in SCREEN_FEATURES]),
+                      for f in SCREEN_FEATURES])
+        print(stacks.shape)
+        out["feature_screen"] = named_array.NamedNumpyArray(stacks,
             names=[ScreenFeatures, None, None])
       with sw("feature_minimap"):
         out["feature_minimap"] = named_array.NamedNumpyArray(
