@@ -364,7 +364,10 @@ class ScreenFeatures(all_collections_generated_classes.ScreenFeatures):
           clip=clip)
     return super(ScreenFeatures, cls).__new__(cls, **feats)  # pytype: disable=missing-parameter
 
-
+# class MinimapFeatures(collections.namedtuple("MinimapFeatures", [
+#     "height_map", "visibility_map", "creep", "camera", "player_id",
+#     "player_relative", "selected", "unit_type", "alerts", "pathable",
+#     "buildable"])):
 class MinimapFeatures(all_collections_generated_classes.MinimapFeatures):
   """The set of minimap feature layers."""
   __slots__ = ()

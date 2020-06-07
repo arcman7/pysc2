@@ -9,7 +9,7 @@ const numpy = require(path.resolve(__dirname, './numpy.js'))
 const { spatial_pb, ui_pb, common_pb } = s2clientprotocol
 const sc_spatial = spatial_pb
 const sc_ui = ui_pb
-const { len, isinstance, isObject, zip } = pythonUtils
+const { len, isinstance, isObject, ValueError, zip } = pythonUtils
 
 const ActionSpace = Enum.IntEnum('ActionSpace', {
   FEATURES: 1, // Act in feature layer pixel space with FUNCTIONS below.
@@ -25,7 +25,7 @@ function spatial(action, action_space) {
   if (action_space == ActionSpace.RGB) {
     return action.getActionRender()
   }
-  throw new Error(`ValueError: Unexpected value for action_space: ${action_space}`);
+  throw new ValueError(`Unexpected value for action_space: ${action_space}`);
 }
 function no_op(action = {}, action_space) {
   delete action[action_space]
@@ -220,7 +220,7 @@ function numpy_to_python(val) {
     result.push(numpy_to_python(val.y))
     return result
   }
-  throw new Error(`ValueError: Unknown value. Type:${typeof (val)}, repr: ${val}`)
+  throw new ValueError(`Unknown value. Type:${typeof (val)}, repr: ${val}`)
 }
 
 class ArgumentType extends all_collections_generated_classes.ArgumentType {
@@ -715,7 +715,7 @@ class Functions {
       this._func_dict[f.name] = f
     })
     if (Object.keys(this._func_dict).length !== this._func_list.length) {
-      throw new Error('ValueError: Function names must be unique')
+      throw new ValueError('Function names must be unique')
     }
   }
 
@@ -2057,7 +2057,7 @@ class FunctionCall extends all_collections_generated_classes.FunctionCall {
             args.push([arg_type.values(arg)])
           } catch (err) {
             console.log('Error using arg: ', arg, '  err: ', err)
-            throw new Error(`ValueError: Unknown argument value: ${arg}, valid values: ${arg_type.values}`)
+            throw new ValueError(`Unknown argument value: ${arg}, valid values: ${arg_type.values}`)
           }
         }
       } else if (typeof (arg) === 'number' || typeof (arg) === 'boolean') {
@@ -2065,7 +2065,7 @@ class FunctionCall extends all_collections_generated_classes.FunctionCall {
       } else if (isinstance(arg, Array)) {
         args.push(arg)
       } else {
-        throw new Error(`ValueError: "Unknown argument value type: ${typeof (arg)}, expected int or list of ints, or "
+        throw new ValueError(`Unknown argument value type: ${typeof (arg)}, expected int or list of ints, or "
             "their numpy equivalents. Value: ${arg}`)
       }
     })

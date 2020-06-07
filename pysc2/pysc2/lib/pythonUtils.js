@@ -106,7 +106,12 @@ function getArgsArray(func, kwargs) {
 }
 getArgsArray.argSignatures = {}
 getArgsArray.getArgNames = getArgNames
-
+function getattr(proto, key) {
+  if (!proto[`get${snakeToPascal(key)}`]) {
+    return
+  }
+  return proto[`get${snakeToPascal(key)}`]()
+}
 function iter(container) {
   if (container.__iter__) {
     return container.__iter__()
@@ -297,6 +302,16 @@ async function sequentialTaskQueue(tasks) {
   await tasks.reduce(reducer, Promise.resolve())
   return results
 }
+function setattr(proto, key, value) {
+  if (Array.isArray(value) && proto[`set${snakeToPascal(key)}List`]) {
+    proto[`set${snakeToPascal(key)}List`](value)
+  } else if (proto[`set${snakeToPascal(key)}`]) {
+    proto[`set${snakeToPascal(key)}`](value)
+  } else {
+    console.error(`Failed to find setter method for field "${key}"\n using "set${snakeToPascal(key)}" or "set${snakeToPascal(key)}List"\n on proto:\n`, proto.toObject())
+    throw new Error(`Failed to find setter method for field "${key}" on proto.`)
+  }
+}
 function setUpProtoAction(action, name) {
   if (name === 'no_op') {
     return action
@@ -458,11 +473,16 @@ function setUpProtoAction(action, name) {
     return action
   }
 }
-const snakeToCamel = (str) => str
-  .toLowerCase().replace(/([-_][a-z])/g, (group) => group
-    .toUpperCase()
-    .replace('-', '')
-    .replace('_', ''))
+const snakeToCamel = (str) => {
+  if (!str.match('_')) {
+    return str
+  }
+  return str
+    .toLowerCase().replace(/([-_][a-z])/g, (group) => group
+      .toUpperCase()
+      .replace('-', '')
+      .replace('_', ''))
+}
 function sum(collection) {
   let total = 0
   Object.keys(collection).forEach((key) => {
@@ -548,6 +568,7 @@ module.exports = {
   eq,
   expanduser,
   getArgsArray,
+  getattr,
   len,
   int,
   iter,
@@ -560,6 +581,7 @@ module.exports = {
   randomChoice,
   randomUniform,
   sequentialTaskQueue,
+  setattr,
   setUpProtoAction,
   String,
   snakeToCamel,

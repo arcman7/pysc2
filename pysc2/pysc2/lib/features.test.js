@@ -7,7 +7,7 @@ const point = require(path.resolve(__dirname, './point.js'))
 const pythonUtils = require(path.resolve(__dirname, './pythonUtils.js'))
 const numpy = require(path.resolve(__dirname, './numpy.js'))
 
-const { isinstance, randomUniform } = pythonUtils
+const { isinstance, randomUniform, ValueError } = pythonUtils
 const { common_pb, sc2api_pb, spatial_pb, ui_pb } = s2clientprotocol
 const sc_pb = sc2api_pb
 const RECTANGULAR_DIMENSIONS = new features.Dimensions([84, 80], [64, 67])
@@ -246,60 +246,60 @@ describe('features.js:', () => {
       expect(value).toMatchObject(new point.Point(32, 64))
     })
     test('testNullInputReturnsNullOutput', () => {
-      expect(() => features._to_point(null)).toThrow(Error)
+      expect(() => features._to_point(null)).toThrow(ValueError)
     })
     test('testNullAsFirstElementOfArrayRaises', () => {
-      expect(() => features._to_point([null, 32])).toThrow(Error)
+      expect(() => features._to_point([null, 32])).toThrow(ValueError)
     })
     test('testNullAsSecondElementOfArrayRaises', () => {
-      expect(() => features._to_point([32, null])).toThrow(Error)
+      expect(() => features._to_point([32, null])).toThrow(ValueError)
     })
     test('testSingletonArrayRaises', () => {
-      expect(() => features._to_point([32])).toThrow(Error)
+      expect(() => features._to_point([32])).toThrow(ValueError)
     })
     test('testThreeArrayRaises', () => {
-      expect(() => features._to_point([32, 32, 32])).toThrow(Error)
+      expect(() => features._to_point([32, 32, 32])).toThrow(ValueError)
     })
   })
   describe('  DimensionsTest', () => {
     test('testScreenSizeWithoutMinimapRaises', () => {
-      expect(() => new features.Dimensions(84)).toThrow(Error)
+      expect(() => new features.Dimensions(84)).toThrow(ValueError)
     })
     test('testScreenWidthWithoutHeightRaises', () => {
-      expect(() => new features.Dimensions([84, 0], 64)).toThrow(Error)
+      expect(() => new features.Dimensions([84, 0], 64)).toThrow(ValueError)
     })
     test('testScreenWidthHeightWithoutMinimapRaises', () => {
-      expect(() => new features.Dimensions([84, 80])).toThrow(Error)
+      expect(() => new features.Dimensions([84, 80])).toThrow(ValueError)
     })
     test('testMinimapWidthAndHeightWithoutScreenRaises', () => {
-      expect(() => new features.Dimensions(undefined, [64, 67])).toThrow(Error)
+      expect(() => new features.Dimensions(undefined, [64, 67])).toThrow(TypeError)
     })
     test('testNullNullRaises', () => {
-      expect(() => new features.Dimensions(null, null)).toThrow(Error)
+      expect(() => new features.Dimensions(null, null)).toThrow(TypeError)
     })
     test('testSingularZeroesRaises', () => {
-      expect(() => new features.Dimensions(0, 0)).toThrow(Error)
+      expect(() => new features.Dimensions(0, 0)).toThrow(ValueError)
     })
     test('testTwoZeroesRaises', () => {
-      expect(() => new features.Dimensions([0, 0], [0, 0])).toThrow(Error)
+      expect(() => new features.Dimensions([0, 0], [0, 0])).toThrow(ValueError)
     })
     test('testThreeTupleScreenRaises', () => {
-      expect(() => new features.Dimensions([1, 2, 3], 32)).toThrow(Error)
+      expect(() => new features.Dimensions([1, 2, 3], 32)).toThrow(ValueError)
     })
     test('testThreeTupleMinimapRaises', () => {
-      expect(() => new features.Dimensions(64, [1, 2, 3])).toThrow(Error)
+      expect(() => new features.Dimensions(64, [1, 2, 3])).toThrow(ValueError)
     })
     test('testNegativeScreenRaises', () => {
-      expect(() => new features.Dimensions(-64, 32)).toThrow(Error)
+      expect(() => new features.Dimensions(-64, 32)).toThrow(ValueError)
     })
     test('testNegativeMinimapRaises', () => {
-      expect(() => new features.Dimensions(64, -32)).toThrow(Error)
+      expect(() => new features.Dimensions(64, -32)).toThrow(ValueError)
     })
     test('testNegativeScreenTupleRaises', () => {
-      expect(() => new features.Dimensions([-64, -64], 32)).toThrow(Error)
+      expect(() => new features.Dimensions([-64, -64], 32)).toThrow(ValueError)
     })
     test('testNegativeMinimapTupleRaises', () => {
-      expect(() => new features.Dimensions(64, [-32, -32])).toThrow(Error)
+      expect(() => new features.Dimensions(64, [-32, -32])).toThrow(ValueError)
     })
     test('testEquality', () => {
       expect(new features.Dimensions(64, 64)).toMatchObject(new features.Dimensions(64, 64))
@@ -309,19 +309,19 @@ describe('features.js:', () => {
   })
   describe('  TestParseAgentInterfaceFormat', () => {
     test('test_no_arguments_raises', () => {
-      expect(() => features.parse_agent_interface_format()).toThrow(Error)
+      expect(() => features.parse_agent_interface_format()).toThrow(TypeError)
     })
     test('test_invalid_feature_combinations_raise', () => {
       expect(() => features.parse_agent_interface_format({
         feature_screen: 32,
         feature_minimap: null
-      })).toThrow(Error)
+      })).toThrow(ValueError)
       expect(() => features.parse_agent_interface_format({
         feature_screen: 32,
         feature_minimap: null
-      })).toThrow(Error)
+      })).toThrow(ValueError)
     })
-    test('test_valid_feature_specification_is_parsed', () =>{
+    test('test_valid_feature_specification_is_parsed', () => {
       const agent_interface_format = features.parse_agent_interface_format({
         feature_screen: 32,
         feature_minimap: [24, 24],
@@ -333,15 +333,15 @@ describe('features.js:', () => {
       expect(() => features.parse_agent_interface_format({
         rgb_screen: 32,
         rgb_minimap: null
-      })).toThrow(Error)
+      })).toThrow(ValueError)
       expect(() => features.parse_agent_interface_format({
         rgb_screen: null,
         rgb_minimap: 32,
-      })).toThrow(Error)
+      })).toThrow(TypeError)
       expect(() => features.parse_agent_interface_format({
         rgb_screen: 32,
         rgb_minimap: 64,
-      })).toThrow(Error)
+      })).toThrow(ValueError)
     })
     test('test_valid_minimap_specification_is_parsed', () => {
       const agent_interface_format = features.parse_agent_interface_format({
@@ -358,7 +358,7 @@ describe('features.js:', () => {
           feature_minimap: 64,
           action_space: "UNKNOWN_ACTION_SPACE",
         })
-      }).toThrow(Error)
+      }).toThrow(ValueError)
     })
     test('test_valid_action_space_is_parsed', () => {
       actions.ActionSpace._keys.forEach((action_space) => {
@@ -559,26 +559,26 @@ describe('features.js:', () => {
       expect(spec.types.screen2.sizes).toMatchObject([84, 80])
       expect(spec.types.minimap.sizes).toMatchObject([64, 67])
       // Missing one or the other of game_info and dimensions.
-      expect(() => new features.Features()).toThrow(Error)
+      expect(() => new features.Features()).toThrow(ValueError)
       // Resolution/action space mismatch.
       expect(() => { //eslint-disable-line
         return new features.Features(new features.AgentInterfaceFormat({
           feature_dimensions: RECTANGULAR_DIMENSIONS,
           action_space: actions.ActionSpace.RGB,
         }))
-      }).toThrow(Error)
+      }).toThrow(ValueError)
       expect(() => { //eslint-disable-line
         return new features.Features(new features.AgentInterfaceFormat({
           rgb_dimensions: RECTANGULAR_DIMENSIONS,
           action_space: actions.ActionSpace.FEATURES,
         }))
-      }).toThrow(Error)
+      }).toThrow(ValueError)
       expect(() => { //eslint-disable-line
         return new features.Features(new features.AgentInterfaceFormat({
           feature_dimensions: RECTANGULAR_DIMENSIONS,
           rgb_dimensions: RECTANGULAR_DIMENSIONS,
         }))
-      }).toThrow(Error)
+      }).toThrow(ValueError)
     })
     test('testFlRgbActionSpec', () => {
       const screen = [128, 132]

@@ -16,7 +16,7 @@ const sw = stopwatch.sw
 const { raw_pb, sc2api_pb } = s2clientprotocol
 const sc_raw = raw_pb
 const sc_pb = sc2api_pb
-const { Defaultdict, int, isinstance, len, map, withPython, setUpProtoAction, sum, zip, getArgsArray } = pythonUtils
+const { Defaultdict, getArgsArray, getattr, int, isinstance, len, map, namedtuple, setattr, setUpProtoAction, sum, ValueError, withPython, zip } = pythonUtils
 const EPSILON = 1e-5
 
 const FeatureType = Enum.Enum('FeatureType', {
@@ -248,19 +248,21 @@ class Feature extends all_collections_generated_classes.Feature {
 
   unpack(obs) {
     //Return a correctly shaped numpy array for this feature.//
-    const planes = obs.feature_layer_data[this.layer_set]
-    const plane = planes[this.name]
+    // const planes = obs.getFeatureLayerData()[this.layer_set]
+    const planes = getattr(obs.getFeatureLayerData(), this.layer_set)
+    // const plane = planes[this.name]
+    const plane = getattr(planes, this.name)
     return this.unpack_layer(plane)
   }
 
-  static unpack_layer(plane) {
+  unpack_layer(plane) {//eslint-disable-line
     //Return a correctly shaped numpy array given the feature layer bytes.//
-    const size = point.Point.build(plane.size)
+    const size = point.Point.build(plane.getSize())
     if (size[0] === 0 && size[1] === 0) {
       // New layer that isn't implemented in this SC2 version.
       return null
     }
-    let data = np.frombuffer(plane.data, Feature.dtypes[plane.bits_per_pixel])
+    let data = np.frombuffer(plane.getData(), Feature.dtypes[plane.bits_per_pixel])
     if (plane.bits_per_pixel === 1) {
       data = np.unpackbits(data)
       if (data.shape[0] != (size.x * size.y)) {
@@ -273,10 +275,30 @@ class Feature extends all_collections_generated_classes.Feature {
     return data.reshape(size.y, size.x)
   }
 
+  static unpack_layer(plane) {
+    //Return a correctly shaped numpy array given the feature layer bytes.//
+    const size = point.Point.build(plane.getSize())
+    if (size[0] === 0 && size[1] === 0) {
+      // New layer that isn't implemented in this SC2 version.
+      return null
+    }
+    let data = np.frombuffer(plane.getData(), Feature.dtypes[plane.bits_per_pixel])
+    if (plane.bits_per_pixel === 1) {
+      data = np.unpackbits(data)
+      if (data.shape[0] !== (size.x * size.y)) {
+        // This could happen if the correct length isn't a multiple of 8, leading
+        // to some padding bits at the end of the string which are incorrectly
+        // interpreted as data.
+        data = data.slice(0, size.x * size.y)
+      }
+    }
+    return data.reshape(size.y, size.x)
+  }
+
   static unpack_rgb_image(plane) {
     //Return a correctly shaped numpy array given the image bytes.//
     if (plane.bits_per_pixel !== 24) {
-      throw new Error(`ValueError: plane.bits_per_pixel ${plane.bits_per_pixel} !== 24`)
+      throw new ValueError(`plane.bits_per_pixel ${plane.bits_per_pixel} !== 24`)
     }
     const size = point.Point.build(plane.size)
     const data = np.frombuffer(plane.data, np.uint8)
@@ -293,8 +315,15 @@ class Feature extends all_collections_generated_classes.Feature {
 
 Feature.unpack_layer = sw.decorate(Feature.unpack_layer)
 Feature.unpack_rgb_image = sw.decorate(Feature.unpack_rgb_image)
-const ScreenFeatures_fields = all_collections_generated_classes.ScreenFeatures._fields
-class ScreenFeatures extends all_collections_generated_classes.ScreenFeatures {
+// const ScreenFeatures_fields = all_collections_generated_classes.ScreenFeatures._fields
+// class ScreenFeatures extends all_collections_generated_classes.ScreenFeatures {
+class ScreenFeatures extends namedtuple('ScreenFeatures', [
+  'height_map', 'visibility_map', 'creep', 'power', 'player_id',
+  'player_relative', 'unit_type', 'selected', 'unit_hit_points',
+  'unit_hit_points_ratio', 'unit_energy', 'unit_energy_ratio', 'unit_shields',
+  'unit_shields_ratio', 'unit_density', 'unit_density_aa', 'effects',
+  'hallucinations', 'cloaked', 'blip', 'buffs', 'buff_duration', 'active',
+  'build_progress', 'pathable', 'buildable', 'placeholder']) {
   constructor(kwargs) {
     //The set of screen feature layers.//
     const feats = {}
@@ -303,7 +332,7 @@ class ScreenFeatures extends all_collections_generated_classes.ScreenFeatures {
       val = kwargs[name]
       const { scale, type_, palette, clip } = val
       feats[name] = new Feature({
-        index: ScreenFeatures_fields.indexOf(name),
+        index: ScreenFeatures._fields.indexOf(name),
         name,
         layer_set: 'renders',
         full_name: 'screen ' + name,
@@ -316,8 +345,12 @@ class ScreenFeatures extends all_collections_generated_classes.ScreenFeatures {
     super(feats)
   }
 }
-const MinimapFeatures_fields = all_collections_generated_classes.MinimapFeatures._fields
-class MinimapFeatures extends all_collections_generated_classes.MinimapFeatures {
+// const MinimapFeatures_fields = all_collections_generated_classes.MinimapFeatures._fields
+// class MinimapFeatures extends all_collections_generated_classes.MinimapFeatures {
+class MinimapFeatures extends namedtuple('MinimapFeatures', [
+  'height_map', 'visibility_map', 'creep', 'camera', 'player_id',
+  'player_relative', 'selected', 'unit_type', 'alerts', 'pathable',
+  'buildable']) {
   //The set of minimap feature layers.//
   constructor(kwargs) {
     const feats = {}
@@ -326,7 +359,7 @@ class MinimapFeatures extends all_collections_generated_classes.MinimapFeatures 
       val = kwargs[name]
       const { scale, type_, palette } = val
       feats[name] = new Feature({
-        index: MinimapFeatures_fields.indexOf(name),
+        index: MinimapFeatures._fields.indexOf(name),
         name,
         layer_set: 'minimap_renders',
         full_name: 'minimap ' + name,
@@ -393,23 +426,23 @@ const MINIMAP_FEATURES = new MinimapFeatures({
 function _to_point(dims) {
   //Convert (width, height) or size -> point.Point.//
   if (!dims) {
-    throw new Error(`ValueError: ${dims}`)
+    throw new ValueError(`Must pass a valid dims argument, got:\n${dims}`)
   }
   if (isinstance(dims, [Array])) {
     if (dims.length !== 2) {
-      throw new Error(`ValueError: A two element array is expected here, got ${dims}.`)
+      throw new ValueError(`A two element array is expected here, got ${dims}.`)
     } else {
       const width = int(dims[0])
       const height = int(dims[1])
       if (width <= 0 || height <= 0) {
-        throw new Error(`ValueError: Must specify +ve dims, got ${dims}.`)
+        throw new ValueError(`Must specify +ve dims, got ${dims}.`)
       }
       return new point.Point(width, height)
     }
   } else {
     const size = int(dims)
     if (size <= 0) {
-      throw new Error(`ValueError: Must specify +ve value for size, got ${dims}.`)
+      throw new ValueError(`Must specify +ve value for size, got ${dims}.`)
     }
     return new point.Point(size, size)
   }
@@ -432,7 +465,7 @@ class Dimensions {
         screen = args.screen
         minimap = args.minimap
       } else {
-        throw new Error(`ValueError: screen and minimap must both be set, screen=${screen}, minimap=${minimap}.`)
+        throw new ValueError(`screen and minimap must both be set, screen=${screen}, minimap=${minimap}.`)
       }
     }
     this._screen = _to_point(screen)
@@ -559,18 +592,18 @@ class AgentInterfaceFormat {
 
     if (action_space) {
       if (!isinstance(action_space, actions.ActionSpace)) {
-        throw new Error('ValueError: action_space must be of type ActionSpace.')
+        throw new ValueError(' action_space must be of type ActionSpace.')
       }
       if (action_space === actions.ActionSpace.RAW) {
         use_raw_actions = true
       } else if ((action_space === actions.ActionSpace.FEATURES && !(feature_dimensions)) || (action_space === actions.ActionSpace.RGB && !(rgb_dimensions))) {
-        throw new Error(`ValueError: Action space must match the observations, action space=${action_space}, feature_dimensions=${feature_dimensions}, rgb_dimensions=${rgb_dimensions} `)
+        throw new ValueError(`Action space must match the observations, action space=${action_space}, feature_dimensions=${feature_dimensions}, rgb_dimensions=${rgb_dimensions} `)
       }
     } else {
       if (use_raw_actions) {//eslint-disable-line
         action_space = actions.ActionSpace.RAW
       } else if (feature_dimensions && rgb_dimensions) {
-        throw new Error('ValueError: You must specify the action space if you have both screen and rgb observations.')
+        throw new ValueError('You must specify the action space if you have both screen and rgb observations.')
       } else if (feature_dimensions) {
         action_space = actions.ActionSpace.FEATURES
       } else {
@@ -584,16 +617,16 @@ class AgentInterfaceFormat {
 
     if (use_raw_actions) {
       if (!use_raw_units) {
-        throw new Error('ValueError: You must set use_raw_units if you intend to use_raw_actions')
+        throw new ValueError('You must set use_raw_units if you intend to use_raw_actions')
       }
       if (action_space !== actions.ActionSpace.RAW) {
-        throw new Error('Don\'t specify both an action_space and use_raw_actions.')
+        throw new ValueError('Don\'t specify both an action_space and use_raw_actions.')
       }
     }
 
     if (rgb_dimensions && (rgb_dimensions.screen.x < rgb_dimensions.minimap.x
       || rgb_dimensions.screen.y < rgb_dimensions.minimap.y)) {
-      throw new Error(`RGB Screen (${rgb_dimensions.screen}) can't be smaller than the minimap (${rgb_dimensions.minimap}).`)
+      throw new ValueError(`RGB Screen (${rgb_dimensions.screen}) can't be smaller than the minimap (${rgb_dimensions.minimap}).`)
     }
 
     this._feature_dimensions = feature_dimensions
@@ -796,7 +829,7 @@ function parse_agent_interface_format({
           return i + 1
         }
       }
-      throw new Error('ValueError: Failed to sample action delay??')
+      throw new ValueError('Failed to sample action delay??')
     }
     return fn
   }
@@ -871,7 +904,7 @@ function features_from_game_info({ game_info, agent_interface_format = null, map
 
   if (agent_interface_format) {
     if (kwargs) {
-      throw new Error('ValueError: Either give an agent_interface_format or kwargs, not both.')
+      throw new ValueError(' Either give an agent_interface_format or kwargs, not both.')
     }
     const aif = agent_interface_format
     if (aif.rgb_dimensions !== rgb_dimensions
@@ -991,7 +1024,7 @@ class Features {
           use_camera_position is.
     */
     if (!agent_interface_format) {
-      throw new Error('ValueError: Please specify agent_interface_format')
+      throw new ValueError(' Please specify agent_interface_format')
     }
 
     this._agent_interface_format = agent_interface_format
@@ -1026,7 +1059,7 @@ class Features {
     this._requested_races = requested_races
 
     if (requested_races !== null && requested_races.length <= 2) {
-      throw new Error('ValueError: requested_races.length is greater than 2')
+      throw new ValueError(' requested_races.length is greater than 2')
     }
     // apply @sw.decorate
     this.transform_obs = sw.decorate(this.transform_obs.bind(this))
@@ -1054,7 +1087,7 @@ class Features {
           should mainly happen if called by the constructor).
     */
     if (!map_size || !camera_width_world_units) {
-      throw new Error(`ValueError:
+      throw new ValueError(`
           "Either pass the game_info with raw enabled, or map_size and "
           "camera_width_world_units in order to use feature_units or camera"
           "position.`)
@@ -1208,7 +1241,7 @@ class Features {
   transform_obs(obs) {
     //Render some SC2 observations into something an agent can handle.//
     const empty_unit = np.array([], /*dtype=*/np.int32).reshape([0, UnitLayer._keys.length])
-    const out = named_array.NamedDict({ // Fill out some that are sometimes empty.
+    const out = new named_array.NamedDict({ // Fill out some that are sometimes empty.
       'single_select': empty_unit,
       'multi_select': empty_unit,
       'build_queue': empty_unit,
@@ -1234,7 +1267,7 @@ class Features {
     if (aif.feature_dimensions) {
       withPython(sw('feature_screen'), () => {
         const stacks = SCREEN_FEATURES.map((f) => {
-          return or_zeros(f.unpack(obs.observation), aif.feature_dimensions.scren)
+          return or_zeros(f.unpack(obs.getObservation()), aif.feature_dimensions.screen)
         })
         out['feature_screen'] = named_array.NamedNumpyArray(
           np.stack(stacks),
@@ -1243,9 +1276,9 @@ class Features {
       })
       withPython(sw('feature_minimap'), () => {
         const stacks = MINIMAP_FEATURES.map((f) => {
-          return or_zeros(f.unpack(obs.observation), aif.feature_dimensions.minimap)
+          return or_zeros(f.unpack(obs.getObservation()), aif.feature_dimensions.minimap)
         })
-        out['feature_minimap'] = named_array.NamedNumpyArray(
+        out['feature_minimap'] = new named_array.NamedNumpyArray(
           np.stack(stacks),
           /*names=*/[MinimapFeatures, null, null]
         )
@@ -1254,11 +1287,13 @@ class Features {
     if (aif.rgb_dimensions) {
       withPython(sw('rgb_screen'), () => {
         out['rgb_screen'] = Feature.unpack_rgb_image(
-          obs.observation.render_data.map).astype(np.int32)
+          obs.getObservation().getRenderData().getMap()
+        ).astype(np.int32)
       })
       withPython(sw('rgb_minimap'), () => {
         out['rgb_minimap'] = Feature.unpack_rgb_image(
-          obs.observation.render_data.minimap).astype(np.int32)
+          obs.getObservation().getRenderData().getMinimap()
+        ).astype(np.int32)
       })
     }
     if (!this._raw) {
@@ -1437,7 +1472,7 @@ class Features {
       const screen_radius = pos_transform.fwd_dist(u.radius)
       function raw_order(i) {
         if (u.order.length === undefined) {
-          throw new Error('ValueError: u.order.length is undefined\nu.order: ', u.order)
+          throw new ValueError('u.order.length is undefined\nu.order: ', u.order)
         }
         if (u.orders.length > i) {
           // TODO(tewalds): Return a generalized func id.
@@ -1819,7 +1854,7 @@ class Features {
         }
       })
       if (!found_applicable) {
-        throw new Error(`ValueError("Failed to find applicable action for ${JSON.stringify(a.toObject())}`)
+        throw new ValueError(`Failed to find applicable action for ${JSON.stringify(a.toObject())}`)
       }
     }
     const results = []
@@ -1859,16 +1894,16 @@ class Features {
         func = actions.FUNCTIONS[func_id.key]
       }
     } catch (err) {
-      throw new Error(`ValueError: Invalid function id: ${func_id.key}.`)
+      throw new ValueError(`Invalid function id: ${func_id.key}.`)
     }
 
     // Available?
     if (!skip_available && !this._raw && !this.available_actions(obs).hasOwnProperty(func_id.key)) {
-      throw new Error(`ValueError: Function ${func_id.key} ${func.name} is currently not available`)
+      throw new ValueError(`Function ${func_id.key} ${func.name} is currently not available`)
     }
     // Right number of args?
     if (func_call.arguments.length !== func.args.length) {
-      throw new Error(`ValueError: Wrong number of arguments for function: ${func}, got:${func_call} ${func_call.arguments}`)
+      throw new ValueError(`Wrong number of arguments for function: ${func}, got:${func_call} ${func_call.arguments}`)
     }
     // Args are valid?
     const aif = this._agent_interface_format
@@ -1878,7 +1913,7 @@ class Features {
         if (len(arg) >= 1 && len(arg) <= t.count) {
           return
         }
-        throw new Error(`ValueError: Wrong number of values for argument of ${func}, got: ${func_call.arguments}`)
+        throw new ValueError(`Wrong number of values for argument of ${func}, got: ${func_call.arguments}`)
       }
       let sizes
       if (t.name === 'screen' || t.name === 'screen2') {
@@ -1891,12 +1926,12 @@ class Features {
         sizes = t.sizes
       }
       if (sizes.length !== arg.length) {
-        throw new Error(`ValueError: Wrong number of values for argument of ${func}, got: ${func_call.arguments}`)
+        throw new ValueError(`Wrong number of values for argument of ${func}, got: ${func_call.arguments}`)
       }
       zip(sizes, arg).forEach((p) => {
         const [s, a] = p
         if (!(a >= 0) && (a < s)) {
-          throw new Error(`ValueError: Argument is out of range for ${func}, got: ${func_call.arguments}`)
+          throw new ValueError(`Argument is out of range for ${func}, got: ${func_call.arguments}`)
         }
       })
     })
@@ -1996,7 +2031,7 @@ class Features {
         }
       }
 
-      throw new Error(`ValueError: Unknown ability_id: ${ability_id}, type: ${cmd_type.__name__}. Likely a bug.`)
+      throw new ValueError(`Unknown ability_id: ${ability_id}, type: ${cmd_type.__name__}. Likely a bug.`)
     }
 
     if (action.getActionUi()) {
@@ -2077,7 +2112,7 @@ class Features {
       }
     }
     if (action.getActionRaw() || action.getActionRender()) {
-      throw new Error(`ValueError: Unknown action:\n${action}`)
+      throw new ValueError(`Unknown action:\n${action}`)
     }
 
     return FUNCTIONS.no_op()
@@ -2135,7 +2170,7 @@ class Features {
           return actions.RAW_FUNCTIONS[func.id](...args)
         }
       }
-      throw new Error(`ValueError: Unknown ability_id: ${ability_id}, type:${cmd_type.__name__}. Likely a bug.`)
+      throw new ValueError(`Unknown ability_id: ${ability_id}, type:${cmd_type.__name__}. Likely a bug.`)
     }
     if (action.getRawAction()) {
       const raw_act = action.getRawAction()
@@ -2179,7 +2214,7 @@ class Features {
         return func_call_ability(ability_id, actions.raw_autocast, unit_tags)
       }
       if (raw_act.getUnitCommand()) {
-        throw new Error(`ValueError: 'Unknown action:\n${action}`)
+        throw new ValueError(`Unknown action:\n${action}`)
       }
 
       if (raw_act.getCameraMove()) {

@@ -113,8 +113,8 @@ class StopWatchContext {
 
 class TracingStopWatchContext extends StopWatchContext {
   //Time an individual call, but also output all the enter/exit calls.//
-  constructor() {
-    super()
+  constructor(stopwatch, name) {
+    super(stopwatch, name)
     this.__enter__ = this.__enter__.bind(this)
     this.__exit__ = this.__exit__.bind(this)
   }
