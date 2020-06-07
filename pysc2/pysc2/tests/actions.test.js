@@ -40,9 +40,8 @@ let testState
 async function main() {
   await (async () => {
     testState = await new utils.GameReplayTestCase()
-    let runCount = 0
     async function test_general_attack() {
-      console.log('test_general_attack run: ', ++runCount)
+      console.log('running test "test_general_attack"')
       await testState.create_unit(units.Protoss.Zealot, 1, [30, 30])
       await testState.create_unit(units.Protoss.Observer, 1, [30, 30])
       await testState.step()

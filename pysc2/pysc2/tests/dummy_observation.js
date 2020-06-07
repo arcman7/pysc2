@@ -1,5 +1,4 @@
 const path = require('path') //eslint-disable-line
-const { performance } = require('perf_hooks') //eslint-disable-line
 const s2clientprotocol = require('s2clientprotocol') //eslint-disable-line
 const features = require(path.resolve(__dirname, '..', 'lib', 'features.js'))
 const np = require(path.resolve(__dirname, '..', 'lib', 'numpy.js'))
@@ -10,12 +9,13 @@ const sc_pb = sc2api_pb
 const { snakeToPascal, } = pythonUtils
 
 function setattr(proto, key, value) {
-  if (value !== null) {
-    if (Array.isArray(value)) {
-      proto[`set${snakeToPascal(key)}List`](value)
-      return
-    }
+  if (Array.isArray(value) && proto[`set${snakeToPascal(key)}List`]) {
+    proto[`set${snakeToPascal(key)}List`](value)
+  } else if (proto[`set${snakeToPascal(key)}`]) {
     proto[`set${snakeToPascal(key)}`](value)
+  } else {
+    console.error(`Failed to find setter method for field "${key}"\n using "set${snakeToPascal(key)}" or "set${snakeToPascal(key)}List"\n on proto:\n`, proto.toObject())
+    throw new Error(`Failed to find setter method for field "${key}" on proto.`)
   }
 }
 function getattr(proto, key) {
@@ -149,7 +149,7 @@ class Builder {
     pc.setFoodUsed(21)
     pc.setFoodArmy(6)
     pc.setFoodWorkers(15)
-    pc.setIdleWorker_count(2)
+    pc.setIdleWorkerCount(2)
     pc.setArmyCount(6)
     pc.setWarpGateCount(0)
     pc.setLarvaCount(0)
@@ -170,6 +170,22 @@ class Builder {
     sc.setSpentMinerals(2000)
     sc.setSpentVespene(500)
 
+    // javascript required
+    sc.setFoodUsed(new sc_pb.CategoryScoreDetails())
+    sc.setKilledMinerals(new sc_pb.CategoryScoreDetails())
+    sc.setKilledVespene(new sc_pb.CategoryScoreDetails())
+    sc.setLostMinerals(new sc_pb.CategoryScoreDetails())
+    sc.setLostVespene(new sc_pb.CategoryScoreDetails())
+    sc.setFriendlyFireMinerals(new sc_pb.CategoryScoreDetails())
+    sc.setFriendlyFireVespene(new sc_pb.CategoryScoreDetails())
+    sc.setUsedMinerals(new sc_pb.CategoryScoreDetails())
+    sc.setUsedVespene(new sc_pb.CategoryScoreDetails())
+    sc.setTotalUsedMinerals(new sc_pb.CategoryScoreDetails())
+    sc.setTotalUsedVespene(new sc_pb.CategoryScoreDetails())
+    // sc.setTotalDamageDealt()
+    // sc.setTotalDamageTaken()
+    // sc.setTotalDamageHealed()
+
     this._obs_spec = obs_spec
     this._single_select = null
     this._multi_select = null
@@ -183,7 +199,7 @@ class Builder {
     return this
   }
 
-  player_common({
+  player_common(/*{
     player_id = null,
     minerals = null,
     vespene = null,
@@ -195,13 +211,13 @@ class Builder {
     army_count = null,
     warp_gate_count = null,
     larva_count = null
-  }) {
+  }*/kwargs
+  ) {
     //Update some or all of the fields in the PlayerCommon data.//
 
-    const args = arguments[0] //eslint-disable-line
-    Object.keys(args).forEach((key) => {
-      const value = args[key]
-      setattr(this._player_common, key, value)
+    Object.keys(kwargs).forEach((key) => {
+      const value = kwargs[key]
+      setattr(this._player_common, key, value || null)
     })
     return this
   }
@@ -239,6 +255,9 @@ class Builder {
   //eslint-disable-next-line
   score_by_category({ entry_name, none, army, economy, technology, upgrade }) {
     const field = getattr(this._score_details, entry_name);
+    if (!field) {
+      console.log(' entry_name: ', entry_name, '\n', this._score_details.toObject());
+    }
     ['none', 'army', 'economy', 'technology', 'upgrade'].forEach((key) => {
       setattr(field, key, arguments[0][key]) //eslint-disable-line
     })
@@ -284,7 +303,7 @@ class Builder {
 
     const ability = new sc_pb.AvailableAbility()
     ability.setAbilityId(1)
-    ability.requiresPoint(true) // Smart
+    ability.setRequiresPoint(true) // Smart
     obs.addAbilities(ability)
 
     const score = new sc_pb.Score()
@@ -295,8 +314,8 @@ class Builder {
     function fill(image_data, size, bits) { //side effects only on image_data
       image_data.setBitsPerPixel(bits)
       const size2D = new common_pb.Size2DI()
-      size2D.setX(size[0])
-      size2D.setY(size[1])
+      size2D.setY(size[0])
+      size2D.setX(size[1])
       image_data.setSize(size2D)
       // unsafe way that uses unitialized memory:
       // image_data.setData(new Buffer(Math.ceil((size[0] * size[1] * bits) / 8)))
@@ -306,23 +325,37 @@ class Builder {
       image_data.setData(Buffer.alloc(n, 'ff', 'hex'))
     }
 
+    obs.setFeatureLayerData(new sc_pb.ObservationFeatureLayer())
+    const rendersProto = new sc_pb.FeatureLayers()
+    Object.keys(rendersProto.toObject()).forEach((field) => {
+      setattr(rendersProto, field, new sc_pb.ImageData())
+    })
+    obs.getFeatureLayerData().setRenders(rendersProto)
+    const minimapRendersProto = new sc_pb.FeatureLayersMinimap()
+    Object.keys(minimapRendersProto.toObject()).forEach((field) => {
+      setattr(minimapRendersProto, field, new sc_pb.ImageData())
+    })
+    obs.getFeatureLayerData().setMinimapRenders(minimapRendersProto)
+
     if (this._obs_spec.hasOwnProperty('feature_screen')) {
       features.SCREEN_FEATURES.forEach((feature) => {
         const renders = obs.getFeatureLayerData().getRenders()
         const imageData = getattr(renders, feature.name) || getattr(renders, feature.name + '_list')
         if (!imageData) {
-          throw new Error(`Failed to get ${feature.name} from ${renders.toObject()}`)
+          console.log(renders.toObject())
+          throw new Error(`Failed to get ${feature.name} from:`, renders.toObject())
         }
         fill(imageData, this._obs_spec['feature_screen'].slice(1), 8)
       })
     }
 
     if (this._obs_spec.hasOwnProperty('feature_minimap')) {
-      features.SCREEN_FEATURES.forEach((feature) => {
-        const renders = obs.getFeatureLayerData().getMiniMapRenders()
+      features.MINIMAP_FEATURES.forEach((feature) => {
+        const renders = obs.getFeatureLayerData().getMinimapRenders()
         const imageData = getattr(renders, feature.name) || getattr(renders, feature.name + '_list')
         if (!imageData) {
-          throw new Error(`Failed to get ${feature.name} from ${renders.toObject()}`)
+          console.error(`Failed to find getter methods for field "${feature.name}" on\n`, renders.toObject())
+          throw new Error(`Failed to get ${feature.name} from proto.`)
         }
         fill(imageData, this._obs_spec['feature_minimap'].slice(1), 8)
       })
@@ -332,21 +365,23 @@ class Builder {
 
     if (this._obs_spec.hasOwnProperty('rgb_screen')) {
       obs.getRenderData().setMap(new sc_pb.ImageData())
-      fill(obs.getRenderData().getMap(), this._obs_spec['rgb_screen'].slice(2), 24)
+      fill(obs.getRenderData().getMap(), this._obs_spec['rgb_screen'].slice(0, 2), 24)
     }
 
     if (this._obs_spec.hasOwnProperty('rgb_minimap')) {
       obs.getRenderData().setMinimap(new sc_pb.ImageData())
-      fill(obs.getRenderData().getMinimap(), this._obs_spec['rgb_minimap'].slice(2), 24)
+      fill(obs.getRenderData().getMinimap(), this._obs_spec['rgb_minimap'].slice(0, 2), 24)
     }
 
     obs.setUiData(new sc_pb.ObservationUI())
 
     if (this._single_select) {
+      obs.getUiData().setSingle(new sc_pb.SinglePanel())
       this._single_select.fill(obs.getUiData().getSingle().getUnit())
     }
 
     if (this._multi_select) {
+      obs.getUiData().setMulti(new sc_pb.MultiPanel())
       this._multi_select.forEach((unit) => {
         obs.getUiData().getMulti().addUnits(unit)
       })
@@ -357,9 +392,22 @@ class Builder {
         obs.getUiData().getProduction().addProductionQueue(unit)
       })
     }
+
+    if (this._feature_units) {
+      for (let i = 1; i < this._feature_units.length; i++) {
+        const feature_unit = this._feature_units[i]
+        obs.getRawData().addUnits(feature_unit)
+      }
+    }
+
+    response_observation.setObservation(obs)
+    return response_observation
   }
 }
 module.exports = {
+  Builder,
   FeatureUnit,
+  getattr,
+  setattr,
   Unit,
 }
