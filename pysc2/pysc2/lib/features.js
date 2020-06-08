@@ -16,7 +16,7 @@ const sw = stopwatch.sw
 const { raw_pb, sc2api_pb } = s2clientprotocol
 const sc_raw = raw_pb
 const sc_pb = sc2api_pb
-const { Defaultdict, getArgsArray, getattr, int, isinstance, len, map, namedtuple, setattr, setUpProtoAction, sum, ValueError, withPython, zip } = pythonUtils
+const { Defaultdict, getArgsArray, getattr, int, isinstance, len, namedtuple, setattr, setUpProtoAction, sum, ValueError, withPython, zip } = pythonUtils
 const EPSILON = 1e-5
 
 const FeatureType = Enum.Enum('FeatureType', {
@@ -1309,44 +1309,38 @@ class Features {
     }
     if (!this._raw) {
       withPython(sw('last_actions'), () => {
-        // const acts = Object.keys(obs.actions).map((key) => {
         const acts = obs.getActionsList().map((a) => {
           return this.reverse_action(a).function
         })
-        out['last_actions'] = np.array(
-          acts
-          ///,*dtype=*/np.int32
-        )
+        out['last_actions'] = np.array(acts)
       })
     }
     out['action_result'] = np.array(
-      // Object.keys(obs.action_errors).map((key) => {
       (getattr(obs, 'action_errors') || getattr(obs, 'action_errors_list'))
         .map((o) => o.getResult())
-      ///,*dtype=*/np.int32
     )
 
-    out['alerts'] = np.array(obs.getObservation().getAlertsList())//, /*dtype=*/np.int32)
+    out['alerts'] = np.array(obs.getObservation().getAlertsList())
 
-    out['game_loop'] = np.array([obs.getObservation().getGameLoop()])//, /*dtype=*/np.int32)
+    out['game_loop'] = np.array([obs.getObservation().getGameLoop()])
 
     withPython(sw('score'), () => {
-      const score_details = obs.observation.score.score_details
+      const score_details = obs.getObservation().getScore().getScoreDetails()
       out['score_cumulative'] = named_array.NamedNumpyArray([
-        obs.observation.score.score,
-        score_details.idle_production_time,
-        score_details.idle_worker_time,
-        score_details.total_value_units,
-        score_details.total_value_structures,
-        score_details.killed_value_units,
-        score_details.killed_value_structures,
-        score_details.collected_minerals,
-        score_details.collected_vespene,
-        score_details.collection_rate_minerals,
-        score_details.collection_rate_vespene,
-        score_details.spent_minerals,
-        score_details.spent_vespene,
-      ], /*names=*/ScoreCumulative)//, /*dtype=*/np.int32)
+        obs.getObservation().getScore().getScore(),
+        score_details.getIdleProductionTime(),
+        score_details.getIdleWorkerTime(),
+        score_details.getTotalValueUnits(),
+        score_details.getTotalValueStructures(),
+        score_details.getKilledValueUnits(),
+        score_details.getKilledValueStructures(),
+        score_details.getCollectedMinerals(),
+        score_details.getCollectedVespene(),
+        score_details.getCollectionRateMinerals(),
+        score_details.getCollectionRateVespene(),
+        score_details.getSpentMinerals(),
+        score_details.getSpentVespene(),
+      ], /*names=*/ScoreCumulative)
 
       function get_score_details(key, details, categories) {
         const row = details[key.name]
@@ -1389,16 +1383,16 @@ class Features {
 
     function unit_vec(u) {
       return np.array([
-        u.unit_type,
-        u.player_relative,
-        u.health,
-        u.shields,
-        u.energy,
-        u.transport_slots_taken,
-        int(u.build_progress * 100), // discretize
-      ], /*dtype=*/np.int32)
+        u.getUnitType(),
+        u.getPlayerRelative(),
+        u.getHealth(),
+        u.getShields(),
+        u.getEnergy(),
+        u.getTransportSlotsTaken(),
+        int(u.getBuildProgress() * 100), // discretize
+      ])
     }
-    const ui = obs.observation.ui_data
+    const ui = obs.getObservation().ui_data
 
     withPython(sw('ui'), () => {
       const groups = np.zeros([10, 2], /*dtype=*/np.int32)
@@ -1455,8 +1449,7 @@ class Features {
               const item = ui.production.production_queue[key]
               return [item.ability_id, item.build_progress * 100]
             }),
-            [null, ProductionQueue],
-            /*dtype=*/np.int32
+            [null, ProductionQueue]
           )
         }
       }
@@ -1464,116 +1457,106 @@ class Features {
     const tag_types = {} // Only populate the cache if it's needed.
     function get_addon_type(tag) {
       if (!Object.keys(tag_types).length) {
-        Object.keys(raw.units).forEach((key) => {
-          const u = raw.units[key]
-          tag_types[u.tag] = u.unit_type
+        raw.getUnitsList().forEach((u) => {
+          tag_types[u.getTag()] = u.getUnitType()
         })
       }
-      return tag_types.get(tag, 0)
+      return tag_types[tag] || 0
     }
     function full_unit_vec(u, pos_transform, is_raw = false) {
       //Compute unit features.//
       const screen_pos = pos_transform.fwd_pt(
-        point.Point.build(u.pos)
+        point.Point.build(u.getPos())
       )
-      const screen_radius = pos_transform.fwd_dist(u.radius)
+      const screen_radius = pos_transform.fwd_dist(u.getRadius())
       function raw_order(i) {
-        if (u.order.length === undefined) {
-          throw new ValueError('u.order.length is undefined\nu.order: ', u.order)
-        }
-        if (u.orders.length > i) {
+        if (u.getOrdersList().length > i) {
           // TODO(tewalds): Return a generalized func id.
-          return actions.RAW_ABILITY_ID_TO_FUNC_ID.get(u.orders[i].ability_id, 0)
+          return actions.RAW_ABILITY_ID_TO_FUNC_ID.get(u.getOrdersList()[i].ability_id, 0)
         }
         return 0
       }
       const features = [
         // Match unit_vec order
-        u.unit_type,
-        u.alliance, // Self = 1, Ally = 2, Neutral = 3, Enemy = 4
-        u.health,
-        u.shield,
-        u.energy,
-        u.cargo_space_taken,
-        int(u.build_progress * 100), // discretize
+        u.getUnitType(),
+        u.getAlliance(), // this = 1, Ally = 2, Neutral = 3, Enemy = 4
+        u.getHealth(),
+        u.getShield(),
+        u.getEnergy(),
+        u.getCargoSpaceTaken(),
+        int(u.getBuildProgress() * 100), // discretize
 
         // Resume API order
-        u.health_max > 0 ? int(u.health / u.health_max * 255) : 0,
-        u.shield_max > 0 ? int(u.shield / u.shield_max * 255) : 0,
-        u.energy_max > 0 ? int(u.energy / u.energy_max * 255) : 0,
-        u.display_type, // Visible = 1, Snapshot = 2, Hidden = 3
-        u.owner, // 1-15, 16 = neutral
+        u.getHealthMax() > 0 ? int(u.getHealth() / u.getHealthMax() * 255) : 0,
+        u.getShieldMax() > 0 ? int(u.getShield() / u.getShieldMax() * 255) : 0,
+        u.getEnergyMax() > 0 ? int(u.getEnergy() / u.getEnergyMax() * 255) : 0,
+        u.getDisplayType(), // Visible = 1, Snapshot = 2, Hidden = 3
+        u.getOwner(), // 1-15, 16 = neutral
         screen_pos.x,
         screen_pos.y,
-        u.facing,
+        u.getFacing(),
         screen_radius,
-        u.cloak, // Cloaked = 1, CloakedDetected = 2, NotCloaked = 3
-        u.is_selected,
-        u.is_blip,
-        u.is_powered,
-        u.mineral_contents,
-        u.vespene_contents,
+        u.getCloak(), // Cloaked = 1, CloakedDetected = 2, NotCloaked = 3
+        u.getIsSelected(),
+        u.getIsBlip(),
+        u.getIsPowered(),
+        u.getMineralContents(),
+        u.getVespeneContents(),
 
         // Not populated for enemies or neutral
-        u.cargo_space_max,
-        u.assigned_harvesters,
-        u.ideal_harvesters,
-        u.weapon_cooldown,
-        u.orders.length,
+        u.getCargoSpaceMax(),
+        u.getAssignedHarvestersList(),
+        u.getIdealHarvestersList(),
+        u.getWeaponCooldown(),
+        u.getOrdersList().length,
         raw_order(0),
         raw_order(1),
-        is_raw ? u.tag : 0,
-        u.is_hallucination,
-        u.buff_ids.length >= 1 ? u.buff_ids[0] : 0,
-        u.buff_ids.length >= 2 ? u.buff_ids[1] : 0,
-        u.add_on_tag ? get_addon_type(u.add_on_tag) : 0,
-        u.is_active,
-        u.is_on_screen,
-        u.orders.length >= 1 ? int(u.orders[0].progress * 100) : 0,
-        u.orders.length >= 2 ? int(u.orders[1].progress * 100) : 0,
+        is_raw ? u.getTag() : 0,
+        u.getIsHallucination(),
+        u.getBuffIdsList().length >= 1 ? u.getBuffIdsList()[0] : 0,
+        u.getBuffIdsList().length >= 2 ? u.getBuffIdsList()[1] : 0,
+        u.getAddOnTag() ? get_addon_type(u.getAddOnTag()) : 0,
+        u.getIsActive(),
+        u.getIsOnScreen(),
+        u.getOrdersList().length >= 1 ? int(u.getOrdersList()[0].getProgress() * 100) : 0,
+        u.getOrdersList().length >= 2 ? int(u.getOrdersList()[1].getProgress() * 100) : 0,
         raw_order(2),
         raw_order(3),
         0,
-        u.buff_duration_remain,
-        u.buff_duration_max,
-        u.attack_upgrade_level,
-        u.armor_upgrade_level,
-        u.shield_upgrade_level,
+        u.getBuffDurationRemain(),
+        u.getBuffDurationMax(),
+        u.getAttackUpgradeLevel(),
+        u.getArmorUpgradeLevel(),
+        u.getShieldUpgradeLevel(),
       ]
       return features
     }
-    raw = obs.observation.raw_data
+    raw = obs.getObservation().getRawData()
 
     if (aif.use_feature_units) {
-      console.log('*** THIS SECTION MUST BE FIXED ****')
       withPython(sw('feature_units'), () => {
         // Update the camera location so we can calculate world to screen pos
-        this._update_camera(point.Point.build(raw.player.camera))
-        const feature_units = Object.keys(raw.units).filter((key) => {
-          const u = raw.units[key]
-          return u.is_on_screen
-        })
+        this._update_camera(point.Point.build(raw.getPlayer().getCamera()))
+        const feature_units = raw.getUnitsList().filter((u) => u.getIsOnScreen())
           .map((u) => full_unit_vec(u, this._world_to_feature_screen_px))
         out['feature_units'] = named_array.NamedNumpyArray(
-          feature_units, [null, FeatureUnit], /*dtype=*/np.int64
+          feature_units, [null, FeatureUnit],
         )
 
         const feature_effects = []
         const feature_screen_size = aif.feature_dimensions.screen
-        Object.keys(raw.effects).forEach((key) => {
-          const effect = raw.effects[key]
-          Object.keys(effect.pos).forEach((k) => {
-            const pos = effect.pos[k]
+        raw.getEffectsList().forEach((effect) => {
+          effect.getPosList().forEach((pos) => {
             const screen_pos = this._world_to_feature_screen_px.fwd_pt(
               point.Point.build(pos)
             )
             if (screen_pos.x >= 0 && screen_pos.x < feature_screen_size.x
               && screen_pos.y >= 0 && screen_pos.y < feature_screen_size.y) {
               feature_effects.push([
-                effect.effect_id,
-                effect.alliance,
-                effect.owner,
-                effect.radius,
+                effect.getEffectId(),
+                effect.getAlliance(),
+                effect.getOwner(),
+                effect.getRadius(),
                 screen_pos.x,
                 screen_pos.y,
               ])
@@ -1581,7 +1564,7 @@ class Features {
           })
         })
         out['feature_effects'] = named_array.NamedNumpyArray(
-          feature_effects, [null, EffectPos], /*dtype=*/np.int32
+          feature_effects, [null, EffectPos]
         )
       })
     }
@@ -1589,14 +1572,11 @@ class Features {
       let raw_units
       withPython(sw('raw_units'), () => {
         withPython(sw('to_list'), () => {
-          raw_units = Object.keys(raw.units).map((key) => {
-            const u = raw.units[key]
-            return full_unit_vec(u, this._world_to_minimap_px, /*is_raw=*/true)
-          })
+          raw_units = raw.getUnitsList().map((u) => full_unit_vec(u, this._world_to_minimap_px, /*is_raw=*/true))
         })
         withPython(sw('to_numpy'), () => {
           out['raw_units'] = named_array.NamedNumpyArray(
-            raw_units, [null, FeatureUnit], /*dtype=*/np.int64
+            raw_units, [null, FeatureUnit]
           )
         })
         if (raw_units) {
@@ -1610,49 +1590,46 @@ class Features {
         }
 
         const raw_effects = []
-        Object.keys(raw.effects).forEach((key) => {
-          const effect = raw.effects[key]
-          Object.keys(effect.pos).forEach((k) => {
-            const pos = effect.pos[k]
+        raw.getEffectsList().forEach((effect) => {
+          effect.getPosList().forEach((pos) => {
             const raw_pos = this._world_to_minimap_px.fwd_pt(point.Point.build(pos))
             raw_effects.push([
-              effect.effect_id,
-              effect.alliance,
-              effect.owner,
-              effect.radius,
+              effect.getEffectId(),
+              effect.getAlliance(),
+              effect.getOwner(),
+              effect.getRadius(),
               raw_pos.x,
               raw_pos.y,
             ])
           })
         })
         out['raw_effects'] = named_array.NamedNumpyArray(
-          raw_effects, [null, EffectPos], /*dtype=*/np.int32
+          raw_effects, [null, EffectPos]
         )
       })
     }
-    out['upgrades'] = np.array(raw.player.upgrade_ids, /*dtype=*/np.int32)
+    out['upgrades'] = np.array(raw.getPlayer().getUpgradeIdsList())
 
     function cargo_units(u, pos_transform, is_raw = false) {
       //Compute unit features.//
       const screen_pos = pos_transform.fwd_pt(
-        point.Point.build(u.pos)
+        point.Point.build(u.getPos())
       )
       const features = []
-      Object.keys(u.passengers).forEach((key) => {
-        const v = u.passengers[key]
+      u.getPassengersList().forEach((v) => {
         features.push([
-          v.unit_type,
-          u.alliance, // this = 1, Ally = 2, Neutral = 3, Enemy = 4
-          v.health,
-          v.shield,
-          v.energy,
+          v.getUnitType(),
+          u.getAlliance(), // this = 1, Ally = 2, Neutral = 3, Enemy = 4
+          v.getHealth(),
+          v.getShield(),
+          v.getEnergy(),
           0, // cargo_space_taken
           0, // build_progress
-          v.health_max > 0 ? int(v.health / v.health_max * 255) : 0,
-          v.shield_max > 0 ? int(v.shield / v.shield_max * 255) : 0,
-          v.energy_max > 0 ? int(v.energy / v.energy_max * 255) : 0,
+          v.getHealthMax() > 0 ? int(v.getHealth() / v.getHealthMax() * 255) : 0,
+          v.getShieldMax() > 0 ? int(v.getShield() / v.getShieldMax() * 255) : 0,
+          v.getEnergyMax() > 0 ? int(v.getEnergy() / v.getEnergyMax() * 255) : 0,
           0, // display_type
-          u.owner, // 1-15, 16 = neutral
+          u.getOwner(), // 1-15, 16 = neutral
           screen_pos.x,
           screen_pos.y,
           0, // facing
@@ -1670,7 +1647,7 @@ class Features {
           0, // order_length
           0, // order_id_0
           0, // order_id_1
-          is_raw ? v.tag : 0,
+          is_raw ? v.getTag() : 0,
           0, // is hallucination
           0, // buff_id_1
           0, // buff_id_2
@@ -1698,9 +1675,8 @@ class Features {
           withPython(sw('feature_units'), () => {
             withPython(sw('to_list'), () => {
               feature_cargo_units = []
-              Object.keys(raw.units).forEach((key) => {
-                const u = raw.units[key]
-                if (!u.is_on_screen) {
+              raw.getUnitsList().forEach((u) => {
+                if (!u.getIsOnScreen()) {
                   return
                 }
                 feature_cargo_units
@@ -1709,12 +1685,14 @@ class Features {
             })
             withPython(sw('to_numpy'), () => {
               if (feature_cargo_units) {
-                let all_feature_units = np.array(
-                  feature_cargo_units, /*dtype=*/np.int64)
+                let all_feature_units = np.array(feature_cargo_units)
                 all_feature_units = np.concatenate(
-                  [out['feature_units'], feature_cargo_units], /*axis=*/0)
+                  [out['feature_units'], feature_cargo_units], /*axis=*/
+                  0
+                )
                 out['feature_units'] = named_array.NamedNumpyArray(
-                  all_feature_units, [null, FeatureUnit], /*dtype=*/np.int64)
+                  all_feature_units, [null, FeatureUnit]
+                )
               }
             })
           })
@@ -1724,9 +1702,8 @@ class Features {
           withPython(sw('raw_units'), () => {
             withPython(sw('to_list'), () => {
               raw_cargo_units = []
-              Object.keys(raw.units).forEach((key) => {
-                const u = raw.units[key]
-                if (!u.is_on_screen) {
+              raw.getUnitsList().forEach((u) => {
+                if (!u.getIsOnScreen()) {
                   return
                 }
                 raw_cargo_units
@@ -1735,12 +1712,12 @@ class Features {
             })
             withPython(sw('to_numpy'), () => {
               if (raw_cargo_units) {
-                raw_cargo_units = np.array(raw_cargo_units, /*dtype=*/np.int64)
+                raw_cargo_units = np.array(raw_cargo_units)
                 const all_raw_units = np.concatenate(
                   [out['raw_units'], raw_cargo_units], /*axis=*/0
                 )
                 out['raw_units'] = named_array.NamedNumpyArray(
-                  all_raw_units, [null, FeatureUnit], /*dtype=*/np.int64
+                  all_raw_units, [null, FeatureUnit]
                 )
                 const temp = []
                 for (let i = 0; i < out['raw_units'].length; i++) {
@@ -1757,46 +1734,41 @@ class Features {
     if (aif.use_unit_counts) {
       withPython(sw('unit_counts'), () => {
         const unit_counts = new Defaultdict(0)
-        Object.keys(raw.units).forEach((key) => {
-          const u = raw.units[key]
-          if (u.alliance !== sc_raw.Self) {
+        raw.getUnitsList().forEach((u) => {
+          if (u.getAlliance() !== sc_raw.Alliance.SELF) {
             return
           }
           unit_counts[u.unit_type] += 1
         })
         out['unit_counts'] = named_array.NamedNumpyArray(
-          Object.keys(unit_counts).map((key) => { //eslint-disable-line
-            return [key, unit_counts[key]]
-          }).sort((a, b) => a[0] < b[0]),
-          [null, UnitCounts],
-          /*dtype=*/np.int32
+          Object.keys(unit_counts).map((key) => [key, unit_counts[key]])
+            .sort((a, b) => a[0] < b[0]),
+          [null, UnitCounts]
         )
       })
     }
 
     if (aif.use_camera_position) {
       const camera_position = this._world_to_minimap_px.fwd_pt(
-        point.Point.build(raw.player.camera)
+        point.Point.build(raw.getPlayer().getCamera())
       )
-      out['camera_position'] = np.array((camera_position.x, camera_position.y),
-        /*dtype=*/np.int32)
-      out['camera_size'] = np.array((this._camera_size.x, this._camera_size.y),
-        /*dtype=*/np.int32)
+      out['camera_position'] = np.array([camera_position.x, camera_position.y])
+      out['camera_size'] = np.array([this._camera_size.x, this._camera_size.y])
     }
     if (!this._raw) {
       out['available_actions'] = np.array(
-        this.available_actions(obs.getObservation())//, /*dtype=*/np.int32
+        this.available_actions(obs.getObservation())
       )
     }
 
     if (this._requested_races !== null) {
       out['home_race_requested'] = np.array(
-        [this._requested_races[player.player_id]]//, /*dtype=*/np.int32
+        [this._requested_races[player.getPlayerId()]]
       )
       Object.keys(this._requested_races).forEach((player_id) => {
         const race = this._requested_races[player_id]
-        if (player_id !== player.player_id) {
-          out['away_race_requested'] = np.array([race])//, /*dtype=*/np.int32)
+        if (player_id !== player.getPlayerId()) {
+          out['away_race_requested'] = np.array([race])
         }
       })
     }
@@ -1806,8 +1778,8 @@ class Features {
         return [p.x, p.y, radar.getRadius()]
       }
       out['radar'] = named_array.NamedNumpyArray(
-        [map(transform_radar, obs.getObservation().getRawData().getRadar())],
-        [null, Radar]//, /*dtype=*/np.int32
+        [obs.getObservation().getRawData().getRadarList().map(transform_radar)],
+        [null, Radar]
       )
     }
     // Send the entire proto as well (in a function, so it isn't copied).
