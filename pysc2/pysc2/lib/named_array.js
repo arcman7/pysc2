@@ -88,6 +88,8 @@ function unpack(values, names, nameIndex = 0, keyPathArray = []) {
   }
   if (typeof nameList === 'string') {
     nameList = names
+  } else if (nameList._fields) {
+    nameList = nameList._fields
   } else if (nameList.constructor && nameList.constructor._fields) {
     nameList = nameList.constructor._fields
   } else if (isinstance(nameList, Enum.EnumMeta)) {
@@ -172,6 +174,8 @@ class NamedNumpyArray extends Array {// extends np.ndarray:
     super(...values)
     if (isinstance(names, Enum.EnumMeta)) {
       names = names.member_names_
+    } else if (names._fields) {
+      names = names._fields
     } else if (names.contructor && names.constructor._fields) {
       names = names.constructor._fields
     } else if (!Array.isArray(names)) {
@@ -217,6 +221,8 @@ class NamedNumpyArray extends Array {// extends np.ndarray:
             }
           })
           o = o.member_names_
+        } else if (o._fields) {
+          o = o._fields
         } else if (o.constructor && o.constructor._fields) {
           o = o.constructor._fields
         } else if (isinstance(o, Array)) {
@@ -226,6 +232,7 @@ class NamedNumpyArray extends Array {// extends np.ndarray:
             }
           })
         } else {
+          console.error(o)
           throw new Error('Bad names. Must be None, a list of strings, a namedtuple, or Intenum.')
         }
         if (this.shape[i] !== o.length) {

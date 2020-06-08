@@ -317,7 +317,7 @@ class Feature(all_collections_generated_classes.Feature):
     data = np.frombuffer(plane.data, dtype=Feature.dtypes[plane.bits_per_pixel])
     if plane.bits_per_pixel == 1:
       data = np.unpackbits(data)
-      if data.shape[0] != size.x * size.y:
+      if data.shape[0] != size.x *  size.y:
         # This could happen if the correct length isn't a multiple of 8, leading
         # to some padding bits at the end of the string which are incorrectly
         # interpreted as data.
@@ -331,6 +331,7 @@ class Feature(all_collections_generated_classes.Feature):
     assert plane.bits_per_pixel == 24, "{} != 24".format(plane.bits_per_pixel)
     size = point.Point.build(plane.size)
     data = np.frombuffer(plane.data, dtype=np.uint8)
+    print(data)
     return data.reshape(size.y, size.x, 3)
 
   @sw.decorate
@@ -1182,10 +1183,10 @@ class Features(object):
 
     def or_zeros(layer, size):
       if layer is not None:
-        print('in layer is not none')
+        # print('in layer is not none')
         return layer.astype(np.int32, copy=False)
       else:
-        print('in else')
+        # print('in else')
         return np.zeros((size.y, size.x), dtype=np.int32)
 
     aif = self._agent_interface_format

@@ -1,5 +1,5 @@
-const tf = require('@tensorflow/tfjs') //eslint-disable-line
-require('@tensorflow/tfjs-node') //eslint-disable-line
+let tf = require('@tensorflow/tfjs') //eslint-disable-line
+tf = require('@tensorflow/tfjs-node') //eslint-disable-line
 const foo = tf.tensor([1])
 const TensorMeta = foo.constructor // currently unknown where else to get this value
 /*eslint-disable prefer-rest-params*/
@@ -72,4 +72,6 @@ module.exports = {
   uint32: Uint32Array,
   float32: Float32Array,
   float64: Float64Array,
+  // node utility functions
+  node: tf.node,
 }

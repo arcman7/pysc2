@@ -276,10 +276,13 @@ class Feature extends all_collections_generated_classes.Feature {
       return null
     }
     let data = plane.getData()
+    data = new Uint8Array(data)
+    data = np.tensor(data, [size.y, size.x])
+    // data = np.node.decodeImage(data);
     // data = np.buffer([data.length], Feature.sdtypes[plane.getBitsPerPixel()], data)
-    data = np.buffer([size.y, size.x], Feature.sdtypes[plane.getBitsPerPixel()], data)
+    // data = np.buffer([size.y, size.x], Feature.sdtypes[plane.getBitsPerPixel()], data)
     if (plane.getBitsPerPixel() === 1) {
-      data = np.unpackbits(data)
+      // data = np.unpackbits(data) // python
       if (data.shape[0] !== (size.x * size.y)) {
         // This could happen if the correct length isn't a multiple of 8, leading
         // to some padding bits at the end of the string which are incorrectly
@@ -287,8 +290,8 @@ class Feature extends all_collections_generated_classes.Feature {
         data = data.slice(0, size.x * size.y)
       }
     }
-    // return data.reshape( size.y, size.x)
-    return data
+    // return data.reshape(size.y, size.x)
+    return data.arraySync()
   }
 
   unpack_rgb_image(plane) {//eslint-disable-line
@@ -302,10 +305,13 @@ class Feature extends all_collections_generated_classes.Feature {
     }
     const size = point.Point.build(plane.getSize())
     let data = plane.getData()
+    data = new Uint8Array(data)
+    data = np.tensor(data, [size.y, size.x, 3])
+    // data = np.node.decodeImage(data)
     // data = np.buffer([data.length], 'uint8', data)
-    data = np.buffer([size.y, size.x, 3], 'uint8', data)
+    // data = np.buffer([size.y, size.x, 3], 'uint8', data)
     // return data.reshape(size.y, size.x, 3)
-    return data
+    return data.arraySync()
   }
 
   color(plane) {
@@ -1260,8 +1266,9 @@ class Features {
       if (layer !== null) {
         // console.log(layer)
         // python uses np.astype <Copy of the array, cast to a specified type.>
-        return Array(...layer.values) // tensorflow buffer.values
+        // return Array(...layer.values) // tensorflow buffer.values
         // return layer.toTensor().arraySync()
+        return layer
       }
       return np.zeros([size.y, size.x], 'int32')
     }
@@ -1272,7 +1279,7 @@ class Features {
         const stacks = SCREEN_FEATURES.map((f) => {
           return or_zeros(f.unpack(obs.getObservation()), aif.feature_dimensions.screen)
         })
-        console.log(stacks[0][0])
+        // console.log(stacks[0][0])
         out['feature_screen'] = named_array.NamedNumpyArray(
           np.stack(stacks),
           /*names=*/[ScreenFeatures, null, null]
@@ -1283,7 +1290,7 @@ class Features {
           return or_zeros(f.unpack(obs.getObservation()), aif.feature_dimensions.minimap)
         })
         out['feature_minimap'] = new named_array.NamedNumpyArray(
-          np.stack(stacks.arraySync()),
+          np.stack(stacks),
           /*names=*/[MinimapFeatures, null, null]
         )
       })
@@ -1292,37 +1299,36 @@ class Features {
       withPython(sw('rgb_screen'), () => {
         out['rgb_screen'] = Feature.unpack_rgb_image(
           obs.getObservation().getRenderData().getMap()
-        ).astype(np.int32)
+        )//.astype(np.int32)
       })
       withPython(sw('rgb_minimap'), () => {
         out['rgb_minimap'] = Feature.unpack_rgb_image(
           obs.getObservation().getRenderData().getMinimap()
-        ).astype(np.int32)
+        )//.astype(np.int32)
       })
     }
     if (!this._raw) {
       withPython(sw('last_actions'), () => {
-        const acts = Object.keys(obs.actions).map((key) => {
-          const a = obs.actions[key]
+        // const acts = Object.keys(obs.actions).map((key) => {
+        const acts = obs.getActionsList().map((a) => {
           return this.reverse_action(a).function
         })
         out['last_actions'] = np.array(
-          acts,
-          /*dtype=*/np.int32
+          acts
+          ///,*dtype=*/np.int32
         )
       })
     }
     out['action_result'] = np.array(
-      Object.keys(obs.action_errors).map((key) => {
-        const o = obs.action_errors[key]
-        return o.result
-      }),
-      /*dtype=*/np.int32
+      // Object.keys(obs.action_errors).map((key) => {
+      (getattr(obs, 'action_errors') || getattr(obs, 'action_errors_list'))
+        .map((o) => o.getResult())
+      ///,*dtype=*/np.int32
     )
 
-    out['alerts'] = np.array(obs.observation.alerts, /*dtype=*/np.int32)
+    out['alerts'] = np.array(obs.getObservation().getAlertsList())//, /*dtype=*/np.int32)
 
-    out['game_loop'] = np.array([obs.observation.game_loop], /*dtype=*/np.int32)
+    out['game_loop'] = np.array([obs.getObservation().getGameLoop()])//, /*dtype=*/np.int32)
 
     withPython(sw('score'), () => {
       const score_details = obs.observation.score.score_details
@@ -1340,7 +1346,7 @@ class Features {
         score_details.collection_rate_vespene,
         score_details.spent_minerals,
         score_details.spent_vespene,
-      ], /*names=*/ScoreCumulative, /*dtype=*/np.int32)
+      ], /*names=*/ScoreCumulative)//, /*dtype=*/np.int32)
 
       function get_score_details(key, details, categories) {
         const row = details[key.name]
@@ -1352,8 +1358,7 @@ class Features {
           const key = ScoreByCategory[k]
           return get_score_details(key, score_details, ScoreCategories)
         }),
-        /*names=*/[ScoreByCategory, ScoreCategories],
-        /*dtype=*/np.int32
+        /*names=*/[ScoreByCategory, ScoreCategories]//,/*dtype=*/np.int32
       )
 
       out['score_by_vital'] = named_array.NamedNumpyArray(
@@ -1361,27 +1366,25 @@ class Features {
           const key = ScoreByCategory[k]
           return get_score_details(key, score_details, ScoreVitals)
         }),
-        /*names=*/[ScoreByVital, ScoreVitals],
-        /*dtype=*/np.int32
+        /*names=*/[ScoreByVital, ScoreVitals]//,/*dtype=*/np.int32
       )
     })
-    const player = obs.observation.player_common
+    const player = obs.getObservation().getPlayerCommon()
     out['player'] = named_array.NamedNumpyArray(
       [
-        player.player_id,
-        player.minerals,
-        player.vespene,
-        player.food_used,
-        player.food_cap,
-        player.food_army,
-        player.food_workers,
-        player.idle_worker_count,
-        player.army_count,
-        player.warp_gate_count,
-        player.larva_count,
+        getattr(player, 'player_id'),
+        getattr(player, 'minerals'),
+        getattr(player, 'vespene'),
+        getattr(player, 'food_used'),
+        getattr(player, 'food_cap'),
+        getattr(player, 'food_army'),
+        getattr(player, 'food_workers'),
+        getattr(player, 'idle_worker_count'),
+        getattr(player, 'army_count'),
+        getattr(player, 'warp_gate_count'),
+        getattr(player, 'larva_count'),
       ],
-      /*names=*/Player,
-      /*dtype=*/np.int32
+      /*names=*/Player//,/*dtype=*/np.int32
     )
 
     function unit_vec(u) {
@@ -1782,34 +1785,34 @@ class Features {
     }
     if (!this._raw) {
       out['available_actions'] = np.array(
-        this.available_actions(obs.observation), /*dtype=*/np.int32
+        this.available_actions(obs.getObservation())//, /*dtype=*/np.int32
       )
     }
 
     if (this._requested_races !== null) {
       out['home_race_requested'] = np.array(
-        [this._requested_races[player.player_id]], /*dtype=*/np.int32
+        [this._requested_races[player.player_id]]//, /*dtype=*/np.int32
       )
       Object.keys(this._requested_races).forEach((player_id) => {
         const race = this._requested_races[player_id]
         if (player_id !== player.player_id) {
-          out['away_race_requested'] = np.array([race], /*dtype=*/np.int32)
+          out['away_race_requested'] = np.array([race])//, /*dtype=*/np.int32)
         }
       })
     }
     if (aif.use_feature_units || aif.use_raw_units) {
       function transform_radar(radar) { //eslint-disable-line
-        const p = this._world_to_minimap_px.fwd_pt(point.Point.build(radar.pos))
-        return [p.x, p.y, radar.radius]
+        const p = this._world_to_minimap_px.fwd_pt(point.Point.build(radar.getPos()))
+        return [p.x, p.y, radar.getRadius()]
       }
       out['radar'] = named_array.NamedNumpyArray(
-        [map(transform_radar, obs.observation.raw_data.radar)],
-        [null, Radar], /*dtype=*/np.int32
+        [map(transform_radar, obs.getObservation().getRawData().getRadar())],
+        [null, Radar]//, /*dtype=*/np.int32
       )
     }
     // Send the entire proto as well (in a function, so it isn't copied).
     if (this._send_observation_proto) {
-      out["_response_observation"] = () => obs
+      out['_response_observation'] = () => obs
     }
 
     return out
