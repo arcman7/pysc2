@@ -331,7 +331,6 @@ class Feature(all_collections_generated_classes.Feature):
     assert plane.bits_per_pixel == 24, "{} != 24".format(plane.bits_per_pixel)
     size = point.Point.build(plane.size)
     data = np.frombuffer(plane.data, dtype=np.uint8)
-    print(data)
     return data.reshape(size.y, size.x, 3)
 
   @sw.decorate
@@ -1183,10 +1182,8 @@ class Features(object):
 
     def or_zeros(layer, size):
       if layer is not None:
-        # print('in layer is not none')
         return layer.astype(np.int32, copy=False)
       else:
-        # print('in else')
         return np.zeros((size.y, size.x), dtype=np.int32)
 
     aif = self._agent_interface_format
@@ -1196,7 +1193,6 @@ class Features(object):
         stacks = np.stack([or_zeros(f.unpack(obs.observation),
                                aif.feature_dimensions.screen)
                       for f in SCREEN_FEATURES])
-        print(stacks.shape)
         out["feature_screen"] = named_array.NamedNumpyArray(stacks,
             names=[ScreenFeatures, None, None])
       with sw("feature_minimap"):
@@ -1752,9 +1748,6 @@ class Features(object):
 
       for func in actions.ABILITY_IDS[ability_id]:
         if func.function_type is cmd_type:
-          # print('func.name: ', func.name, ' cmd_type.name: ', cmd_type.name)
-          # print('func: ', func, ' cmd_type: ', cmd_type)
-          # print('args: ', args)
           return FUNCTIONS[func.id](*args)
       raise ValueError("Unknown ability_id: %s, type: %s. Likely a bug." % (
           ability_id, cmd_type.__name__))

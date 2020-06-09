@@ -165,7 +165,6 @@ class NamedNumpyArray extends Array {// extends np.ndarray:
   constructor(values, names) {
     let tensor
     if (values instanceof np.TensorMeta) {
-      console.log(values.shape)
       tensor = values
       values = values.arraySync()
     } else {
@@ -344,15 +343,27 @@ function getNamedNumpyArray(values, names) {
         target[key] = value
         return value
       },
-      ownKeys: (target) => Object.keys(target).concat(['length']),
+      // ownKeys: (target) => Object.keys(target).concat(['length']),
       getOwnPropertyDescriptor: function(target, key) {
+        const notEnumerable = {
+          'extends': true,
+          '_named_array_values': true,
+          'shape': true,
+          '__pickleArgs': true,
+          'tensor': true,
+          'getProxy': true,
+        }
         if (key === 'length') {
           return Object.getOwnPropertyDescriptor(target, key)
         }
-        if (key === 'extends') {
+        // if (key === 'extends') {
+        //   return { value: this.get(target, key), enumerable: false, configurable: true }
+        // }
+        if (notEnumerable[key]) {
           return { value: this.get(target, key), enumerable: false, configurable: true }
         }
-        return { value: this.get(target, key), enumerable: true, configurable: true }
+        return Object.getOwnPropertyDescriptor(target, key)
+        // return { value: this.get(target, key), enumerable: true, configurable: true }
       }
     })
   }

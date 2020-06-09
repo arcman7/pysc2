@@ -26,7 +26,7 @@ const FeatureType = Enum.Enum('FeatureType', {
 
 const PlayerRelative = Enum.IntEnum('PlayerRelative', {
   /*The values for the `player_relative` feature layers.*/
-  null: 0,
+  none: 0,
   SELF: 1,
   ALLY: 2,
   NEUTRAL: 3,
@@ -42,7 +42,7 @@ const Visibility = Enum.IntEnum('Visibility', {
 
 const Effects = Enum.IntEnum('Effects', {
   /*Values for the `effects` feature layer.*/
-  null: 0,
+  none: 0,
   PsiStorm: 1,
   GuardianShield: 2,
   TemporalFieldGrowing: 3,
@@ -91,7 +91,7 @@ const ScoreByCategory = Enum.IntEnum('ScoreByCategory', {
 
 const ScoreCategories = Enum.IntEnum('ScoreCategories', {
   /*Indices for the `score_by_category` observation's second dimension.*/
-  null: 0,
+  none: 0,
   army: 1,
   economy: 2,
   technology: 3,
@@ -1264,7 +1264,6 @@ class Features {
     let raw // defined on line 1497
     function or_zeros(layer, size) {
       if (layer !== null) {
-        // console.log(layer)
         // python uses np.astype <Copy of the array, cast to a specified type.>
         // return Array(...layer.values) // tensorflow buffer.values
         // return layer.toTensor().arraySync()
@@ -1279,7 +1278,6 @@ class Features {
         const stacks = SCREEN_FEATURES.map((f) => {
           return or_zeros(f.unpack(obs.getObservation()), aif.feature_dimensions.screen)
         })
-        // console.log(stacks[0][0])
         out['feature_screen'] = named_array.NamedNumpyArray(
           np.stack(stacks),
           /*names=*/[ScreenFeatures, null, null]
@@ -1299,12 +1297,12 @@ class Features {
       withPython(sw('rgb_screen'), () => {
         out['rgb_screen'] = Feature.unpack_rgb_image(
           obs.getObservation().getRenderData().getMap()
-        )//.astype(np.int32)
+        )
       })
       withPython(sw('rgb_minimap'), () => {
         out['rgb_minimap'] = Feature.unpack_rgb_image(
           obs.getObservation().getRenderData().getMinimap()
-        )//.astype(np.int32)
+        )
       })
     }
     if (!this._raw) {
@@ -1343,24 +1341,19 @@ class Features {
       ], /*names=*/ScoreCumulative)
 
       function get_score_details(key, details, categories) {
-        const row = details[key.name]
-        return Object.keys(categories)
-          .map((category) => row[category.name])
+        const row = (getattr(details, key) || getattr(details, key + '_list'))
+        return categories._keys
+          .map((categoryKey) => getattr(row, categoryKey))
       }
+
       out['score_by_category'] = named_array.NamedNumpyArray(
-        Object.keys(ScoreByCategory).map((k) => {
-          const key = ScoreByCategory[k]
-          return get_score_details(key, score_details, ScoreCategories)
-        }),
-        /*names=*/[ScoreByCategory, ScoreCategories]//,/*dtype=*/np.int32
+        ScoreByCategory._keys.map((key) => get_score_details(key, score_details, ScoreCategories)),
+        /*names=*/[ScoreByCategory, ScoreCategories]
       )
 
       out['score_by_vital'] = named_array.NamedNumpyArray(
-        Object.keys(ScoreByVital).map((k) => {
-          const key = ScoreByCategory[k]
-          return get_score_details(key, score_details, ScoreVitals)
-        }),
-        /*names=*/[ScoreByVital, ScoreVitals]//,/*dtype=*/np.int32
+        ScoreByVital._keys.map((key) => get_score_details(key, score_details, ScoreVitals)),
+        /*names=*/[ScoreByVital, ScoreVitals]
       )
     })
     const player = obs.getObservation().getPlayerCommon()
@@ -1378,7 +1371,7 @@ class Features {
         getattr(player, 'warp_gate_count'),
         getattr(player, 'larva_count'),
       ],
-      /*names=*/Player//,/*dtype=*/np.int32
+      /*names=*/Player
     )
 
     function unit_vec(u) {
@@ -1392,63 +1385,50 @@ class Features {
         int(u.getBuildProgress() * 100), // discretize
       ])
     }
-    const ui = obs.getObservation().ui_data
+    const ui = obs.getObservation().getUiData()
 
     withPython(sw('ui'), () => {
-      const groups = np.zeros([10, 2], /*dtype=*/np.int32)
-      Object.keys(ui.groups).forEach((key) => {
-        const g = ui.groups[key]
-        // check this
-        groups[g.control_group_index] = [g.leader_unit_type, g.count]
+      const groups = np.zeros([10, 2])
+      ui.getGroupsList().forEach((g) => {
+        groups[g.getControlGroupIndex()] = [g.getLeaderUnitType(), g.getCount()]
       })
       out['control_groups'] = groups
 
-      if (ui.has('single')) {
+      if (ui.hasSingle()) {
         out['single_select'] = named_array.NamedNumpyArray(
-          [unit_vec(ui.single.unit)], [null, UnitLayer]
+          [unit_vec(ui.getSingle().getUnit())], [null, UnitLayer]
         )
-      } else if (ui.has('multi')) {
+      } else if (ui.hasMulti()) {
         out['multi_select'] = named_array.NamedNumpyArray(
-          Object.keys(ui.multi.units).map((key) => {
-            const u = ui.multi.units[key]
-            return unit_vec(u)
-          })
+          ui.getMulti().getUnitsList().map((u) => unit_vec(u)),
+          [null, UnitLayer]
         )
-      } else if (ui.has('cargo')) {
+      } else if (ui.hasCargo()) {
         out['single_select'] = named_array.NamedNumpyArray(
-          [unit_vec(ui.cargo.unit)], [null, UnitLayer]
+          [unit_vec(ui.getCargo().getUnit())], [null, UnitLayer]
         )
         out['cargo'] = named_array.NamedNumpyArray(
-          Object.keys(ui.cargo.passengers).map((key) => {
-            const u = ui.cargo.passengers[key]
-            return unit_vec(u)
-          }),
+          ui.getCargo().getPassengersList().map((u) => unit_vec(u)),
           [null, UnitLayer]
         )
         out['cargo_slots_available'] = np.array(
-          [ui.cargo.slots_available],
-          /*dtype=*/np.int32
+          [ui.getCargo().getSlotsAvailable()],
         )
-      } else if (ui.has('production')) {
+      } else if (ui.hasProduction()) {
         out['single_select'] = named_array.NamedNumpyArray(
-          [unit_vec(ui.production.unit)], [null, UnitLayer]
+          [unit_vec(ui.getProduction().getUnit())], [null, UnitLayer]
         )
-        if (ui.production.build_queue) {
+        if (ui.getProduction().getBuildQueueList()) {
           out['build_queue'] = named_array.NamedNumpyArray(
-            Object.keys(ui.production.build_queue).map((key) => {
-              const u = ui.production.build_queue[key]
-              return unit_vec(u)
-            }),
-            [null, UnitLayer],
-            /*dtype=*/np.int32
+            ui.getProduction().getBuildQueueList().map((u) => unit_vec(u)),
+            [null, UnitLayer]
           )
         }
-        if (ui.production.production_queue) {
+        if (ui.getProduction().getProductionQueueList()) {
           out['production_queue'] = named_array.NamedNumpyArray(
-            Object.keys(ui.production.production_queue).map((key) => {
-              const item = ui.production.production_queue[key]
-              return [item.ability_id, item.build_progress * 100]
-            }),
+            ui.getProduction().getProductionQueueList().map((item) => [
+              item.getAbilityId(), item.getBuildProgress() * 100
+            ]),
             [null, ProductionQueue]
           )
         }
@@ -1778,7 +1758,7 @@ class Features {
         return [p.x, p.y, radar.getRadius()]
       }
       out['radar'] = named_array.NamedNumpyArray(
-        [obs.getObservation().getRawData().getRadarList().map(transform_radar)],
+        obs.getObservation().getRawData().getRadarList().map(transform_radar),
         [null, Radar]
       )
     }
@@ -1786,7 +1766,6 @@ class Features {
     if (this._send_observation_proto) {
       out['_response_observation'] = () => obs
     }
-
     return out
   }
 
@@ -1986,7 +1965,6 @@ class Features {
     const aif = this._agent_interface_format
 
     function func_call_ability(ability_id, cmd_type) {
-      let args = []
       if (!actions.ABILITY_IDS.hasOwnProperty(ability_id)) {
         console.warn(`Unknown ability_id: ${ability_id}. This is probably dance or cheer, or some unknown new or map specific ability. Treating it as a no-op.", ability_id`)
         return FUNCTIONS.no_op()
@@ -2003,6 +1981,7 @@ class Features {
         key = ks[i]
         const func = actions.ABILITY_IDS[ability_id][key]
         if (func.function_type === cmd_type) {
+          const args = []
           for (let j = 2; j < arguments.length; j++) {
             args.push(arguments[j]) //eslint-disable-line
           }

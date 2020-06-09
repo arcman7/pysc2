@@ -6,12 +6,11 @@ const features = require(path.resolve(__dirname, '..', 'lib', 'features.js'))
 const point = require(path.resolve(__dirname, '..', 'lib', 'point.js'))
 const actions = require(path.resolve(__dirname, '..', 'lib', 'actions.js'))
 const units = require(path.resolve(__dirname, '..', 'lib', 'units.js'))
-const np = require(path.resolve(__dirname, '..', 'lib', 'numpy.js'))
 const pythonUtils = require(path.resolve(__dirname, '..', 'lib', 'pythonUtils.js'))
 
 const { common_pb } = s2clientprotocol
 const { assert } = pythonUtils
-const { getattr, setattr } = dummy_observation
+const { getattr } = dummy_observation
 const msToS = 1 / 1000
 
 const _PROBE = new dummy_observation.Unit({
@@ -78,9 +77,9 @@ class TestCase {
   _check_attributes_match(a, b, attributes)  {//eslint-disable-line
     for (let i = 0; i < attributes.length; i++) {
       const attribute = attributes[i]
-      const aVal = getattr(a, attribute) || a[attribute]
-      const bVal = getattr(b, attribute) || b[attribute]
-      assert(aVal == bVal)
+      const aVal = getattr(a, attribute) !== undefined ? getattr(a, attribute) : a[attribute]
+      const bVal = getattr(b, attribute) !== undefined ? getattr(b, attribute) : b[attribute]
+      assert(aVal == bVal, `aVal == bVal, attribute: ${attribute}\n aVal: ${aVal}, bVal: ${bVal}`)
     }
   }
 
@@ -245,9 +244,9 @@ function main() {
     const arr = features.ScoreByCategory.toArray()
     for (let i = 0; i < arr.length; i++) {
       testState = new TestCase()
-      const entry = arr[i]
+      const entry_name = arr[i].key
       testState._builder.score_by_category({
-        entry_name: entry.key,
+        entry_name,
         none: 10,
         army: 1200,
         economy: 400,
@@ -256,22 +255,192 @@ function main() {
       })
       const response_observation = testState._builder.build()
       const obs = response_observation.getObservation()
-      const entryProto = getattr(obs.getScore().getScoreDetails(), entry.key)
-      assert(entryProto.getNone() === 10, 'entryProto.getNone() === 10')
-      assert(entryProto.getArmy() === 1200, 'entryProto.getArmy() === 1200')
-      assert(entryProto.getEconomy() === 400, 'entryProto.getEconomy() === 400')
-      assert(entryProto.getTechnology() === 100, 'entryProto.getTechnology() === 100')
-      assert(entryProto.getUpgrade() === 200, 'entryProto.getUpgrade() === 200')
+      const entry = getattr(obs.getScore().getScoreDetails(), entry_name)
+      assert(entry.getNone() === 10, 'entry.getNone() === 10')
+      assert(entry.getArmy() === 1200, 'entry.getArmy() === 1200')
+      assert(entry.getEconomy() === 400, 'entry.getEconomy() === 400')
+      assert(entry.getTechnology() === 100, 'entry.getTechnology() === 100')
+      assert(entry.getUpgrade() === 200, 'entry.getUpgrade() === 200')
       // Check the transform_obs does what we expect, too.
       const transformed_obs = testState._features.transform_obs(response_observation)
-      const transformed_entry = getattr(transformed_obs.getSCoreByCategory(), entry.key)
-      assert(transformed_obs.getNone() === 10, 'transformed_obs.getNone() === 10')
+      const transformed_entry = transformed_obs.score_by_category[entry_name]
+      assert(transformed_entry.none === 10, 'transformed_obs.none === 10')
+      assert(transformed_entry.army === 1200, 'transformed_entry.army === 1200')
+      assert(transformed_entry.economy === 400, 'transformed_entry.economy === 400')
+      assert(transformed_entry.technology === 100, 'transformed_entry.technology === 100')
+      assert(transformed_entry.upgrade === 200, 'transformed_entry.upgrade === 200')
     }
     count += 1
   }
   testScoreByCategory()
 
+  function testScoreByVitalSpec() {
+    //Note that if these dimensions are changed, client code is liable to break.
+    console.log(`running test "${getFuncName()}"`)
+    testState = new TestCase()
+    const scoreVital = testState._obs_spec.score_by_vital
+    assert(scoreVital[0] === 3, 'scoreVital[0] === 3')
+    assert(scoreVital[1] === 3, 'scoreVital[1] === 3')
+    count += 1
+  }
+  testScoreByVitalSpec()
 
+  function testScoreByVital() {
+    console.log(`running test "${getFuncName()}"`)
+    const arr = features.ScoreByVital.toArray()
+    for (let i = 0; i < arr.length; i++) {
+      testState = new TestCase()
+      const entry_name = arr[i].key
+      testState._builder.score_by_vital({
+        entry_name,
+        life: 1234,
+        shields: 45,
+        energy: 423,
+      })
+      const response_observation = testState._builder.build()
+      const obs = response_observation.getObservation()
+      const entry = getattr(obs.getScore().getScoreDetails(), entry_name)
+      assert(entry.getLife() === 1234, 'entry.getLife() === 1234')
+      assert(entry.getShields() === 45, 'entry.getShields() === 45')
+      assert(entry.getEnergy() === 423, 'entry.getEnergy() === 423')
+
+      // Check the transform_obs does what we expect, too.
+      const transform_obs = testState._features.transform_obs(response_observation)
+      const transformed_entry = transform_obs.score_by_vital[entry_name]
+      assert(transformed_entry.life === 1234, 'transformed_entry.life === 1234')
+      assert(transformed_entry.shields === 45, 'transformed_entry.shields === 45')
+      assert(transformed_entry.energy === 423, 'transformed_entry.energy === 423')
+    }
+    count += 1
+  }
+  testScoreByVital()
+
+  function testRgbMinimapMatchesSpec() {
+    console.log(`running test "${getFuncName()}"`)
+    testState = new TestCase()
+    const obs = testState._get_obs()
+    testState._check_layer(obs.getRenderData().getMinimap(), 64, 60, 24)
+    count += 1
+  }
+  testRgbMinimapMatchesSpec()
+
+  function testNoSingleSelect() {
+    console.log(`running test "${getFuncName()}"`)
+    testState = new TestCase()
+    const obs = testState._get_obs()
+    assert(obs.getUiData().hasSingle() === false, 'obs.getUiData().hasSingle() === false')
+    count += 1
+  }
+  testNoSingleSelect()
+
+  function testWithSingleSelect() {
+    console.log(`running test "${getFuncName()}"`)
+    testState = new TestCase()
+    testState._builder.single_select(_PROBE)
+    const obs = testState._get_obs()
+    testState._check_unit(obs.getUiData().getSingle().getUnit(), _PROBE)
+    count += 1
+  }
+  testWithSingleSelect()
+
+  function testNoMultiSelect() {
+    console.log(`running test "${getFuncName()}"`)
+    testState = new TestCase()
+    const obs = testState._get_obs()
+    assert(obs.getUiData().hasMulti() === false, 'obs.getUiData().hasMulti() === false')
+    count += 1
+  }
+  testNoMultiSelect()
+
+  function testMultiSelect() {
+    console.log(`running test "${getFuncName()}"`)
+    testState = new TestCase()
+    const nits = [_MOTHERSHIP, _PROBE, _PROBE, _ZEALOT]
+    testState._builder.multi_select(nits)
+    const obs = testState._get_obs()
+    assert(obs.getUiData().getMulti().getUnitsList().length === 4, 'obs.getUiData().getMulti().getUnitsList().length === 4')
+    const protoUnits = obs.getUiData().getMulti().getUnitsList()
+    for (let i = 0; i < nits.length; i++) {
+      testState._check_unit(protoUnits[i], nits[i])
+    }
+    count += 1
+  }
+  testMultiSelect()
+
+  function testBuildQueue() {
+    console.log(`running test "${getFuncName()}"`)
+    testState = new TestCase()
+    const nits = [_MOTHERSHIP, _PROBE]
+    const production = [
+      { 'ability_id': actions.FUNCTIONS.Train_Mothership_quick.ability_id, 'build_progress': 0.5 },
+      { 'ability_id': actions.FUNCTIONS.Train_Probe_quick.ability_id, 'build_progress': 0 },
+      { 'ability_id': actions.FUNCTIONS.Research_ShadowStrike_quick.ability_id, 'build_progress': 0 },
+    ]
+    testState._builder.build_queue(nits, production)
+    const obs = testState._get_obs()
+    const buildQueue = obs.getUiData().getProduction().getBuildQueueList()
+    assert(buildQueue.length === 2, 'buildQueue.length === 2')
+
+    for (let i = 0; i < nits.length; i++) {
+      testState._check_unit(buildQueue[i], nits[i])
+    }
+    const productionQueue = obs.getUiData().getProduction().getProductionQueueList()
+    assert(productionQueue.length === 3, 'productionQueue.length === 3')
+
+    for (let i = 0; i < nits.length; i++) {
+      testState._check_unit(productionQueue[i], production[i])
+      assert(productionQueue[i].get)
+    }
+  }
+  testBuildQueue()
+
+  function testFeatureUnitsAreAdded() {
+    console.log(`running test "${getFuncName()}"`)
+    testState = new TestCase()
+    const pos1 = new common_pb.Point()
+    pos1.setX(10)
+    pos1.setY(10)
+    pos1.setZ(0)
+    const pos2 = new common_pb.Point()
+    pos2.setX(11)
+    pos2.setY(12)
+    pos2.setZ(0)
+    const feature_units = [
+      new dummy_observation.FeatureUnit({
+        unit_type: units.Protoss.Probe,
+        alliance: features.PlayerRelative.SELF,
+        owner: 1,
+        pos: pos1,
+        radius: 1.0,
+        health: 10,
+        health_max: 20,
+        is_on_screen: true,
+        shield: 0,
+        shield_max: 20
+      }),
+      new dummy_observation.FeatureUnit({
+        unit_type: units.Terran.Marine,
+        alliance: features.PlayerRelative.SELF,
+        owner: 1,
+        pos: pos2,
+        radius: 1.0,
+        health: 35,
+        health_max: 45,
+        is_on_screen: true,
+        shield: 0,
+        shield_max: 0
+      }),
+    ]
+
+    testState._builder.feature_units(feature_units)
+    const obs = testState._get_obs()
+    const protoUnits = obs.getRawData().getUnitsList()
+    for (let i = 0; i < feature_units.length; i++) {
+      testState._check_feature_unit(protoUnits[i], feature_units[i])
+    }
+    count += 1
+  }
+  testFeatureUnitsAreAdded()
 
   console.log(`\n----------------------------------------------------------------------\nRan ${count} test(s) in ${(performance.now() * msToS) - start_timer}s\n\n`)
 }

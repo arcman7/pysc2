@@ -103,7 +103,7 @@ class NamedNumpyArray(np.ndarray):
 
   def __new__(cls, values, names, *args, **kwargs):
     obj = np.array(values, *args, **kwargs)
-    # print('values: ', values, '  names: ', names)
+    print('values: ', values, '  names: ', names)
     if len(obj.shape) == 0:  # pylint: disable=g-explicit-length-test
       raise ValueError("Scalar arrays are unsupported.")
 

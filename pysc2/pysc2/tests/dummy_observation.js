@@ -4,7 +4,7 @@ const features = require(path.resolve(__dirname, '..', 'lib', 'features.js'))
 const np = require(path.resolve(__dirname, '..', 'lib', 'numpy.js'))
 const pythonUtils = require(path.resolve(__dirname, '..', 'lib', 'pythonUtils.js'))
 
-const { common_pb, raw_pb, sc2api_pb, score_pb } = s2clientprotocol
+const { common_pb, raw_pb, sc2api_pb, score_pb, ui_pb } = s2clientprotocol
 const sc_pb = sc2api_pb
 const { snakeToPascal, } = pythonUtils
 
@@ -46,8 +46,8 @@ class Unit {
 
   fill(unit_proto) {
     //Fill a proto unit data object from this Unit.//
-    unit_proto.setUnitType(this.unit_type)
-    unit_proto.setPlayerRelative(this.player_relative)
+    unit_proto.setUnitType(this.unit_type.val)
+    unit_proto.setPlayerRelative(this.player_relative.val)
     unit_proto.setHealth(this.health)
     unit_proto.setShields(this.shields)
     unit_proto.setEnergy(this.energy)
@@ -133,6 +133,35 @@ class FeatureUnit {
   as_dict() {
     return this
   }
+
+  fill(proto_unit) {
+    setattr(proto_unit, 'unit_type', this.unit_type)
+    setattr(proto_unit, 'alliance', this.alliance)
+    setattr(proto_unit, 'owner', this.owner)
+    setattr(proto_unit, 'pos', this.pos)
+    setattr(proto_unit, 'radius', this.radius)
+    setattr(proto_unit, 'health', this.health)
+    setattr(proto_unit, 'health_max', this.health_max)
+    setattr(proto_unit, 'is_on_screen', this.is_on_screen)
+    setattr(proto_unit, 'shield', this.shield)
+    setattr(proto_unit, 'shield_max', this.shield_max)
+    setattr(proto_unit, 'energy', this.energy)
+    setattr(proto_unit, 'energy_max', this.energy_max)
+    setattr(proto_unit, 'cargo_space_taken', this.cargo_space_taken)
+    setattr(proto_unit, 'cargo_space_max', this.cargo_space_max)
+    setattr(proto_unit, 'build_progress', this.build_progress)
+    setattr(proto_unit, 'facing', this.facing)
+    setattr(proto_unit, 'display_type', this.display_type)
+    setattr(proto_unit, 'cloak', this.cloak)
+    setattr(proto_unit, 'is_selected', this.is_selected)
+    setattr(proto_unit, 'is_blip', this.is_blip)
+    setattr(proto_unit, 'is_powered', this.is_powered)
+    setattr(proto_unit, 'mineral_contents', this.mineral_contents)
+    setattr(proto_unit, 'vespene_contents', this.vespene_contents)
+    setattr(proto_unit, 'assigned_harvesters', this.assigned_harvesters)
+    setattr(proto_unit, 'ideal_harvesters', this.ideal_harvesters)
+    setattr(proto_unit, 'weapon_cooldown', this.weapon_cooldown)
+  }
 }
 
 class Builder {
@@ -182,9 +211,9 @@ class Builder {
     sc.setUsedVespene(new sc_pb.CategoryScoreDetails())
     sc.setTotalUsedMinerals(new sc_pb.CategoryScoreDetails())
     sc.setTotalUsedVespene(new sc_pb.CategoryScoreDetails())
-    // sc.setTotalDamageDealt()
-    // sc.setTotalDamageTaken()
-    // sc.setTotalDamageHealed()
+    sc.setTotalDamageDealt(new sc_pb.VitalScoreDetails())
+    sc.setTotalDamageTaken(new sc_pb.VitalScoreDetails())
+    sc.setTotalHealed(new sc_pb.VitalScoreDetails())
 
     this._obs_spec = obs_spec
     this._single_select = null
@@ -256,7 +285,7 @@ class Builder {
   score_by_category({ entry_name, none, army, economy, technology, upgrade }) {
     const field = getattr(this._score_details, entry_name);
     if (!field) {
-      console.log(' entry_name: ', entry_name, '\n', this._score_details.toObject());
+      console.error(' entry_name: ', entry_name, '\n', this._score_details.toObject());
     }
     ['none', 'army', 'economy', 'technology', 'upgrade'].forEach((key) => {
       setattr(field, key, arguments[0][key]) //eslint-disable-line
@@ -266,6 +295,9 @@ class Builder {
   //eslint-disable-next-line
   score_by_vital({ entry_name, life, shields, energy }) {
     const field = getattr(this._score_details, entry_name);
+    if (!field) {
+      console.error(' entry_name: ', entry_name, '\n', this._score_details.toObject());
+    }
     ['life', 'shields', 'energy'].forEach((key) => {
       setattr(field, key, arguments[0][key]) //eslint-disable-line
     })
@@ -298,6 +330,9 @@ class Builder {
     const response_observation = new sc_pb.ResponseObservation()
     const obs = new sc_pb.Observation()
 
+    obs.setRawData(new sc_pb.ObservationRaw()) // javascript required
+    obs.getRawData().setPlayer(new raw_pb.PlayerRaw())
+    obs.getRawData().getPlayer().setCamera(new raw_pb.Point())
     obs.setGameLoop(this._game_loop)
     obs.setPlayerCommon(this._player_common.clone())
 
@@ -342,7 +377,7 @@ class Builder {
         const renders = obs.getFeatureLayerData().getRenders()
         const imageData = getattr(renders, feature.name) || getattr(renders, feature.name + '_list')
         if (!imageData) {
-          console.log(renders.toObject())
+          console.error(renders.toObject())
           throw new Error(`Failed to get ${feature.name} from:`, renders.toObject())
         }
         fill(imageData, this._obs_spec['feature_screen'].slice(1), 8)
@@ -377,26 +412,47 @@ class Builder {
 
     if (this._single_select) {
       obs.getUiData().setSingle(new sc_pb.SinglePanel())
+      obs.getUiData().getSingle().setUnit(new ui_pb.UnitInfo())
       this._single_select.fill(obs.getUiData().getSingle().getUnit())
     }
 
     if (this._multi_select) {
       obs.getUiData().setMulti(new sc_pb.MultiPanel())
       this._multi_select.forEach((unit) => {
-        obs.getUiData().getMulti().addUnits(unit)
+        const unitProto = new ui_pb.UnitInfo()
+        unit.fill(unitProto)
+        obs.getUiData().getMulti().addUnits(unitProto)
       })
     }
 
+
     if (this._build_queue) {
+      obs.getUiData().setProduction(new ui_pb.ProductionPanel())
       this._build_queue.forEach((unit) => {
-        obs.getUiData().getProduction().addProductionQueue(unit)
+        const protoUnit = new ui_pb.UnitInfo()
+        unit.fill(protoUnit)
+        obs.getUiData().getProduction().addBuildQueue(protoUnit)
+      })
+    }
+
+    if (this._production) {
+      if (!obs.getUiData().hasProduction()) {
+        obs.getUiData().setProduction(new ui_pb.ProductionPanel())
+      }
+      this._production.forEach((item) => {
+        const itemProto = new ui_pb.BuildItem()
+        itemProto.setAbilityId(item.ability_id)
+        itemProto.setBuildProgress(item.build_progress)
+        obs.getUiData().getProduction().addProductionQueue(itemProto)
       })
     }
 
     if (this._feature_units) {
-      for (let i = 1; i < this._feature_units.length; i++) {
+      for (let i = 0; i < this._feature_units.length; i++) {
         const feature_unit = this._feature_units[i]
-        obs.getRawData().addUnits(feature_unit)
+        const unitProto = new raw_pb.Unit()
+        feature_unit.fill(unitProto)
+        obs.getRawData().addUnits(unitProto)
       }
     }
 
