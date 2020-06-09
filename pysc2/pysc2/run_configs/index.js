@@ -35,12 +35,11 @@ function get(version = null) {
     const highest = Object.keys(configs).sort((kA, kB) => (configs[kB].priority() || 0) - (configs[kA].priority() || 0))[0]
     return new configs[highest](version)
   }
-  // try {
-  //   console.log('flag: ', flags.get('sc2_run_config'))
-  return new configs[flags.get('sc2_run_config')](version)
-  // } catch (error) {
-  //   throw new sc_process.SC2LaunchError(`Invalid run_config. Valid configs are: ${Object.keys(configs).sort().join(',')}.\n error: ${error}`)
-  // }
+  try {
+    return new configs[flags.get('sc2_run_config')](version)
+  } catch (error) {
+    throw new sc_process.SC2LaunchError(`Invalid run_config. Valid configs are: ${Object.keys(configs).sort().join(',')}.\n error: ${error}`)
+  }
 }
 
 module.exports = {

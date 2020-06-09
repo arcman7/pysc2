@@ -40,6 +40,7 @@ class TestCase {
       for (let i = 1; i < this._sc2_procs.length; i++) {
         sw.merge(this._sc2_procs[i]._sw)
       }
+      sw.merge(stopwatch.sw)
     }
     if (sw) {
       s = sw.toString()
@@ -295,7 +296,6 @@ class GameReplayTestCase extends TestCase {
   }
 
   observe(disable_fog = false) {
-    // return sequentialTaskQueue(this._controllers.map((c) => () => c.observe(disable_fog)))
     return Promise.all(this._controllers.map((c) => c.observe(disable_fog)))
   }
 

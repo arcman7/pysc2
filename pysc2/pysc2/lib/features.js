@@ -16,7 +16,7 @@ const sw = stopwatch.sw
 const { raw_pb, sc2api_pb } = s2clientprotocol
 const sc_raw = raw_pb
 const sc_pb = sc2api_pb
-const { Defaultdict, getArgsArray, getattr, int, isinstance, len, namedtuple, setattr, setUpProtoAction, sum, ValueError, withPython, zip } = pythonUtils
+const { Defaultdict, getArgsArray, getattr, int, isinstance, len, namedtuple, setUpProtoAction, sum, ValueError, withPython, zip } = pythonUtils
 const EPSILON = 1e-5
 
 const FeatureType = Enum.Enum('FeatureType', {
