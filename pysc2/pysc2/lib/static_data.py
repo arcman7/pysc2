@@ -34,8 +34,8 @@ class StaticData(object):
                                for a in data.abilities
                                if a.remaps_to_ability_id}
 
-    # for a in six.itervalues(self._abilities):
-    for a in itervalues(self._abilities):
+    for a in six.itervalues(self._abilities):
+    # for a in itervalues(self._abilities):
       a.hotkey = a.hotkey.lower()
 
   @property

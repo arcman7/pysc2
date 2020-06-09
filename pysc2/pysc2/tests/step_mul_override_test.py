@@ -22,7 +22,7 @@ from absl.testing import absltest
 
 from pysc2.env import sc2_env
 from pysc2.lib import actions
-import utils
+from pysc2.tests import utils
 
 
 AGENT_INTERFACE_FORMAT = sc2_env.AgentInterfaceFormat(

@@ -25,7 +25,7 @@ from absl.testing import parameterized
 import enum as Enum
 import numpy as np
 
-import named_array
+from pysc2.lib import named_array
 
 
 class NamedDictTest(absltest.TestCase):
