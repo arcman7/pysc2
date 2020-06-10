@@ -14,7 +14,6 @@ async function test_ping() {
   const port = (await portspicker.pick_unused_ports(1))[0]
   const sc_process = await run_configs.get().start({ want_rgb: false, port, passedSw: stopwatch.sw })
   const controller = sc_process._controller
-  // sc_process._sw.enable()
 
   const count = 100
 
@@ -28,21 +27,10 @@ async function test_ping() {
   }
 
   await sequentialTaskQueue(tasks)
-  console.log('the same: ', stopwatch.sw === sc_process._sw)
-  console.log(stopwatch.sw)
-  console.log(sc_process._sw)
-  try {
-    //
-  } catch (err) {
-    console.error(err)
-  } finally {
-    await controller.quit()
-    await sc_process.close()
-    testState.tearDown()
-    assert(stopwatch.sw.times['ping'].num === count, 'sc_process._sw.times["ping"].num === count')
-    
-  }
-
+  await controller.quit()
+  await sc_process.close()
+  assert(stopwatch.sw.times['ping'].num === count, 'sc_process._sw.times["ping"].num === count')
+  testState.tearDown()
 }
 
 test_ping()

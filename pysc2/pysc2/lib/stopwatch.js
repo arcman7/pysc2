@@ -188,10 +188,15 @@ class StopWatch {
     ['disable', 'enable', 'trace', 'custom', 'decorate', 'push', 'pop', 'cur_stack', 'clear', 'add', 'merge', 'str', 'toString'].forEach((methodName) => {
       stopwatchProxy[methodName] = this[methodName].bind(this)
     })
-    stopwatchProxy.times = this.times
+    Object.defineProperty(stopwatchProxy, 'times', {
+      get() {
+        return self._times
+      }
+    })
     stopwatchProxy._times = this._times
     stopwatchProxy.parse = this.constructor.parse
     stopwatchProxy.instanceRef = this
+    this._funcProxy = stopwatchProxy
     return stopwatchProxy
   }
 
@@ -274,6 +279,7 @@ class StopWatch {
 
   clear() {
     this._times = new DefaultDict(Stat)// this._times.clear()
+    this._funcProxy._times = this._times
   }
 
   add(name, duration) {

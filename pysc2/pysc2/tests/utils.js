@@ -40,7 +40,10 @@ class TestCase {
       for (let i = 1; i < this._sc2_procs.length; i++) {
         sw.merge(this._sc2_procs[i]._sw)
       }
-      sw.merge(stopwatch.sw)
+      if (this._sc2_procs[0]._sw !== stopwatch.sw) {
+        sw.merge(stopwatch.sw)
+        console.log('here')
+      }
     }
     if (sw) {
       s = sw.toString()
