@@ -346,9 +346,10 @@ class RemoteController {
     return this._client.send({ data: req })
   }
 
-  data() {
+  async data() {
     //Get the static data for the current game.//
-    return static_data.StaticData(this.data_raw())
+    const reqData = await this.data_raw()
+    return new static_data.StaticData(reqData.toObject())
   }
 
   async observe(disable_fog = false, target_game_loop = 0) {
