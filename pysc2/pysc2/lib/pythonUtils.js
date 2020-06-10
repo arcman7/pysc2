@@ -1,64 +1,18 @@
-const os = require('os') //eslint-disable-line
 const s2clientprotocol = require('s2clientprotocol') //eslint-disable-line
 
 const { common_pb, raw_pb, spatial_pb, ui_pb } = s2clientprotocol
-
-class ABCMeta {
-  static get abstractMethods() { return [] }
-
-  constructor() {
-    const abstractMethods = this.constructor.abstractMethods
-    function NotImplementedError(message) {
-      this.name = "NotImplementedError"
-      this.message = (message || "")
-    }
-    NotImplementedError.prototype = Error.prototype
-    Object.keys(abstractMethods).forEach((key) => {
-      const methodName = abstractMethods[key]
-      /* keeping this comment for inheritance blocking in the future */
-      // if (!this.constructor.prototype.hasOwnProperty(methodName) || typeof this.constructor.prototype[methodName] !== 'function') {
-      //   throw new NotImplementedError(methodName)
-      // }
-      if (typeof this.constructor.prototype[methodName] !== 'function') {
-        throw new NotImplementedError(methodName)
-      }
-    })
-  }
-}
 
 function assert(cond, errMsg) {
   if (cond === false) {
     throw new Error(errMsg)
   }
 }
-
-
-//eslint-disable-next-line
-Array.prototype.extend = function(array) {
-  for (let i = 0; i < array.length; i++) {
-    this.push(array[i])
+function len(container) {
+  if (container.__len__) {
+    return container.__len__()
   }
+  return Object.keys(container).length;
 }
-
-class DefaultDict {
-  constructor(DefaultInit) {
-    return new Proxy({}, {
-      //eslint-disable-next-line
-      get: (target, name) => {
-        if (name in target) {
-          return target[name]
-        }
-        if (typeof DefaultInit === 'function') {
-          target[name] = new DefaultInit().valueOf()
-        } else {
-          target[name] = DefaultInit
-        }
-        return target[name]
-      },
-    })
-  }
-}
-
 function eq(a, b) {
   if (a.__eq__) {
     return a.__eq__(b)
@@ -68,15 +22,21 @@ function eq(a, b) {
   }
   return a === b
 }
-
-function expanduser(path) {
-  const homedir = os.homedir()
-  path = path.replace(/~user/g, homedir)
-  path = path.replace(/~/g, homedir)
-  path = path.replace(/\\/g, '/')
-  return path
+function iter(container) {
+  if (container.__iter__) {
+    return container.__iter__()
+  }
+  if (len(container)) {
+    return Object.keys(container).map((key) => container[key])
+  }
+  throw new Error('ValueError: Cannont iterate over non-iterable')
 }
-
+//eslint-disable-next-line
+Array.prototype.extend = function(array) {
+  for (let i = 0; i < array.length; i++) {
+    this.push(array[i])
+  }
+}
 function getArgNames(func) {
   // First match everything inside the function argument parens.
   const args = func.toString().match(/function\s.*?\(([^)]*)\)/)[1]
@@ -99,17 +59,6 @@ function getArgsArray(func, kwargs) {
 }
 getArgsArray.argSignatures = {}
 getArgsArray.getArgNames = getArgNames
-
-function iter(container) {
-  if (container.__iter__) {
-    return container.__iter__()
-  }
-  if (len(container)) { //eslint-disable-line
-    return Object.keys(container).map((key) => container[key])
-  }
-  throw new Error('ValueError: Cannont iterate over non-iterable')
-}
-
 //eslint-disable-next-line
 String.prototype.splitlines = function() {
   return this.split(/\r?\n/)
@@ -151,18 +100,9 @@ function isinstance(a, compare) {
   }
   return a instanceof compare;
 }
-
 function isObject(a) {
   return a === Object(a)
 }
-
-function len(container) {
-  if (container.__len__) {
-    return container.__len__()
-  }
-  return Object.keys(container).length;
-}
-
 function map(func, collection) {
   function clone(obj) {
     if (obj === null || typeof obj !== 'object') {
@@ -180,52 +120,6 @@ function map(func, collection) {
   Object.keys(copy).forEach((key) => {
     collection[key] = func(collection[key])
   })
-}
-
-function namedtuple(name, fields) {
-  let consLogic = '';
-  let consArgs = '';
-  fields.forEach((field, i) => {
-    consArgs += i < fields.length - 1 ? `${field}, ` : `${field}`;
-    consLogic += i < fields.length - 1 ? `this.${field} = ${field};\n    ` : `this.${field} = ${field};`;
-  });
-  const classStr = `const _fields = ${JSON.stringify(fields)}; return class ${name} extends Array {
-  static get classname() { return '${name}' }
-  static get _fields() { return ${JSON.stringify(fields)} }
-  constructor(${consArgs}) {
-    if (typeof arguments[0] === 'object' && arguments.length === 1 && _fields.length > 1) {
-      const args = []
-      const kwargs = arguments[0]
-      _fields.forEach((field, index) => {
-        args[index] = kwargs[field]
-      })
-      super(...args)
-      _fields.forEach((field, index) => {
-        args[index] = kwargs[field]
-        this[field] = kwargs[field]
-      })
-      return
-    }
-    super(...arguments)
-    ${consLogic}
-  }
-  static _make(kwargs) {
-    return new this.prototype.constructor(kwargs);
-  }
-  _replace(kwargs) {
-    this.constructor._fields.forEach((field) => {
-        kwargs[field] = kwargs[field] || this[field];
-    });
-    return this.constructor._make(kwargs);
-  }
-  __reduce__() {
-    return [this.constructor, this.constructor._fields.map((field) => this[field])];
-  }
-${fields.map((field, index) => { //eslint-disable-line
-    return `  get ${field}() {\n    return this[${index}]\n  }\n  set ${field}(val) {\n    this[${index}] = val; return val\n  }`
-  }).join('\n')}
-}`;
-  return Function(classStr)() //eslint-disable-line
 }
 
 function randomUniform(min, max) {
@@ -395,11 +289,6 @@ function setUpProtoAction(action, name) {
     return action
   }
 }
-const snakeToCamel = (str) => str
-  .toLowerCase().replace(/([-_][a-z])/g, (group) => group
-    .toUpperCase()
-    .replace('-', '')
-    .replace('_', ''))
 function sum(collection) {
   let total = 0
   Object.keys(collection).forEach((key) => {
@@ -408,9 +297,23 @@ function sum(collection) {
   return total
 }
 
-function snakeToPascal(str) {
-  const usedStr = snakeToCamel(str)
-  return usedStr[0].toUpperCase() + usedStr.slice(1, usedStr.length)
+class DefaultDict {
+  constructor(DefaultInit) {
+    return new Proxy({}, {
+      //eslint-disable-next-line
+      get: (target, name) => {
+        if (name in target) {
+          return target[name]
+        }
+        if (typeof DefaultInit === 'function') {
+          target[name] = new DefaultInit().valueOf()
+        } else {
+          target[name] = DefaultInit
+        }
+        return target[name]
+      },
+    })
+  }
 }
 
 function withPython(withInterface, callback) {
@@ -521,12 +424,47 @@ function nonZero(arr) {
   }
   return [rows, cols]
 }
+class ABCMeta {
+  static get abstractMethods() { return [] }
+  constructor() {
+    const abstractMethods = this.constructor.abstractMethods
+    function NotImplementedError(message) {
+        this.name = "NotImplementedError"
+        this.message = (message || "")
+    }
+    NotImplementedError.prototype = Error.prototype
+    Object.keys(abstractMethods).forEach((key) => {
+      const methodName = abstractMethods[key]
+      /* keeping this comment for inheritance blocking in the future */
+      // if (!this.constructor.prototype.hasOwnProperty(methodName) || typeof this.constructor.prototype[methodName] !== 'function') {
+      //   throw new NotImplementedError(methodName)
+      // }
+      if (typeof this.constructor.prototype[methodName] !== 'function') {
+        throw new NotImplementedError(methodName)
+      }
+    })
+  }
+}
 
 function any(iterable) {
-  for (var index = 0; index < iterable.length; index++) {
+  for (var index = 0; index < iterable.length; index++) { //eslint-disable
     if (iterable[index]) return true;
   }
   return false;
+}
+
+function hashCode(str) {
+// https://werxltd.com/wp/2010/05/13/javascript-implementation-of-javas-string-hashcode-method/
+  var hash = 0;
+  if (str.length == 0) {
+    return hash
+  }
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash &= hash; // Convert to 32bit integer
+  }
+  return hash;
 }
 
 module.exports = {
@@ -536,21 +474,18 @@ module.exports = {
   Array,
   DefaultDict,
   eq,
-  expanduser,
   getArgsArray,
+  hashCode,
   len,
   int,
   iter,
   isinstance,
   isObject,
   map,
-  namedtuple,
   NotImplementedError,
   randomUniform,
   setUpProtoAction,
   String,
-  snakeToCamel,
-  snakeToPascal,
   sum,
   ValueError,
   withPython,

@@ -27,6 +27,7 @@
     "@tensorflow/tfjs-node": "^1.7.0",
     "@tensorflow/tfjs-node-gpu": "^1.2.7",
     "collections": "^5.1.11",
+    "deep-diff": "^1.0.2",
     "dev-dependencies": "^1.0.0",
     "flags": "^0.1.3",
     "get-port": "^5.1.1",
