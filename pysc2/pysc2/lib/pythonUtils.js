@@ -2,6 +2,36 @@ const s2clientprotocol = require('s2clientprotocol') //eslint-disable-line
 
 const { common_pb, raw_pb, spatial_pb, ui_pb } = s2clientprotocol
 
+class ABCMeta {
+  static get abstractMethods() { return [] }
+
+  constructor() {
+    const abstractMethods = this.constructor.abstractMethods
+    function NotImplementedError(message) {
+      this.name = "NotImplementedError"
+      this.message = (message || "")
+    }
+    NotImplementedError.prototype = Error.prototype
+    Object.keys(abstractMethods).forEach((key) => {
+      const methodName = abstractMethods[key]
+      /* keeping this comment for inheritance blocking in the future */
+      // if (!this.constructor.prototype.hasOwnProperty(methodName) || typeof this.constructor.prototype[methodName] !== 'function') {
+      //   throw new NotImplementedError(methodName)
+      // }
+      if (typeof this.constructor.prototype[methodName] !== 'function') {
+        throw new NotImplementedError(methodName)
+      }
+    })
+  }
+}
+
+function any(iterable) {
+  for (var index = 0; index < iterable.length; index++) {
+    if (iterable[index]) return true
+  }
+  return false
+}
+
 function assert(cond, errMsg) {
   if (cond === false) {
     throw new Error(errMsg)
@@ -63,6 +93,21 @@ getArgsArray.getArgNames = getArgNames
 String.prototype.splitlines = function() {
   return this.split(/\r?\n/)
 }
+
+function hashCode(str) {
+// https://werxltd.com/wp/2010/05/13/javascript-implementation-of-javas-string-hashcode-method/
+  var hash = 0;
+  if (str.length == 0) {
+    return hash
+  }
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash &= hash; // Convert to 32bit integer
+  }
+  return hash;
+}
+
 //eslint-disable-next-line
 String.prototype.ljust = function(length, char = ' ') {
   const fill = [];
@@ -444,27 +489,6 @@ class ABCMeta {
       }
     })
   }
-}
-
-function any(iterable) {
-  for (var index = 0; index < iterable.length; index++) { //eslint-disable
-    if (iterable[index]) return true;
-  }
-  return false;
-}
-
-function hashCode(str) {
-// https://werxltd.com/wp/2010/05/13/javascript-implementation-of-javas-string-hashcode-method/
-  var hash = 0;
-  if (str.length == 0) {
-    return hash
-  }
-  for (let i = 0; i < str.length; i++) {
-    const char = str.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
-    hash &= hash; // Convert to 32bit integer
-  }
-  return hash;
 }
 
 module.exports = {

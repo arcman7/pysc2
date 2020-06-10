@@ -24,7 +24,7 @@ from absl.testing import parameterized
 from pysc2.agents import random_agent
 from pysc2.env import run_loop
 from pysc2.env import sc2_env
-import utils
+from pysc2.tests import utils
 
 
 class TestRandomAgent(parameterized.TestCase, utils.TestCase):

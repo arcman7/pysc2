@@ -25,7 +25,7 @@ from pysc2.lib import actions
 from pysc2.lib import features
 from pysc2.lib import point
 from pysc2.lib import units
-import dummy_observation
+from pysc2.tests import dummy_observation
 
 from s2clientprotocol import common_pb2
 

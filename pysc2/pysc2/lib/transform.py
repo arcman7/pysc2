@@ -98,10 +98,7 @@ class Chain(Transform):
     return dist
 
   def back_pt(self, pt):
-    print('pt: ', pt)
     for transform in reversed(self.transforms):
-      print('***** transform: ',transform)
-
       pt = transform.back_pt(pt)
     return pt
 
