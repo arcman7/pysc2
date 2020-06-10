@@ -1266,7 +1266,6 @@ class Features {
       if (layer !== null) {
         // python uses np.astype <Copy of the array, cast to a specified type.>
         // return Array(...layer.values) // tensorflow buffer.values
-        // return layer.toTensor().arraySync()
         return layer
       }
       return np.zeros([size.y, size.x], 'int32')

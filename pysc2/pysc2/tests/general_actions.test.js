@@ -10,9 +10,11 @@ const utils = require(path.resolve(__dirname, './utils.js'))
 const sc_common = s2clientprotocol.common_pb
 const sc_pb = s2clientprotocol.sc2api_pb
 
-const { assert, withPython } = pythonUtils
+const { assert } = pythonUtils
 
 async function test_general_actions() {
+  //Verify that the general ids in stable ids match what we expect.//
+
   const testState = new utils.TestCase()
   testState.setUp()
   const run_config = run_configs.get()
