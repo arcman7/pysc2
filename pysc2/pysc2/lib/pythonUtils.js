@@ -33,6 +33,29 @@ function any(iterable) {
   return false
 }
 
+function arrayCompare(a, b, sameOrder) {
+  if (sameOrder) {
+    for (let i = 0; i < a.length; i++) {
+      if (a[i] === b[i]) {
+        return false
+      }
+    }
+    return true
+  }
+  const aSeen = {}
+  const bSeen = {}
+  for (let i = 0; i < a.length; i++) {
+    aSeen[a[i]] = true
+    bSeen[b[i]] = true
+  }
+  for (let i = 0; i < a.length; i++) {
+    if (!(aSeen[a[i]] && bSeen[a[i]])) {
+      return false
+    }
+  }
+  return true
+}
+
 function assert(cond, errMsg) {
   if (cond === false) {
     throw new Error(errMsg)
@@ -495,6 +518,28 @@ function snakeToPascal(str) {
   const usedStr = snakeToCamel(str)
   return usedStr[0].toUpperCase() + usedStr.slice(1, usedStr.length)
 }
+
+function unpackbits(uint8data) {
+  if (Number.isInteger(uint8data)) {
+    uint8data = Uint8Array.from([uint8data])
+  }
+  if (uint8data instanceof Array) {
+    uint8data = Uint8Array.from(uint8data)
+  }
+  const results = new Array(8 * uint8data.length)
+  uint8data.forEach((byte, index) => {
+    results[7 * index + 7 + index] = ((byte & (1 << 0)) >> 0)
+    results[7 * index + 6 + index] = ((byte & (1 << 1)) >> 1)
+    results[7 * index + 5 + index] = ((byte & (1 << 2)) >> 2)
+    results[7 * index + 4 + index] = ((byte & (1 << 3)) >> 3)
+    results[7 * index + 3 + index] = ((byte & (1 << 4)) >> 4)
+    results[7 * index + 2 + index] = ((byte & (1 << 5)) >> 5)
+    results[7 * index + 1 + index] = ((byte & (1 << 6)) >> 6)
+    results[7 * index + 0 + index] = ((byte & (1 << 7)) >> 7)
+  })
+  return results
+}
+
 function ValueError(value) {
   /*
   The error thrown when an invalid argument is passed.
@@ -562,6 +607,7 @@ function zip() {
 module.exports = {
   ABCMeta,
   any,
+  arrayCompare,
   assert,
   Array,
   DefaultDict,
@@ -587,6 +633,7 @@ module.exports = {
   snakeToCamel,
   snakeToPascal,
   sum,
+  unpackbits,
   ValueError,
   withPython,
   withPythonAsync,

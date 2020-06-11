@@ -16,7 +16,7 @@ const sw = stopwatch.sw
 const { raw_pb, sc2api_pb } = s2clientprotocol
 const sc_raw = raw_pb
 const sc_pb = sc2api_pb
-const { Defaultdict, getArgsArray, getattr, int, isinstance, len, namedtuple, setUpProtoAction, sum, ValueError, withPython, zip } = pythonUtils
+const { Defaultdict, getArgsArray, getattr, int, isinstance, len, namedtuple, setUpProtoAction, sum, unpackbits, ValueError, withPython, zip } = pythonUtils
 const EPSILON = 1e-5
 
 const FeatureType = Enum.Enum('FeatureType', {
@@ -251,13 +251,12 @@ class Feature extends all_collections_generated_classes.Feature {
       1: 'uint8',
       8: 'uint8',
       16: 'uint16',
-      32: 'int32',
+      32: 'uint32',
     }
   }
 
   unpack(obs) {
     //Return a correctly shaped numpy array for this feature.//
-    // const planes = obs.getFeatureLayerData()[this.layer_set]
     const planes = getattr(obs.getFeatureLayerData(), this.layer_set)
     // const plane = planes[this.name]
     const plane = getattr(planes, this.name)
@@ -275,21 +274,33 @@ class Feature extends all_collections_generated_classes.Feature {
       // New layer that isn't implemented in this SC2 version.
       return null
     }
+    console.log('-----------------------------------')
     let data = plane.getData()
-    data = new Uint8Array(data)
-    data = np.tensor(data, [size.y, size.x])
-    // data = np.node.decodeImage(data);
+    console.log('data: ', data.length, ' is Uint8Array: ', data instanceof Uint8Array)
+
+    const buffer = data.buffer
+    console.log('is ArrayBuffer: ', buffer instanceof ArrayBuffer, buffer.byteLength)
+    console.log('buffer length: ', buffer.byteLength)
+    console.log('bits per pixel: ', plane.getBitsPerPixel())
+
+    if (plane.getBitsPerPixel() !== 8 && plane.getBitsPerPixel() !== 1) {
+      data = new Feature.dtypes[plane.getBitsPerPixel()](buffer)
+    }
+    console.log('typeArray data: ', data.length)
     // data = np.buffer([data.length], Feature.sdtypes[plane.getBitsPerPixel()], data)
     // data = np.buffer([size.y, size.x], Feature.sdtypes[plane.getBitsPerPixel()], data)
     if (plane.getBitsPerPixel() === 1) {
-      // data = np.unpackbits(data) // python
-      if (data.shape[0] !== (size.x * size.y)) {
+      data = unpackbits(data)
+      if (data.length !== (size.x * size.y)) {
         // This could happen if the correct length isn't a multiple of 8, leading
         // to some padding bits at the end of the string which are incorrectly
         // interpreted as data.
         data = data.slice(0, size.x * size.y)
       }
     }
+    console.log('data: ', data.length)
+
+    data = np.tensor(data, [size.y, size.x])
     // return data.reshape(size.y, size.x)
     return data.arraySync()
   }

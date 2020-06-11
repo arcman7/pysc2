@@ -4,7 +4,7 @@ const actions = require(path.resolve(__dirname, '..', 'lib', 'actions.js'))
 const units = require(path.resolve(__dirname, '..', 'lib', 'units.js'))
 const utils = require(path.resolve(__dirname, './utils.js'))
 const pythonUtils = require(path.resolve(__dirname, '..', 'lib', 'pythonUtils.js'))
-const { assert, sequentialTaskQueue } = pythonUtils //eslint-disable-line
+const { arrayCompare, assert, sequentialTaskQueue } = pythonUtils //eslint-disable-line
 
 function raw_ability_ids(obs) {
   const rawActs = obs.getActionsList().map((a) => a.getActionRaw()
@@ -12,28 +12,7 @@ function raw_ability_ids(obs) {
     && a.getActionRaw().getUnitCommand().getAbilityId())
   return rawActs.filter((act_id) => Number.isInteger(act_id))
 }
-function arrayCompare(a, b, sameOrder) {
-  if (sameOrder) {
-    for (let i = 0; i < a.length; i++) {
-      if (a[i] === b[i]) {
-        return false
-      }
-    }
-    return true
-  }
-  const aSeen = {}
-  const bSeen = {}
-  for (let i = 0; i < a.length; i++) {
-    aSeen[a[i]] = true
-    bSeen[b[i]] = true
-  }
-  for (let i = 0; i < a.length; i++) {
-    if (!(aSeen[a[i]] && bSeen[a[i]])) {
-      return false
-    }
-  }
-  return true
-}
+
 
 let testState
 
