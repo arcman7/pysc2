@@ -6,13 +6,13 @@ const features = require(path.resolve(__dirname, '..', 'lib', 'features.js'))
 const pythonUtils = require(path.resolve(__dirname, '..', 'lib', 'pythonUtils.js'))
 const portspicker = require(path.resolve(__dirname, '..', 'lib', 'portspicker.js'))
 const np = require(path.resolve(__dirname, '..', 'lib', 'numpy.js'))
-
+const stopwatch = require(path.resolve(__dirname, '..', 'lib', 'stopwatch.js'))
 const utils = require(path.resolve(__dirname, './utils.js'))
 
 const sc_common = s2clientprotocol.common_pb
 const sc_pb = s2clientprotocol.sc2api_pb
 
-const { any, arrayCompare, assert, sequentialTaskQueue } = pythonUtils
+const { arrayCompare, assert, sequentialTaskQueue } = pythonUtils
 
 async function test_render() {
   const testState = new utils.TestCase()
@@ -44,6 +44,7 @@ async function test_render() {
   minimapResolution.setY(128)
   render.setMinimapResolution(minimapResolution)
   Interface.setRender(render)
+
   function or_zeros(layer, size) {
     if (layer !== null) {
       return layer
@@ -53,9 +54,9 @@ async function test_render() {
 
   const run_config = run_configs.get()
   const port = (await portspicker.pick_unused_ports(1))[0]
-  const sc_process = await run_config.start({ want_rgb: false, port })
+  const sc_process = await run_config.start({ want_rgb: false, port, passedSw: stopwatch.sw })
   const controller = sc_process._controller
-  testState._sc2_proces = [sc_process]
+  testState._sc2_procs = [sc_process]
   testState._controllers = [controller]
 
   const map_inst = maps.get('Simple64')
@@ -108,6 +109,7 @@ async function test_render() {
   }
 
   try {
+    // Can fail if rendering is disabled.
     assert(
       objectEq(Interface.getFeatureLayer(), game_info.getOptions().getFeatureLayer(), true),
       `Interface.getFeatureLayer().toObject() === game_info.getOptions().getFeatureLayer()
@@ -138,19 +140,19 @@ async function test_render() {
       await controller.step(8)
       const observation = await controller.observe()
       const obs = observation.getObservation()
-      console.log('resolution: ', Interface.getFeatureLayer().getResolution().toObject())
-      // console.log('obs: ', obs.toObject())
       const rgb_screen = features.Feature.unpack_rgb_image(
         obs.getRenderData().getMap()
       )
       const rgb_minimap = features.Feature.unpack_rgb_image(
         obs.getRenderData().getMinimap()
       )
-      const fl_screen = np.stack(...features.SCREEN_FEATURES.map((f) => or_zeros(
+
+      const fl_screen = np.stack(features.SCREEN_FEATURES.map((f) => or_zeros(
         f.unpack(obs),
         Interface.getFeatureLayer().getResolution()
       )))
-      const fl_minimap = np.stack(...features.MINIMAP_FEATURES.map((f) => or_zeros(
+
+      const fl_minimap = np.stack(features.MINIMAP_FEATURES.map((f) => or_zeros(
         f.unpack(obs),
         Interface.getFeatureLayer().getMinimapResolution()
       )))
@@ -164,22 +166,28 @@ async function test_render() {
         arrayCompare(rgb_minimap.shape, [128, 128, 3]),
         'arrayCompare(rgb_minimap.shape === [128, 128, 3]'
       )
-      assert(arrayCompare(
-        fl_screen.shape,
-        [features.SCREEN_FEATURES.length, 84, 84],
+
+      assert(
+        arrayCompare(
+          fl_screen.shape,
+          [features.SCREEN_FEATURES.length, 84, 84]
+        ),
         'fl_screen.shape === [features.SCREEN_FEATURES.length, 84, 84]'
-      ))
-      assert(arrayCompare(
-        fl_minimap.shape,
-        [features.MINIMAP_FEATURES.length, 64, 64],
+      )
+
+      assert(
+        arrayCompare(
+          fl_minimap.shape,
+          [features.MINIMAP_FEATURES.length, 64, 64]
+        ),
         'fl_minimap.shape === [features.MINIMAP_FEATURES.length, 64, 64]'
-      ))
+      )
 
       // Not all black.
-      assert(any(rgb_screen), 'any(rgb_screen)')
-      assert(any(rgb_minimap), 'any(rgb_minimap)')
-      assert(any(fl_screen), 'any(fl_screen)')
-      assert(any(fl_minimap), 'any(fl_minimap)')
+      assert(np.any(rgb_screen), 'any(rgb_screen)')
+      assert(np.any(rgb_minimap), 'any(rgb_minimap)')
+      assert(np.any(fl_screen), 'any(fl_screen)')
+      assert(np.any(fl_minimap), 'any(fl_minimap)')
     })
   }
 
@@ -190,6 +198,9 @@ async function test_render() {
     await sc_process.close()
     throw err
   }
+
+  await controller.quit()
+  await sc_process.close()
 
   testState.tearDown()
 }

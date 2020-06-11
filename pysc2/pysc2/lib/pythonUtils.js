@@ -33,10 +33,10 @@ function any(iterable) {
   return false
 }
 
-function arrayCompare(a, b, sameOrder) {
+function arrayCompare(a, b, sameOrder = false) {
   if (sameOrder) {
     for (let i = 0; i < a.length; i++) {
-      if (a[i] === b[i]) {
+      if (a[i] !== b[i]) {
         return false
       }
     }
@@ -314,13 +314,13 @@ randomUniform.int = function (min, max) {
 }
 async function sequentialTaskQueue(tasks) {
   const results = []
-  const reducer = (promiseChain, currentTask) => {
+  const reducer = (promiseChain, currentTask) => { //eslint-disable-line
     return promiseChain.then((result) => {
       if (result) {
         results.push(result)
       }
       return currentTask()
-    }).catch((err) => { throw new Error(err) })
+    })
   }
   await tasks.reduce(reducer, Promise.resolve())
   return results
@@ -526,17 +526,21 @@ function unpackbits(uint8data) {
   if (uint8data instanceof Array) {
     uint8data = Uint8Array.from(uint8data)
   }
-  const results = new Array(8 * uint8data.length)
-  uint8data.forEach((byte, index) => {
-    results[7 * index + 7 + index] = ((byte & (1 << 0)) >> 0)
-    results[7 * index + 6 + index] = ((byte & (1 << 1)) >> 1)
-    results[7 * index + 5 + index] = ((byte & (1 << 2)) >> 2)
-    results[7 * index + 4 + index] = ((byte & (1 << 3)) >> 3)
-    results[7 * index + 3 + index] = ((byte & (1 << 4)) >> 4)
-    results[7 * index + 2 + index] = ((byte & (1 << 5)) >> 5)
-    results[7 * index + 1 + index] = ((byte & (1 << 6)) >> 6)
-    results[7 * index + 0 + index] = ((byte & (1 << 7)) >> 7)
-  })
+  const results = new Uint8Array(8 * uint8data.length)
+  let byte
+  let offset
+  for (let i = 0; i < uint8data.length; i++) {
+    byte = uint8data[i]
+    offset = (8 * i)
+    results[offset + 7] = ((byte & (1 << 0)) >> 0)
+    results[offset + 6] = ((byte & (1 << 1)) >> 1)
+    results[offset + 5] = ((byte & (1 << 2)) >> 2)
+    results[offset + 4] = ((byte & (1 << 3)) >> 3)
+    results[offset + 3] = ((byte & (1 << 4)) >> 4)
+    results[offset + 2] = ((byte & (1 << 5)) >> 5)
+    results[offset + 1] = ((byte & (1 << 6)) >> 6)
+    results[offset + 0] = ((byte & (1 << 7)) >> 7)
+  }
   return results
 }
 

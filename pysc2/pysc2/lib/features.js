@@ -251,14 +251,13 @@ class Feature extends all_collections_generated_classes.Feature {
       1: 'uint8',
       8: 'uint8',
       16: 'uint16',
-      32: 'uint32',
+      32: 'int32',
     }
   }
 
   unpack(obs) {
     //Return a correctly shaped numpy array for this feature.//
     const planes = getattr(obs.getFeatureLayerData(), this.layer_set)
-    // const plane = planes[this.name]
     const plane = getattr(planes, this.name)
     return this.unpack_layer(plane)
   }
@@ -274,21 +273,22 @@ class Feature extends all_collections_generated_classes.Feature {
       // New layer that isn't implemented in this SC2 version.
       return null
     }
-    console.log('-----------------------------------')
+    // console.log('-----------------------------------')
     let data = plane.getData()
-    console.log('data: ', data.length, ' is Uint8Array: ', data instanceof Uint8Array)
-
+    // console.log('data: ', data.length)//, ' is Uint8Array: ', data instanceof Uint8Array, ' byteOffset: ', data.byteOffset)
     const buffer = data.buffer
-    console.log('is ArrayBuffer: ', buffer instanceof ArrayBuffer, buffer.byteLength)
-    console.log('buffer length: ', buffer.byteLength)
-    console.log('bits per pixel: ', plane.getBitsPerPixel())
+    // console.log('is ArrayBuffer: '/*, buffer instanceof ArrayBuffer*/, buffer.byteLength, ' byteOffset: ', data.byteOffset)
+    // console.log('buffer length: ', buffer.byteLength)
+    // console.log('bits per pixel: ', plane.getBitsPerPixel())
 
     if (plane.getBitsPerPixel() !== 8 && plane.getBitsPerPixel() !== 1) {
-      data = new Feature.dtypes[plane.getBitsPerPixel()](buffer)
+      data = new Feature.dtypes[plane.getBitsPerPixel()](
+        buffer.slice(data.byteOffset, data.byteOffset + data.length)
+      )
     }
-    console.log('typeArray data: ', data.length)
-    // data = np.buffer([data.length], Feature.sdtypes[plane.getBitsPerPixel()], data)
-    // data = np.buffer([size.y, size.x], Feature.sdtypes[plane.getBitsPerPixel()], data)
+
+    // console.log('typeArray data: ', data.length)
+
     if (plane.getBitsPerPixel() === 1) {
       data = unpackbits(data)
       if (data.length !== (size.x * size.y)) {
@@ -298,11 +298,13 @@ class Feature extends all_collections_generated_classes.Feature {
         data = data.slice(0, size.x * size.y)
       }
     }
-    console.log('data: ', data.length)
+    // console.log('data: ', data.length)
 
-    data = np.tensor(data, [size.y, size.x])
-    // return data.reshape(size.y, size.x)
-    return data.arraySync()
+    data = np.tensor(data, [size.y, size.x], 'int32')
+    // const shape = data.shape
+    // data = data.arraySync()
+    // data.shape = shape
+    return data
   }
 
   unpack_rgb_image(plane) {//eslint-disable-line
@@ -316,13 +318,12 @@ class Feature extends all_collections_generated_classes.Feature {
     }
     const size = point.Point.build(plane.getSize())
     let data = plane.getData()
-    data = new Uint8Array(data)
-    data = np.tensor(data, [size.y, size.x, 3])
-    // data = np.node.decodeImage(data)
-    // data = np.buffer([data.length], 'uint8', data)
-    // data = np.buffer([size.y, size.x, 3], 'uint8', data)
-    // return data.reshape(size.y, size.x, 3)
-    return data.arraySync()
+    // data = new Uint8Array(data)
+    data = np.tensor(data, [size.y, size.x, 3])//, np.uint8)
+    // const shape = data.shape
+    // data = data.arraySync()
+    // data.shape = shape
+    return data
   }
 
   color(plane) {

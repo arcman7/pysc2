@@ -6,6 +6,12 @@ const TensorMeta = foo.constructor // currently unknown where else to get this v
 module.exports = {
   absolute: tf.abs,
   abs: tf.abs,
+  any: (tensor) => {
+    if (tensor.dtype !== 'bool') {
+      return tf.any(tf.cast(tensor, 'bool'))
+    }
+    return tf.any(tensor)
+  },
   arange() {
     if (arguments.length === 1) {
       return tf.range(0, arguments[0])
