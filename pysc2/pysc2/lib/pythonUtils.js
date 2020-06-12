@@ -306,8 +306,21 @@ function randomChoice(arr) {
   }
   return arr[Math.floor(Math.random() * arr.length)]
 }
+function randomSample(arr, size) {
+  var shuffled = arr.slice(0)
+  let i = arr.length
+  let temp
+  let index
+  while (i--) {
+    index = Math.floor((i + 1) * Math.random())
+    temp = shuffled[index]
+    shuffled[index] = shuffled[i]
+    shuffled[i] = temp
+  }
+  return shuffled.slice(0, size)
+}
 function randomUniform(min, max) {
-  return Math.random() * (max - min) + min;
+  return Math.random() * (max - min) + min
 }
 randomUniform.int = function (min, max) {
   return Math.round(randomUniform(min, max))
@@ -629,6 +642,7 @@ module.exports = {
   NotImplementedError,
   nonZero,
   randomChoice,
+  randomSample,
   randomUniform,
   sequentialTaskQueue,
   setattr,
