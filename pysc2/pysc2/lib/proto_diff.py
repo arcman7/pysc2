@@ -206,6 +206,83 @@ def compute_diff(proto_a, proto_b):
   dict2 = json_format.MessageToDict(proto_b, preserving_proto_field_name=True)
   diff = deepdiff.DeepDiff(dict1, dict2, significant_digits=3)
   
+  """
+  {}
+  {'observation': {'game_loop': 1}}
+
+  {
+    'dictionary_item_added': [
+      root['observation']
+    ]
+  }
+
+
+  {'observation': {'alerts': ['AlertError']}}
+  {'observation': {'alerts': ['AlertError', 'MergeComplete']}, 'player_result': [{}]}
+
+  {
+    'dictionary_item_added': [
+      root['player_result']
+    ],
+    'iterable_item_added': {
+      "root['observation']['alerts'][1]": 'MergeComplete'
+    }
+  }
+
+
+  {'observation': {'game_loop': 1}}
+  {'observation': {'game_loop': 2}}
+
+  {'values_changed': {"root['observation']['game_loop']": {'new_value': 2, 'old_value': 1}}}
+
+
+  {'observation': {'game_loop': 1, 'alerts': ['AlertError', 'LarvaHatched']}}
+  {'observation': {'game_loop': 2, 'alerts': ['AlertError', 'MergeComplete']}}
+
+  {
+    'values_changed': {
+      "root['observation']['alerts'][1]": {
+        'new_value': 'MergeComplete',
+        'old_value': 'LarvaHatched'
+      },
+      "root['observation']['game_loop']": {
+        'new_value': 2,
+        'old_value': 1
+      }
+    }
+  }
+   
+
+  {'observation': {'game_loop': 1}}
+  {'observation': {}}
+
+  {
+    'dictionary_item_removed': [
+      root['observation']['game_loop']
+    ]
+  }
+
+
+  {'observation': {'score': {}, 'game_loop': 1, 'alerts': ['AlertError', 'MergeComplete']}}
+  {'observation': {'alerts': ['AlertError']}}
+
+  {
+    'dictionary_item_removed': [
+      root['observation']['score'],
+      root['observation']['game_loop']
+    ], 
+    'iterale_item_removed': {
+      "root['observation']['alerts'][1]": 'MergeComplete'
+    }
+  }
+
+
+  {'observation': {'game_loop': 1, 'alerts': ['AlertError', 'LarvaHatched']}}
+  {'observation': {'game_loop': 2, 'alerts': ['AlertError', 'MergeComplete']}}
+
+  {'values_changed': {"root['observation']['alerts'][1]": {'new_value': 'MergeComplete', 'old_value': 'LarvaHatched'}, "root['observation']['game_loop']": {'new_value': 2, 'old_value': 1}}}
+  """
+  
   print('dict1:\n', dict1)
   print('dict2:\n', dict2)
   print(diff)
