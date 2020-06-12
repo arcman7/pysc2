@@ -42,7 +42,7 @@ class ProtoPath extends Array {
     return this._path
   }
 
-  __lt__(other) {
+  largerthan(other) {
     const zipped = zip(this._path, other.path)
     for (let i = 0; i < zipped.length; i++) {
       const [k1, k2] = zipped[i]
@@ -124,7 +124,7 @@ class ProtoDiffs {
   }
 
   all_diffs() {
-    return this.chagned + this.added + this.removed
+    return this.chagned.concat(this.added).concat(this.removed)
   }
 
   report(differencers = null, truncate_to = 0) {
@@ -172,7 +172,7 @@ class ProtoDiffs {
         result = _truncate(result, truncate_to)
       }
 
-      results.push(`Changed ${c}: ${result}`)
+      results.push(`Changed ${c}: ${result}.`)
     }
 
     if (results) {
