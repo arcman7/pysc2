@@ -176,7 +176,7 @@ class ProtoDiffs {
     }
 
     if (results) {
-      return `\n ${results}`
+      return results.join('\n')
     }
     return 'No diffs.'
   }
