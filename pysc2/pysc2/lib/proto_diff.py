@@ -205,6 +205,12 @@ def compute_diff(proto_a, proto_b):
   dict1 = json_format.MessageToDict(proto_a, preserving_proto_field_name=True)
   dict2 = json_format.MessageToDict(proto_b, preserving_proto_field_name=True)
   diff = deepdiff.DeepDiff(dict1, dict2, significant_digits=3)
+  
+  print('dict1:\n', dict1)
+  print('dict2:\n', dict2)
+  print(diff)
+
+  
   if diff:
     changed_paths = []
     for key in diff.pop("values_changed", []):

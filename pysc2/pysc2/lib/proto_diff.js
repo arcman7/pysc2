@@ -1,12 +1,13 @@
 const deepdiff = require('deep-diff')
 const dir = require('path')
 const pythonUtils = require(dir.resolve(__dirname, './pythonUtils.js'))
-const { hashCode, len, zip } = pythonUtils
+const { hashCode, len, ValueError, zip } = pythonUtils
 
 const _ARRAY_PLACEHOLDER = '*'
 
-class ProtoPath {
-  // Path to a proto field, from the root of the proto object.
+class ProtoPath extends Array {
+  // Path to a proto field, from the root of the proto object.//
+
   constructor(path) {
     /*
     Initializer.
@@ -14,30 +15,27 @@ class ProtoPath {
     Args:
       path: Tuple of attribute names / array indices on the path to a field.
     */
+    super(...path)
     this._path = path
   }
 
   get_field(proto) {
-    // Returns field at this proto path, in the specified proto.
+    // Returns field at this proto path, in the specified proto.//
     let value = proto
     this._path.forEach((k) => {
-      if (Number.isInteger(k)) {
-        value = value[k]
-      } else {
-        value = value[k]
-      }
+      value = value[k]
     })
     return value
   }
 
   with_anonymous_array_indices() {
-    // Path with array indices replaced with '*' so that they compare equal
-    this._path.map((t) => {
+    // Path with array indices replaced with '*' so that they compare equal//
+    return new ProtoPath(this._path.map((t) => {
       if (Number.isInteger(t)) {
-        return ProtoPath(_ARRAY_PLACEHOLDER)
+        return _ARRAY_PLACEHOLDER
       }
-      return ProtoPath(t)
-    })
+      return t
+    }))
   }
 
   get path() {
@@ -45,24 +43,19 @@ class ProtoPath {
   }
 
   __lt__(other) {
-    zip(this._path, other.path).map(([k1, k2]) => {
+    const zipped = zip(this._path, other.path)
+    for (let i = 0; i < zipped.length; i++) {
+      const [k1, k2] = zipped[i]
       if (k1 < k2) {
         return true
       }
       return false
-    })
+    }
     return len(this._path) < len(other.path)
   }
 
-  // def __getitem__(self, item):
-  //   return self._path.__getitem__(item)
-
-  __len__() {
-    return len(this._path)
-  }
-
-  __eq__(o) {
-    for (let i = 0; i < len(this._path); i++) {
+  eq(o) {
+    for (let i = 0; i < this._path.length; i++) {
       if (this._path[i] !== o.path[i]) {
         return false
       }
@@ -74,8 +67,8 @@ class ProtoPath {
     return hashCode(this._path)
   }
 
-  __repr__() {
-    let result = ""
+  toString() {
+    let result = ''
     this._path.forEach((k) => {
       if (Number.isInteger(k) || k == _ARRAY_PLACEHOLDER) {
         result += `[${k}]`
@@ -83,7 +76,7 @@ class ProtoPath {
         if (result) {
           result += '.' + k
         }
-        result += "" + k
+        result += '' + k
       }
     })
     return result
@@ -92,7 +85,7 @@ class ProtoPath {
 
 class ProtoDiffs {
   // Summary of diffs between two protos.
-  __init__(proto_a, proto_b, changed, added, removed) {
+  constructor(proto_a, proto_b, changed, added, removed) {
     /*
     Initializer.
 
@@ -188,7 +181,7 @@ class ProtoDiffs {
     return 'No diffs.'
   }
 
-  __repr__() {
+  toString() {
     return `Changed: ${this._changed}, added: ${this._added}, removed: ${this._removed}`
   }
 }
@@ -202,15 +195,15 @@ function _truncate(val, truncate_to) {
 }
 
 function _dict_path_to_proto_path(dict_path) {
-  dict_path = dict_path.slice(5, dict_path.length - 1) // strip off 'root[...]'
+  dict_path = dict_path.slice(5) // strip off 'root[...]'
   const keys = dict_path.split('][') // tokenize
-  keys.forEach((k) => {
+  return new ProtoPath(keys.map((k) => {
     // key or idx
     if (k[0] == "'") {
-      return ProtoPath(k.slice(1, k.length - 1))
+      return k.slice(1, -1)
     }
-    return ProtoPath(parseInt(k, 10))
-  })
+    return parseInt(k, 10)
+  }))
 }
 
 function compute_diff(proto_a, proto_b) {
@@ -221,6 +214,87 @@ function compute_diff(proto_a, proto_b) {
     proto_a: First of the two protos to compare.
     proto_b: Second of the two protos to compare.
   */
+
+  const dict1 = proto_a.toObject()
+  const dict2 = proto_b.toObject()
+  const diff = deepdiff.diff(dict1, dict2)
+  /*
+  {}
+  {'observation': { alerts: [ 'AlertError'] } }
+
+  [
+    DiffNew {
+      kind: 'N',
+      path: [ 'observation' ],
+      rhs: { game_loop: 1 }
+    }
+  ]
+
+
+  {'observation': {'alerts': ['AlertError']}}
+  {'observation': {'alerts': ['AlertError', 'MergeComplete']}, 'player_result': [{}]}
+
+  [
+    DiffArray {
+      kind: 'A',
+      path: [ 'observation', 'alerts' ],
+      index: 1,
+      item: DiffNew { kind: 'N', rhs: 'MergeComplete' }
+    },
+    DiffNew {
+      kind: 'N',
+      path: [ 'player_result' ],
+      rhs: [ {} ] }
+  ]
+
+
+  {'observation': {'game_loop': 1}}
+  {'observation': {'game_loop': 2}}
+
+  [
+    DiffEdit {
+      kind: 'E',
+      path: [ 'observation', 'game_loop' ],
+      lhs: 1,
+      rhs: 2
+    }
+  ]
+
+  {'observation': {'game_loop': 1, 'alerts': ['AlertError', 'LarvaHatched']}}
+  {'observation': {'game_loop': 2, 'alerts': ['AlertError', 'MergeComplete']}}
+
+
+  {'observation': {'score': {}, 'game_loop': 1, 'alerts': ['AlertError', 'MergeComplete']}}
+  {'observation': {'alerts': ['AlertError']}}
+
+  [
+    DiffDeleted {
+      kind: 'D',
+      path: [ 'observation', 'score'],
+      lhs: {}
+    },
+    DiffDeleted {
+      kind: 'D',
+      path: [ 'observation', 'game_loop' ],
+      lhs: 1
+    },
+    DiffArray {
+      kind: 'A',
+      path: [ 'observation', 'alerts' ],
+      index: 1,
+      item: DiffDeleted { kind: 'D', lhs: 'MergeComplete' }
+    }
+  ]
+  */
+  if (diff.length) {
+    const changed_paths = diff.filter((ele) => ele.kind === 'E')
+    const added_paths = diff.filter((ele) => (ele.kind === 'N') || (ele.kind === 'A' && ele.item && ele.item.kind === 'N'))
+    const removed_paths = diff.filter((ele) => (ele.kind === 'D') || (ele.kind === 'A' && ele.item && ele.item.kind === 'D'))
+
+    if (changed_paths.length + added_paths.length + removed_paths.length !== diff.length) {
+      throw new ValueError(`Unhandled diffs: ${diff}`)
+    }
+  }
 }
 
 module.exports = {
