@@ -176,15 +176,19 @@ class StarcraftProtocol {
     req.setId(this.next(this._count))
     let res
     try {
-    // console.log(req.toObject())
       res = await this.send_req(req)
-      // console.log('********************res:\n', res.toObject())
     } catch (err) {
       console.warn('PORT: ', this._port, '\nreq:\n', req.toObject(), '\nres:\n', res ? res.toObject() : 'undefined')
       throw new ConnectionError(`Error during ${name}: ${err}`)
     }
     if (res.getId && res.getId() !== req.getId()) {
-      console.warn('PORT: ', this._port, '\nreq:\n', req.toObject(), '\nres:\n', res ? res.toObject() : 'undefined')
+      const reqObj = req.toObject()
+      Object.keys(reqObj).forEach((key) => {
+        if (key.match('data') && reqObj[key]) {
+          reqObj[key] = `<data ${reqObj[key].length}>`
+        }
+      })
+      console.warn('PORT: ', this._port, '\nreq:\n', reqObj, '\nres:\n', res ? res.toObject() : 'undefined')
       throw new ConnectionError(`Error during ${name}: Got a response with a different id\n expected: ${req.getId()}, got: ${res.getId()}`)
     }
 

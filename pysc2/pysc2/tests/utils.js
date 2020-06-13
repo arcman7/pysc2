@@ -33,7 +33,6 @@ class TestCase {
 
   tearDown() { //eslint-disable-line
     // const s = stopwatch.sw.toString()
-    let s
     let sw
     if (this._sc2_procs) {
       sw = this._sc2_procs[0]._sw
@@ -42,12 +41,11 @@ class TestCase {
       }
       if (this._sc2_procs[0]._sw !== stopwatch.sw) {
         sw.merge(stopwatch.sw)
-        console.log('here')
       }
     }
-    if (sw) {
-      s = sw.toString()
-    }
+    sw = sw || stopwatch.sw
+    console.log(sw.times)
+    const s = sw.toString()
     if (s) {
       console.info(`Stop watch profile:\n${s}`)
     }

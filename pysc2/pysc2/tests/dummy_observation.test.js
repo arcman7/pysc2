@@ -103,7 +103,8 @@ class TestCase {
   }
 }
 
-function main() {
+function DummyObservationTest() {
+  console.log('DummyObservationTest:')
   const start_timer = performance.now() * msToS
   let testState
   let count = 0
@@ -111,7 +112,7 @@ function main() {
     return getFuncName.caller.name
   }
   function testFeaturesScreenMatchesSpec() {
-    console.log(`running test "${getFuncName()}"`)
+    console.log(` running test "${getFuncName()}"`)
     testState = new TestCase()
     const obs = testState._get_obs()
     for (let i = 0; i < features.SCREEN_FEATURES.length; i++) {
@@ -124,7 +125,7 @@ function main() {
   testFeaturesScreenMatchesSpec()
 
   function testFeatureMinimapMatchesSpec() {
-    console.log(`running test "${getFuncName()}"`)
+    console.log(` running test "${getFuncName()}"`)
     testState = new TestCase()
     const obs = testState._get_obs()
     for (let i = 0; i < features.MINIMAP_FEATURES.length; i++) {
@@ -137,7 +138,7 @@ function main() {
   testFeatureMinimapMatchesSpec()
 
   function testRgbScreenMatchesSpec() {
-    console.log(`running test "${getFuncName()}"`)
+    console.log(` running test "${getFuncName()}"`)
     testState = new TestCase()
     const obs = testState._get_obs()
     testState._check_layer(obs.getRenderData().getMap(), 128, 124, 24)
@@ -146,7 +147,7 @@ function main() {
   testRgbScreenMatchesSpec()
 
   function testGameLoopCanBeSet() {
-    console.log(`running test "${getFuncName()}"`)
+    console.log(` running test "${getFuncName()}"`)
     testState = new TestCase()
     testState._builder.game_loop(1234)
     const obs = testState._get_obs()
@@ -156,7 +157,7 @@ function main() {
   testGameLoopCanBeSet()
 
   function testPlayerCommonCanBeSet() {
-    console.log(`running test "${getFuncName()}"`)
+    console.log(` running test "${getFuncName()}"`)
     testState = new TestCase()
     testState._builder.player_common({
       minerals: 1000,
@@ -186,7 +187,7 @@ function main() {
   testPlayerCommonCanBeSet()
 
   function testScoreCanBeSet() {
-    console.log(`running test "${getFuncName()}"`)
+    console.log(` running test "${getFuncName()}"`)
     testState = new TestCase()
     testState._builder.score(54321)
     const obs = testState._get_obs()
@@ -196,7 +197,7 @@ function main() {
   testScoreCanBeSet()
 
   function testScoreDetailsCanBeSet() {
-    console.log(`running test "${getFuncName()}"`)
+    console.log(` running test "${getFuncName()}"`)
     testState = new TestCase()
     testState._builder.score_details({
       idle_production_time: 1,
@@ -230,7 +231,7 @@ function main() {
 
   function testScoreByCategorySpec() {
     //Note that if these dimensions are changed, client code is liable to break.//
-    console.log(`running test "${getFuncName()}"`)
+    console.log(` running test "${getFuncName()}"`)
     testState = new TestCase()
     const score = testState._obs_spec.score_by_category
     assert(score[0] === 11, 'testState._obs_spec.score_by_category[0] === 11')
@@ -240,7 +241,7 @@ function main() {
   testScoreByCategorySpec()
 
   function testScoreByCategory() {
-    console.log(`running test "${getFuncName()}"`)
+    console.log(` running test "${getFuncName()}"`)
     const arr = features.ScoreByCategory.toArray()
     for (let i = 0; i < arr.length; i++) {
       testState = new TestCase()
@@ -276,7 +277,7 @@ function main() {
 
   function testScoreByVitalSpec() {
     //Note that if these dimensions are changed, client code is liable to break.
-    console.log(`running test "${getFuncName()}"`)
+    console.log(` running test "${getFuncName()}"`)
     testState = new TestCase()
     const scoreVital = testState._obs_spec.score_by_vital
     assert(scoreVital[0] === 3, 'scoreVital[0] === 3')
@@ -286,7 +287,7 @@ function main() {
   testScoreByVitalSpec()
 
   function testScoreByVital() {
-    console.log(`running test "${getFuncName()}"`)
+    console.log(` running test "${getFuncName()}"`)
     const arr = features.ScoreByVital.toArray()
     for (let i = 0; i < arr.length; i++) {
       testState = new TestCase()
@@ -316,7 +317,7 @@ function main() {
   testScoreByVital()
 
   function testRgbMinimapMatchesSpec() {
-    console.log(`running test "${getFuncName()}"`)
+    console.log(` running test "${getFuncName()}"`)
     testState = new TestCase()
     const obs = testState._get_obs()
     testState._check_layer(obs.getRenderData().getMinimap(), 64, 60, 24)
@@ -325,7 +326,7 @@ function main() {
   testRgbMinimapMatchesSpec()
 
   function testNoSingleSelect() {
-    console.log(`running test "${getFuncName()}"`)
+    console.log(` running test "${getFuncName()}"`)
     testState = new TestCase()
     const obs = testState._get_obs()
     assert(obs.getUiData().hasSingle() === false, 'obs.getUiData().hasSingle() === false')
@@ -334,7 +335,7 @@ function main() {
   testNoSingleSelect()
 
   function testWithSingleSelect() {
-    console.log(`running test "${getFuncName()}"`)
+    console.log(` running test "${getFuncName()}"`)
     testState = new TestCase()
     testState._builder.single_select(_PROBE)
     const obs = testState._get_obs()
@@ -344,7 +345,7 @@ function main() {
   testWithSingleSelect()
 
   function testNoMultiSelect() {
-    console.log(`running test "${getFuncName()}"`)
+    console.log(` running test "${getFuncName()}"`)
     testState = new TestCase()
     const obs = testState._get_obs()
     assert(obs.getUiData().hasMulti() === false, 'obs.getUiData().hasMulti() === false')
@@ -353,7 +354,7 @@ function main() {
   testNoMultiSelect()
 
   function testMultiSelect() {
-    console.log(`running test "${getFuncName()}"`)
+    console.log(` running test "${getFuncName()}"`)
     testState = new TestCase()
     const nits = [_MOTHERSHIP, _PROBE, _PROBE, _ZEALOT]
     testState._builder.multi_select(nits)
@@ -368,7 +369,7 @@ function main() {
   testMultiSelect()
 
   function testBuildQueue() {
-    console.log(`running test "${getFuncName()}"`)
+    console.log(` running test "${getFuncName()}"`)
     testState = new TestCase()
     const nits = [_MOTHERSHIP, _PROBE]
     const production = [
@@ -395,7 +396,7 @@ function main() {
   testBuildQueue()
 
   function testFeatureUnitsAreAdded() {
-    console.log(`running test "${getFuncName()}"`)
+    console.log(` running test "${getFuncName()}"`)
     testState = new TestCase()
     const pos1 = new common_pb.Point()
     pos1.setX(10)
@@ -445,4 +446,4 @@ function main() {
   console.log(`\n----------------------------------------------------------------------\nRan ${count} test(s) in ${(performance.now() * msToS) - start_timer}s\n\n`)
 }
 
-main()
+DummyObservationTest()
