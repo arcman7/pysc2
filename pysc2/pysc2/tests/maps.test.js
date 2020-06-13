@@ -12,7 +12,7 @@ const sc_pb = s2clientprotocol.sc2api_pb
 const { assert, randomSample, sequentialTaskQueue } = pythonUtils
 const msToS = 1 / 1000
 let _sc2_proc = null
-
+const testState = new utils.TestCase()
 
 async function tearDown() {
   if (_sc2_proc) {
@@ -44,6 +44,7 @@ async function MapsTest() {
   function cache_sc2_proc(func) {
     //A decorator to replace setUp/tearDown so it can handle exceptions.//
     async function _cache_sc2_proc() {
+      testState.setUp()
       if (!_sc2_proc) {
         const port = (await portspicker.pick_unused_ports(1))[0]
         _sc2_proc = await run_configs.get().start({ want_rgb: false, port })
@@ -87,8 +88,7 @@ async function MapsTest() {
   }
   await test_list_all_maps()
   async function test_list_battle_net_maps(controller) {
-    const testState = new utils.TestCase()
-    testState.setUp()
+    // testState.setUp()
     logFuncName()
     const map_names = get_maps(null, (m) => m.battle_net)
     const map_list = new Set(...(map_names.map((m) => maps.get(m).battle_net)))
@@ -103,8 +103,7 @@ async function MapsTest() {
 
   async function test_load_random_map(controller) {
     //Test loading a few random maps.//
-    const testState = new utils.TestCase()
-    testState.setUp()
+    // testState.setUp()
     logFuncName()
     const run = async (map_name) => {
       const m = maps.get(map_name)
@@ -136,7 +135,6 @@ async function MapsTest() {
 
       // Verify it has the right mods and isn't running into licensing issues.
       const info = await controller.game_info()
-      // console.log('info: ', info)
       console.info(`Mods for ${m.name}  ${info.getModNamesList()}`)
       assert(info.getModNamesList().includes('Mods/Void.SC2Mod'), "info.getmodNamesList().match('Mods/Void.SC2Mod')")
       assert(info.getModNamesList().includes('Mods/VoidMulti.SC2Mod'), "info.getmodNamesList().match('Mods/VoidMulti.SC2Mod')")
@@ -151,8 +149,7 @@ async function MapsTest() {
 
   async function test_load_battle_net_map(controller) {
     //Test loading a few random battle.net maps.//
-    const testState = new utils.TestCase()
-    testState.setUp()
+    // testState.setUp()
     logFuncName()
     const run = async (map_name) => {
       const m = maps.get(map_name)

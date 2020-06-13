@@ -44,7 +44,6 @@ class TestCase {
       }
     }
     sw = sw || stopwatch.sw
-    console.log(sw.times)
     const s = sw.toString()
     if (s) {
       console.info(`Stop watch profile:\n${s}`)

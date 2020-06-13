@@ -55,7 +55,7 @@ class StarcraftProcess {
       **kwargs: Extra arguments for _launch (useful for subclasses).
     */
     flags.parse(null, true)
-    this._sw = passedSw || new stopwatch.StopWatch(false)
+    this._sw = passedSw || stopwatch.sw
     this._proc = null
     this._controller = null
     this._check_exists(exec_path)

@@ -28,8 +28,6 @@ flags.defineInteger('sc2_verbose_protocol', 0, `
 ) //eslint-disable-line
 
 
-// let sw = stopwatch.sw
-
 // Create a python version of the Status enum in the proto.
 const Status = Enum.Enum('Status', sc_pb.Status)
 
