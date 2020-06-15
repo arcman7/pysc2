@@ -16,7 +16,7 @@ function raw_ability_ids(obs) {
 
 let testState
 
-async function main() {
+async function actionsTest() {
   await (async () => {
     testState = await new utils.GameReplayTestCase()
     async function test_general_attack() {
@@ -89,4 +89,4 @@ async function main() {
   })();
 }
 
-main()
+actionsTest()

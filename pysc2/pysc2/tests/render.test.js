@@ -14,7 +14,7 @@ const sc_pb = s2clientprotocol.sc2api_pb
 
 const { arrayCompare, assert, sequentialTaskQueue } = pythonUtils
 
-async function test_render() {
+async function testRender() {
   const testState = new utils.TestCase()
   testState.setUp()
 
@@ -205,4 +205,4 @@ async function test_render() {
   testState.tearDown()
 }
 
-test_render()
+testRender()

@@ -23,8 +23,8 @@ async function tearDown() {
 }
 
 
-async function MapsTest() {
-  console.log('MapsTest:')
+async function mapsTest() {
+  console.log('mapsTest:')
   const start_timer = performance.now() * msToS
 
   function get_maps(count = null, filter_fn = null) {
@@ -197,4 +197,4 @@ async function MapsTest() {
   return true
 }
 
-MapsTest().then(() => tearDown()).catch((err) => { tearDown(); console.error(err) })
+mapsTest().then(() => tearDown()).catch((err) => { tearDown(); console.error(err) })

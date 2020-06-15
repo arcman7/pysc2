@@ -337,7 +337,6 @@ class GameReplayTestCase extends TestCase {
       cmd.setTargetUnitTag(target)
     }
     const response = await this._controllers[player].act(action)
-    // console.log('response:\n', response.toObject())
     const resultList = response.getResultList()
     for (let i = 0; i < resultList.length; i++) {
       const result = resultList[i]

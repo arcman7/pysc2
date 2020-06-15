@@ -41,12 +41,15 @@ class RequestError extends Error {
 
 function check_error(res, error_enum) {
   //Raise if the result has an error, otherwise return the result.//
-  if (res.hasError()) {
+  if (res && res.hasError()) {
     const enum_name = error_enum.name
     const error_name = error_enum(res.getError()).key
     const details = res.getErrorDetails() || '<none>'
     throw new RequestError(`${enum_name}.${error_name}, ${details}`,
       { error: res.getError(), error_details: res.getErrorDetails() })
+  }
+  if (!res) {
+    throw new RequestError('No response.')
   }
   return res
 }
