@@ -185,7 +185,6 @@ class GameReplayTestCase(TestCase):
     """Switch from the game to a replay."""
     self.step(300)
     replay_data = self._controllers[0].save_replay()
-    # print('replay_data: ', replay_data)
     self._parallel.run(c.leave for c in self._controllers)
     for player_id, controller in enumerate(self._controllers):
       controller.start_replay(sc_pb.RequestStartReplay(

@@ -120,12 +120,12 @@ class GameReplayTestCase extends TestCase {
 
   static setup() {
     //A decorator to replace unittest.setUp so it can take args.//
-    const args = arguments //eslint-disable-line
+    const kwargs = arguments[0] || {} //eslint-disable-line
     function decorator(func) {
       async function _setup(self) {
         async function test_in_game() {
           console.log(` ${func.name}: Starting game `.center(80, '-'))
-          await self.start_game(...args) //eslint-disable-line
+          await self.start_game(kwargs) //eslint-disable-line
           await func(self)
           return true
         }
@@ -155,7 +155,7 @@ class GameReplayTestCase extends TestCase {
     return decorator
   }
 
-  async start_game(show_cloaked = true, disable_fog = false, players = 2) {
+  async start_game({ show_cloaked = true, disable_fog = false, players = 2 }) {
     //Start a multiplayer game with options.//
     this._disable_fog = disable_fog
     const run_config = run_configs.get()

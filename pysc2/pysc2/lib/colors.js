@@ -1,14 +1,14 @@
-const path = require('path')
+const path = require('path') //eslint-disable-line
 const np = require(path.resolve(__dirname, './numpy.js'))
 const static_data = require(path.resolve(__dirname, './static_data.js'))
-const all_collections_generated_classes = require(path.resolve(__dirname, './all_collections_generated_classes.js'))
 const pythonUtils = require(path.resolve(__dirname, './pythonUtils.js'))
-const { len, int, zip } = pythonUtils
+const { int, namedtuple, zip } = pythonUtils
 
+/*eslint-disable no-use-before-define*/
 
-class Color extends all_collections_generated_classes.Color {
+class Color extends namedtuple('Color', ['r', 'g', 'b']) {
   set(r = this.r, g = this.g, b = this.b) {
-    return this.constructor._make({ r, g, b })
+    return new Color(r, g, b)
   }
 
   round() {
@@ -161,8 +161,8 @@ function piece_wise_linear(scale, points) {
   //Create a palette that is piece-wise linear given some colors at points.//
   np.util.assert(points.length >= 2)
   np.util.assert(points[0][0] === 0)
-  np.util.assert(points[-1][0] === 1)
-  zip(points.slice(0, points.length - 1), points.slice(1, points.length))
+  np.util.assert(points[points.length - 1][0] === 1)
+  zip(points.slice(0, -1), points.slice(1))
     .forEach((zipPair) => {
       const [i, j] = zipPair
       np.util.assert(i < j)
@@ -273,15 +273,14 @@ function categorical(options, scale = null) {
   // Can specify a scale to match the api or to accept unknown unit types.
   const palette_size = scale || Math.max(...options) + 1
   const palette = shuffled_hue(palette_size)
-  np.util.assert(len(options) <= len(distinct_colors))
-  Object.keys(options).forEach((key, i) => {
-    const v = options[key]
+  np.util.assert(options.length <= distinct_colors.length)
+  options.forEach((v, i) => {
     palette[v] = distinct_colors[i]
   })
   return palette
 }
 
-const effects = np.tensor([
+const effects = [
   [0, 0, 0],
   [72, 173, 207],
   [203, 76, 49],
@@ -298,12 +297,12 @@ const effects = np.tensor([
   [187, 102, 147],
   [138, 109, 48],
   [197, 103, 99],
-])
+]
 
 
 // Generated with http://tools.medialab.sciences-po.fr/iwanthue/
 // 280 colors: H: 0-360, C: 0-100, L: 35-100; then shuffled.
-const distinct_colors = np.tensor([
+const distinct_colors = [
   [255, 165, 150],
   [255, 255, 138],
   [0, 82, 232],
@@ -584,7 +583,7 @@ const distinct_colors = np.tensor([
   [255, 90, 83],
   [126, 54, 124],
   [193, 249, 255],
-])
+]
 
 module.exports = {
   buffs,

@@ -9,7 +9,6 @@ const static_data = require(path.resolve(__dirname, './static_data.js'))
 const stopwatch = require(path.resolve(__dirname, './stopwatch.js'))
 const transform = require(path.resolve(__dirname, './transform.js'))
 const pythonUtils = require(path.resolve(__dirname, './pythonUtils.js'))
-const all_collections_generated_classes = require(path.resolve(__dirname, './all_collections_generated_classes.js'))
 const np = require(path.resolve(__dirname, './numpy.js'))
 
 const sw = stopwatch.sw
@@ -217,7 +216,8 @@ const ProductionQueue = Enum.IntEnum('ProductionQueue', {
   build_progress: 1,
 })
 
-class Feature extends all_collections_generated_classes.Feature {
+// class Feature extends all_collections_generated_classes.Feature {
+class Feature extends namedtuple('Feature', ['index', 'name', 'layer_set', 'full_name', 'scale', 'type', 'palette', 'clip']) {
   /*Define properties of a feature layer.
 
   Attributes:
@@ -258,7 +258,10 @@ class Feature extends all_collections_generated_classes.Feature {
   unpack(obs) {
     //Return a correctly shaped numpy array for this feature.//
     const planes = getattr(obs.getFeatureLayerData(), this.layer_set)
+    // console.log('layer_set: ', this.layer_set, obs.getFeatureLayerData().toObject())
+    console.log('layer_set:\n', this.layer_set, '\nplane name: ', this.name)// '\nplanes:\n', planes.toObject())
     const plane = getattr(planes, this.name)
+    // console.log('unpack:\n', obs.toObject())
     return this.unpack_layer(plane)
   }
 
@@ -350,7 +353,8 @@ class ScreenFeatures extends namedtuple('ScreenFeatures', [
     let val
     Object.keys(kwargs).forEach((name) => {
       val = kwargs[name]
-      const { scale, type_, palette, clip } = val
+      console.log(name, ':\n  ', val)
+      const [scale, type_, palette, clip] = val
       feats[name] = new Feature({
         index: ScreenFeatures._fields.indexOf(name),
         name,
@@ -376,7 +380,7 @@ class MinimapFeatures extends namedtuple('MinimapFeatures', [
     let val
     Object.keys(kwargs).forEach((name) => {
       val = kwargs[name]
-      const { scale, type_, palette } = val
+      const [scale, type_, palette] = val
       feats[name] = new Feature({
         index: MinimapFeatures._fields.indexOf(name),
         name,
@@ -401,7 +405,7 @@ const SCREEN_FEATURES = new ScreenFeatures({
     colors.PLAYER_ABSOLUTE_PALETTE, false],
   player_relative: [5, FeatureType.CATEGORICAL,
     colors.PLAYER_RELATIVE_PALETTE, false],
-  unit_type: [Math.max(static_data.UNIT_TYPES) + 1, FeatureType.CATEGORICAL,
+  unit_type: [Math.max(...static_data.UNIT_TYPES) + 1, FeatureType.CATEGORICAL,
     colors.unit_type, false],
   selected: [2, FeatureType.CATEGORICAL, colors.SELECTED_PALETTE, false],
   unit_hit_points: [1600, FeatureType.SCALAR, colors.hot, true],
@@ -416,7 +420,7 @@ const SCREEN_FEATURES = new ScreenFeatures({
   hallucinations: [2, FeatureType.CATEGORICAL, colors.POWER_PALETTE, false],
   cloaked: [2, FeatureType.CATEGORICAL, colors.POWER_PALETTE, false],
   blip: [2, FeatureType.CATEGORICAL, colors.POWER_PALETTE, false],
-  buffs: [Math.max(static_data.BUFFS) + 1, FeatureType.CATEGORICAL,
+  buffs: [Math.max(...static_data.BUFFS) + 1, FeatureType.CATEGORICAL,
     colors.buffs, false],
   buff_duration: [256, FeatureType.SCALAR, colors.hot, false],
   active: [2, FeatureType.CATEGORICAL, colors.POWER_PALETTE, false],
@@ -435,7 +439,7 @@ const MINIMAP_FEATURES = new MinimapFeatures({
   player_relative: [5, FeatureType.CATEGORICAL,
     colors.PLAYER_RELATIVE_PALETTE],
   selected: [2, FeatureType.CATEGORICAL, colors.winter],
-  unit_type: [Math.max(static_data.UNIT_TYPES) + 1, FeatureType.CATEGORICAL,
+  unit_type: [Math.max(...static_data.UNIT_TYPES) + 1, FeatureType.CATEGORICAL,
     colors.unit_type],
   alerts: [2, FeatureType.CATEGORICAL, colors.winter],
   pathable: [2, FeatureType.CATEGORICAL, colors.winter],
@@ -946,12 +950,12 @@ function features_from_game_info({ game_info, agent_interface_format = null, map
     })
     agent_interface_format = new AgentInterfaceFormat(args)
   }
-  return new Feature({
+  return new Features( //eslint-disable-line
     agent_interface_format,
     map_size,
     map_name,
     requested_races,
-  })
+  )
 }
 
 function _init_valid_functions(action_dimensions) {

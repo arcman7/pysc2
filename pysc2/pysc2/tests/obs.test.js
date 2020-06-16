@@ -70,7 +70,7 @@ async function obsTest() {
   // no bounded args
   let boundedArgsDecorator = utils.GameReplayTestCase.setup()
   let decoratedFunc = boundedArgsDecorator(test_hallucination)
-  await decoratedFunc(testState)
+  // await decoratedFunc(testState)
 
   async function test_hide_cloaked() {
     assert(
@@ -80,7 +80,32 @@ async function obsTest() {
     await testState.god()
     await testState.move_camera(32, 32)
 
+    // Create some units. One cloaked, one to see it without detection.
+    await testState.create_unit(units.Protoss.DarkTemplar, 1, [30, 30])
+    await testState.create_unit(units.Protoss.Sentry, 2, [30, 30])
+
+    await testState.step(16)
+    const obs = await testState.observe()
+
+    // Verify both can see it, but that only the owner knows details.
+    let p1 = utils.get_unit({ obs: obs[0], unit_type: units.Protoss.DarkTemplar })
+    let p2 = utils.get_unit({ obs: obs[1], unit_type: units.Protoss.DarkTemplar })
+
+    assert(p1.getDisplayType() === sc_raw.DisplayType.VISIBLE, 'p1.getDisplayType() === sc_raw.DisplayType.VISIBLE')
+    assert(p1.getCloak() === sc_raw.CloakState.CLOAKEDALLIED, 'p1.getCloak() === sc_raw.CloakState.CLOAKEDALLIED')
+    assert(p1.getHealth() === 40, 'p1.getHealth() === 40')
+    assert(p1.getShield() === 80, 'p1.getShield() === 80')
+    assert(p2 === null, `p2 === null, p2: ${p2}`)
+    let screen1 = testState._features.transform_obs(obs[0])['feature_screen']
+    let screen2 = testState._features.transform_obs(obs[1])['feature_screen']
+    console.log('screen1: ***************')
+    console.log(screen1)
+    // let dt = utils.xy_locs(screen1.unit_type == units.Protoss.DarkTemplar)[0]
   }
+  // no bounded args
+  boundedArgsDecorator = utils.GameReplayTestCase.setup({ show_cloaked: false })
+  decoratedFunc = boundedArgsDecorator(test_hide_cloaked)
+  await decoratedFunc(testState)
 }
 
 obsTest()
