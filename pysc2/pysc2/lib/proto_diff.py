@@ -78,6 +78,7 @@ class ProtoPath(object):
     return hash(self._path)
 
   def __repr__(self):
+    return 'oggaa booogaaa this is how i look'
     result = ""
     for k in self._path:
       if isinstance(k, int) or k == _ARRAY_PLACEHOLDER:

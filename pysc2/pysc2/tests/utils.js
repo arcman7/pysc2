@@ -8,11 +8,10 @@ const features = require(path.resolve(__dirname, '..', 'lib', 'features.js'))
 const point = require(path.resolve(__dirname, '..', 'lib', 'point.js'))
 const portspicker = require(path.resolve(__dirname, '..', 'lib', 'portspicker.js'))
 const stopwatch = require(path.resolve(__dirname, '..', 'lib', 'stopwatch.js'))
-const np = require(path.resolve(__dirname, '..', 'lib', 'numpy.js'))
-
+// const np = require(path.resolve(__dirname, '..', 'lib', 'numpy.js'))
 const pythonUtils = require(path.resolve(__dirname, '..', 'lib', 'pythonUtils.js'))
 
-const { assert, sequentialTaskQueue, snakeToPascal, String } = pythonUtils //eslint-disable-line
+const { assert, getattr, sequentialTaskQueue, snakeToPascal, String } = pythonUtils //eslint-disable-line
 
 const sc_common = s2clientprotocol.common_pb
 const sc_debug = s2clientprotocol.debug_pb
@@ -74,7 +73,6 @@ function get_units({ obs, filter_fn = null, owner = null, unit_type = null, tag 
   }
   const out = {}
   const units = obs.getObservation().getRawData().getUnitsList()
-  // console.log(units.map((u) => u.toObject()))
   units.forEach((u) => {
     if ((filter_fn === null || filter_fn(u))
       && (owner === null || u.getOwner() === owner)
@@ -92,10 +90,24 @@ function get_unit(kwargs) {
   return out[Object.keys(out)[0]] || null
 }
 
-async function xy_locs(mask) {
-  // Javascript: Assuming mask is an array of bools
-  // Mask should be a set of bools from comparison with a feature layer.//
-  return (await np.whereAsync(mask).arraySync()).map(([x, y]) => new point.Point(x, y))
+// tensor flow version of xy_locs is twice as slow
+// async function xy_locs(mask) {
+//   // Javascript: Assuming mask is an array of bools
+//   // Mask should be a set of bools from comparison with a feature layer.//
+//   return (await np.whereAsync(mask)).arraySync().map(([x, y]) => new point.Point(x, y))
+// }
+function xy_locs(grid, compare) {
+//   // Javascript: Assuming mask is an array of bools
+//   // Mask should be a set of bools from comparison with a feature layer.//
+  const result = []
+  grid.forEach((row, y) => {
+    row.forEach((colVal, x) => {
+      if (colVal == compare) {
+        result.push(new point.Point(x, y))
+      }
+    })
+  })
+  return result
 }
 
 function only_in_game(func) {
@@ -168,7 +180,7 @@ class GameReplayTestCase extends TestCase {
     const unique_ports = await portspicker.pick_unused_ports(players || 1)
     this._sc2_procs = []
     for (let i = 0; i < players; i++) {
-      this._sc2_procs.push(run_config.start({ want_rgb: false, port: unique_ports[i] }))
+      this._sc2_procs.push(run_config.start({ want_rgb: false, port: unique_ports[i], passedSw: new stopwatch.StopWatch(true) }))
     }
     // await sequentialTaskQueue() // currently in consideration
     this._sc2_procs = await Promise.all(this._sc2_procs)
@@ -411,7 +423,7 @@ class GameReplayTestCase extends TestCase {
     debugReq.setUnitValue(sc_debug.DebugSetUnitValue.UnitValue.ENERGY)
     debugReq.setValue(energy)
     debugReq.setUnitTag(tag)
-    this.debug(noPlayerIdNeeded, { unit_value: debugReq })
+    return this.debug(noPlayerIdNeeded, { unit_value: debugReq })
   }
 
   assert_point(proto_pos, pos) { //eslint-disable-line
@@ -424,7 +436,7 @@ class GameReplayTestCase extends TestCase {
     for (let i = 0; i < keys.length; i++) {
       const k = keys[i]
       const v = kwargs[k]
-      assert(layers[k][pos.y][pos.x] === v, `${k}[${pos.y}, ${pos.x}]: expected: ${v}, got: ${layers[k][pos.y][pos.x]}`)
+      assert(layers[k][pos.y][pos.x] == v, `${k}[${pos.y}, ${pos.x}]: expected: ${v}, got: ${layers[k][pos.y][pos.x]}`)
     }
   }
 
@@ -438,9 +450,8 @@ class GameReplayTestCase extends TestCase {
       if (k === 'pos') {
         this.assert_point(unit.getPos(), v)
       } else {
-        const getterName = snakeToPascal(k)
-        let compare = unit[getterName] ? unit[getterName]() : unit[k]
-        if (compare.toObject) {
+        let compare = getattr(unit, k) || unit[k]
+        if (compare && compare.toObject) {
           compare = compare.toObject()
         }
         if (v.toObject) {
@@ -453,6 +464,9 @@ class GameReplayTestCase extends TestCase {
             assert(compare[cKey] == v[cKey], `${k}: expected: ${v}, got: ${compare}`)
           }
         } else {
+          if (v == 0 & compare === undefined) {
+            return
+          }
           assert(compare == v, `${k}: expected: ${v}, got: ${compare}`)
         }
       }

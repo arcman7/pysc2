@@ -244,10 +244,18 @@ class ObsTest(utils.GameReplayTestCase):
                    sc_raw.Visible, sc_raw.Self, sc_raw.NotCloaked)
     assert_visible(utils.get_unit(obs[0], unit_type=units.Protoss.DarkTemplar),
                    sc_raw.Visible, sc_raw.Self, sc_raw.CloakedAllied)
-    assert_visible(utils.get_unit(obs[1], unit_type=units.Protoss.Sentry),
-                   sc_raw.Hidden, sc_raw.Enemy, sc_raw.CloakedUnknown)
-    assert_visible(utils.get_unit(obs[1], unit_type=units.Protoss.DarkTemplar),
-                   sc_raw.Hidden, sc_raw.Enemy, sc_raw.CloakedUnknown)
+    assert_visible(
+      utils.get_unit(obs[1], unit_type=units.Protoss.Sentry),
+      sc_raw.Hidden,
+      sc_raw.Enemy,
+      sc_raw.CloakedUnknown
+    )
+    assert_visible(
+      utils.get_unit(obs[1], unit_type=units.Protoss.DarkTemplar),
+      sc_raw.Hidden,
+      sc_raw.Enemy,
+      sc_raw.CloakedUnknown
+    )
 
   @utils.GameReplayTestCase.setup()
   def test_effects(self):

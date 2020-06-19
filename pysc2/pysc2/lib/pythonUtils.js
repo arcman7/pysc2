@@ -601,6 +601,18 @@ function unpackbits(uint8data) {
   return results
 }
 
+function unpackbitsToShape(uint8data, shape = [1, 1]) {
+  var data = unpackbits(uint8data)
+  const dims = [shape[0] | 0, shape[1] | 0]
+  const result = new Array(dims[0])
+  const width = dims[1]
+  let offset
+  for (let i = 0 | 0; i < dims[0]; i++) {
+    offset = (width * i)
+    result[i] = data.slice(offset, offset + width)
+  }
+  return result
+}
 function ValueError(value) {
   /*
   The error thrown when an invalid argument is passed.
@@ -647,6 +659,8 @@ async function withPythonAsync(withInterface, callback) {
   withInterface.__exit__()
   return tempResult
 }
+
+
 /**
  From:
  https://gist.github.com/tregusti/0b37804798a7634bc49c#gistcomment-2193237
@@ -696,6 +710,7 @@ module.exports = {
   snakeToPascal,
   sum,
   unpackbits,
+  unpackbitsToShape,
   ValueError,
   withPython,
   withPythonAsync,

@@ -258,10 +258,10 @@ class Feature extends namedtuple('Feature', ['index', 'name', 'layer_set', 'full
   unpack(obs) {
     //Return a correctly shaped numpy array for this feature.//
     const planes = getattr(obs.getFeatureLayerData(), this.layer_set)
-    // console.log('layer_set: ', this.layer_set, obs.getFeatureLayerData().toObject())
-    console.log('layer_set:\n', this.layer_set, '\nplane name: ', this.name)// '\nplanes:\n', planes.toObject())
-    const plane = getattr(planes, this.name)
-    // console.log('unpack:\n', obs.toObject())
+    const plane = getattr(planes, this.name) || new sc_pb.ImageData()
+    if (this.name == 'unit_type') {
+      // console.log(plane.toObject())
+    }
     return this.unpack_layer(plane)
   }
 
@@ -271,6 +271,9 @@ class Feature extends namedtuple('Feature', ['index', 'name', 'layer_set', 'full
 
   static unpack_layer(plane) {
     //Return a correctly shaped numpy array given the feature layer bytes.//
+    if (plane.getSize() === undefined) {
+      return null
+    }
     const size = point.Point.build(plane.getSize())
     if (size[0] === 0 && size[1] === 0) {
       // New layer that isn't implemented in this SC2 version.
@@ -278,7 +281,7 @@ class Feature extends namedtuple('Feature', ['index', 'name', 'layer_set', 'full
     }
     // console.log('-----------------------------------')
     let data = plane.getData()
-    // console.log('data: ', data.length)//, ' is Uint8Array: ', data instanceof Uint8Array, ' byteOffset: ', data.byteOffset)
+    // console.log('data: ', data.length)
     const buffer = data.buffer
     // console.log('is ArrayBuffer: '/*, buffer instanceof ArrayBuffer*/, buffer.byteLength, ' byteOffset: ', data.byteOffset)
     // console.log('buffer length: ', buffer.byteLength)
@@ -291,7 +294,7 @@ class Feature extends namedtuple('Feature', ['index', 'name', 'layer_set', 'full
     }
 
     // console.log('typeArray data: ', data.length)
-
+    // console.log('shape: ', size.x, ' x ', size.y)
     if (plane.getBitsPerPixel() === 1) {
       data = unpackbits(data)
       if (data.length !== (size.x * size.y)) {
@@ -300,13 +303,12 @@ class Feature extends namedtuple('Feature', ['index', 'name', 'layer_set', 'full
         // interpreted as data.
         data = data.slice(0, size.x * size.y)
       }
+      // data = unpackbitsToShape(data, [size.x, size.y])
+      // data.shape = [size.x, size.y]
+      // return data
     }
-    // console.log('data: ', data.length)
 
     data = np.tensor(data, [size.y, size.x], 'int32')
-    // const shape = data.shape
-    // data = data.arraySync()
-    // data.shape = shape
     return data
   }
 
@@ -321,11 +323,7 @@ class Feature extends namedtuple('Feature', ['index', 'name', 'layer_set', 'full
     }
     const size = point.Point.build(plane.getSize())
     let data = plane.getData()
-    // data = new Uint8Array(data)
-    data = np.tensor(data, [size.y, size.x, 3])//, np.uint8)
-    // const shape = data.shape
-    // data = data.arraySync()
-    // data.shape = shape
+    data = np.tensor(data, [size.y, size.x, 3])
     return data
   }
 
@@ -353,7 +351,6 @@ class ScreenFeatures extends namedtuple('ScreenFeatures', [
     let val
     Object.keys(kwargs).forEach((name) => {
       val = kwargs[name]
-      console.log(name, ':\n  ', val)
       const [scale, type_, palette, clip] = val
       feats[name] = new Feature({
         index: ScreenFeatures._fields.indexOf(name),
@@ -1287,7 +1284,6 @@ class Features {
       return np.zeros([size.y, size.x], 'int32')
     }
     const aif = this._agent_interface_format
-
     if (aif.feature_dimensions) {
       withPython(sw('feature_screen'), () => {
         const stacks = SCREEN_FEATURES.map((f) => {
@@ -1338,21 +1334,42 @@ class Features {
     out['game_loop'] = np.array([obs.getObservation().getGameLoop()])
 
     withPython(sw('score'), () => {
-      const score_details = obs.getObservation().getScore().getScoreDetails()
+      let score_details
+      if (obs.getObservation().hasScore()) {
+        score_details = obs.getObservation().getScore().getScoreDetails()
+      } else {
+        score_details = new sc_pb.ScoreDetails()
+        obs.getObservation().setScore(new sc_pb.Score())
+        score_details.setFoodUsed(new sc_pb.CategoryScoreDetails())
+        score_details.setKilledMinerals(new sc_pb.CategoryScoreDetails())
+        score_details.setKilledVespene(new sc_pb.CategoryScoreDetails())
+        score_details.setLostMinerals(new sc_pb.CategoryScoreDetails())
+        score_details.setLostVespene(new sc_pb.CategoryScoreDetails())
+        score_details.setFriendlyFireMinerals(new sc_pb.CategoryScoreDetails())
+        score_details.setFriendlyFireVespene(new sc_pb.CategoryScoreDetails())
+        score_details.setUsedMinerals(new sc_pb.CategoryScoreDetails())
+        score_details.setUsedVespene(new sc_pb.CategoryScoreDetails())
+        score_details.setTotalUsedMinerals(new sc_pb.CategoryScoreDetails())
+        score_details.setTotalUsedVespene(new sc_pb.CategoryScoreDetails())
+        score_details.setTotalDamageDealt(new sc_pb.VitalScoreDetails())
+        score_details.setTotalDamageTaken(new sc_pb.VitalScoreDetails())
+        score_details.setTotalHealed(new sc_pb.VitalScoreDetails())
+        obs.getObservation().getScore().setScoreDetails(score_details)
+      }
       out['score_cumulative'] = named_array.NamedNumpyArray([
-        obs.getObservation().getScore().getScore(),
-        score_details.getIdleProductionTime(),
-        score_details.getIdleWorkerTime(),
-        score_details.getTotalValueUnits(),
-        score_details.getTotalValueStructures(),
-        score_details.getKilledValueUnits(),
-        score_details.getKilledValueStructures(),
-        score_details.getCollectedMinerals(),
-        score_details.getCollectedVespene(),
-        score_details.getCollectionRateMinerals(),
-        score_details.getCollectionRateVespene(),
-        score_details.getSpentMinerals(),
-        score_details.getSpentVespene(),
+        obs.getObservation().getScore().getScore() || 0,
+        score_details.getIdleProductionTime() || 0,
+        score_details.getIdleWorkerTime() || 0,
+        score_details.getTotalValueUnits() || 0,
+        score_details.getTotalValueStructures() || 0,
+        score_details.getKilledValueUnits() || 0,
+        score_details.getKilledValueStructures() || 0,
+        score_details.getCollectedMinerals() || 0,
+        score_details.getCollectedVespene() || 0,
+        score_details.getCollectionRateMinerals() || 0,
+        score_details.getCollectionRateVespene() || 0,
+        score_details.getSpentMinerals() || 0,
+        score_details.getSpentVespene() || 0,
       ], /*names=*/ScoreCumulative)
 
       function get_score_details(key, details, categories) {
@@ -1467,7 +1484,7 @@ class Features {
       function raw_order(i) {
         if (u.getOrdersList().length > i) {
           // TODO(tewalds): Return a generalized func id.
-          return actions.RAW_ABILITY_ID_TO_FUNC_ID.get(u.getOrdersList()[i].ability_id, 0)
+          return actions.RAW_ABILITY_ID_TO_FUNC_ID[u.getOrdersList()[i].ability_id] || 0
         }
         return 0
       }
@@ -1500,8 +1517,8 @@ class Features {
 
         // Not populated for enemies or neutral
         u.getCargoSpaceMax(),
-        u.getAssignedHarvestersList(),
-        u.getIdealHarvestersList(),
+        u.getAssignedHarvesters(),
+        u.getIdealHarvesters(),
         u.getWeaponCooldown(),
         u.getOrdersList().length,
         raw_order(0),

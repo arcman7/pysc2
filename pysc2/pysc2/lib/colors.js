@@ -2,7 +2,7 @@ const path = require('path') //eslint-disable-line
 const np = require(path.resolve(__dirname, './numpy.js'))
 const static_data = require(path.resolve(__dirname, './static_data.js'))
 const pythonUtils = require(path.resolve(__dirname, './pythonUtils.js'))
-const { int, namedtuple, zip } = pythonUtils
+const { assert, int, namedtuple, zip } = pythonUtils
 
 /*eslint-disable no-use-before-define*/
 
@@ -138,7 +138,7 @@ function smooth_hue_palette(scale) {
   b = c.where(mask, b)
 
   // mask = 5 <= h
-  mask = getMaskLast()
+  mask = getMaskLast(scale)
   // r[mask] = c
   r = c.where(mask, r)
   // b[mask] = x[mask]
@@ -154,14 +154,15 @@ function shuffled_hue(scale) {
   // palette = tf.data.array(palette.arraySync())
   // palette = palette.shuffle(bufferSize, 0.5) // Return a fixed shuffle
   np.util.shuffle(palette)
-  return np.tensor(palette)
+  return palette
+  // return np.tensor(palette)
 }
 
 function piece_wise_linear(scale, points) {
   //Create a palette that is piece-wise linear given some colors at points.//
-  np.util.assert(points.length >= 2)
-  np.util.assert(points[0][0] === 0)
-  np.util.assert(points[points.length - 1][0] === 1)
+  assert(points.length >= 2, 'points.length >= 2')
+  assert(points[0][0] === 0, 'points[0][0] === 0')
+  assert(points[points.length - 1][0] === 1, 'points[points.length - 1][0] === 1')
   zip(points.slice(0, -1), points.slice(1))
     .forEach((zipPair) => {
       const [i, j] = zipPair
@@ -169,7 +170,7 @@ function piece_wise_linear(scale, points) {
     })
   let [p1, c1] = points[0]
   let [p2, c2] = points[1]
-  const out = []
+  const out = Array(scale)
   let next_pt = 2
   let temp
   let frac
@@ -220,15 +221,15 @@ function height_map(scale) {
 
 /*eslint-disable no-multi-spaces*/
 // Palette used to color player_relative features.
-const PLAYER_RELATIVE_PALETTE = np.tensor([
+const PLAYER_RELATIVE_PALETTE = [
   black,                 // Background.
   new Color(0, 142, 0),      // Self. (Green).
   yellow,                // Ally.
   new Color(129, 166, 196),  // Neutral. (Cyan.)
   new Color(113, 25, 34),    // Enemy. (Red).
-])
+]
 
-const PLAYER_ABSOLUTE_PALETTE = np.tensor([
+const PLAYER_ABSOLUTE_PALETTE = [
   black,                 // Background
   new Color(0, 142, 0),      // 1: Green
   new Color(113, 25, 34),    // 2: Red
@@ -246,18 +247,18 @@ const PLAYER_ABSOLUTE_PALETTE = np.tensor([
   white.mul(0.1),           // 14: Does the game ever have more than 8 players?
   white.mul(0.1),           // 15: Does the game ever have more than 8 players?
   new Color(129, 166, 196),  // 16 Neutral: Cyan
-])
+]
 
-const VISIBILITY_PALETTE = np.tensor([
+const VISIBILITY_PALETTE = [
   black,         // Hidden
   white.mul(0.25),  // Fogged
   white.mul(0.6),   // Visible
-])
+]
 
-const CAMERA_PALETTE = np.tensor([black, white.mul(0.6)])
-const CREEP_PALETTE = np.tensor([black, purple.mul(0.4)])
-const POWER_PALETTE = np.tensor([black, cyan.mul(0.7)])
-const SELECTED_PALETTE = np.tensor([black, green.mul(0.7)])
+const CAMERA_PALETTE = [black, white.mul(0.6)]
+const CREEP_PALETTE = [black, purple.mul(0.4)]
+const POWER_PALETTE = [black, cyan.mul(0.7)]
+const SELECTED_PALETTE = [black, green.mul(0.7)]
 
 function unit_type(scale = null) {
   //Returns a palette that maps unit types to rgb colors.//
@@ -273,7 +274,7 @@ function categorical(options, scale = null) {
   // Can specify a scale to match the api or to accept unknown unit types.
   const palette_size = scale || Math.max(...options) + 1
   const palette = shuffled_hue(palette_size)
-  np.util.assert(options.length <= distinct_colors.length)
+  assert(options.length <= distinct_colors.length, 'options.length <= distinct_colors.length')
   options.forEach((v, i) => {
     palette[v] = distinct_colors[i]
   })
@@ -600,6 +601,8 @@ module.exports = {
   PLAYER_RELATIVE_PALETTE,
   POWER_PALETTE,
   SELECTED_PALETTE,
+  shuffled_hue,
+  smooth_hue_palette,
   VISIBILITY_PALETTE,
   winter,
   unit_type,
