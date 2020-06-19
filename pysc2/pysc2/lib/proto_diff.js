@@ -15,15 +15,33 @@ class ProtoPath extends Array {
     Args:
       path: Tuple of attribute names / array indices on the path to a field.
     */
+    let result = ''
+    path.forEach((k) => {
+      if (Number.isInteger(k) || k === _ARRAY_PLACEHOLDER) {
+        result += `[${k}]`
+      } else if (result) {
+        result += '.' + k
+      } else {
+        result += '' + k
+      }
+    })
     super(...path)
     this._path = path
+  }
+
+  get length() {
+    return this._path.length
   }
 
   get_field(proto) {
     // Returns field at this proto path, in the specified proto.//
     let value = proto
     this._path.forEach((k) => {
-      value = value[k]
+      if (Number.isInteger(k)) {
+        value = value[k]
+      } else {
+        value = value[0].getAttribute(k)
+      }
     })
     return value
   }
@@ -42,7 +60,7 @@ class ProtoPath extends Array {
     return this._path
   }
 
-  largerthan(other) {
+  lessthan(other) {
     const zipped = zip(this._path, other.path)
     for (let i = 0; i < zipped.length; i++) {
       const [k1, k2] = zipped[i]
@@ -64,7 +82,7 @@ class ProtoPath extends Array {
   }
 
   __hash__() {
-    return hashCode(this._path)
+    return hashCode(this._path.toString())
   }
 
   toString() {
@@ -75,8 +93,9 @@ class ProtoPath extends Array {
       } else {
         if (result) {
           result += '.' + k
+        } else {
+          result += '' + k
         }
-        result += '' + k
       }
     })
     return result
@@ -215,8 +234,10 @@ function compute_diff(proto_a, proto_b) {
     proto_b: Second of the two protos to compare.
   */
 
-  const dict1 = proto_a.toObject()
-  const dict2 = proto_b.toObject()
+  let dict1 = proto_a.toObject()
+  dict1 = JSON.parse(JSON.stringify(dict1))
+  let dict2 = proto_b.toObject()
+  dict2 = JSON.parse(JSON.stringify(dict2))
   const diff = deepdiff.diff(dict1, dict2)
   /*
   {}
@@ -229,7 +250,6 @@ function compute_diff(proto_a, proto_b) {
       rhs: { game_loop: 1 }
     }
   ]
-
 
   {'observation': {'alerts': ['AlertError']}}
   {'observation': {'alerts': ['AlertError', 'MergeComplete']}, 'player_result': [{}]}
@@ -247,7 +267,6 @@ function compute_diff(proto_a, proto_b) {
       rhs: [ {} ] }
   ]
 
-
   {'observation': {'game_loop': 1}}
   {'observation': {'game_loop': 2}}
 
@@ -262,7 +281,6 @@ function compute_diff(proto_a, proto_b) {
 
   {'observation': {'game_loop': 1, 'alerts': ['AlertError', 'LarvaHatched']}}
   {'observation': {'game_loop': 2, 'alerts': ['AlertError', 'MergeComplete']}}
-
 
   {'observation': {'score': {}, 'game_loop': 1, 'alerts': ['AlertError', 'MergeComplete']}}
   {'observation': {'alerts': ['AlertError']}}
@@ -286,7 +304,7 @@ function compute_diff(proto_a, proto_b) {
     }
   ]
   */
-  if (diff.length) {
+  if (diff) {
     const changed_paths = diff.filter((ele) => ele.kind === 'E')
     const added_paths = diff.filter((ele) => (ele.kind === 'N') || (ele.kind === 'A' && ele.item && ele.item.kind === 'N'))
     const removed_paths = diff.filter((ele) => (ele.kind === 'D') || (ele.kind === 'A' && ele.item && ele.item.kind === 'D'))
@@ -294,6 +312,16 @@ function compute_diff(proto_a, proto_b) {
     if (changed_paths.length + added_paths.length + removed_paths.length !== diff.length) {
       throw new ValueError(`Unhandled diffs: ${diff}`)
     }
+
+    return new ProtoDiffs(
+      proto_a,
+      proto_b,
+      changed_paths,
+      added_paths,
+      removed_paths
+    )
+  } else {
+    return null
   }
 }
 

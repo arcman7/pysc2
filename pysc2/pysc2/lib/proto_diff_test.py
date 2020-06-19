@@ -103,130 +103,130 @@ class ProtoPathTest(absltest.TestCase):
         c.with_anonymous_array_indices())
 
 
-def _alert_formatter(path, proto_a, proto_b):
-  field_a = path.get_field(proto_a)
-  if path[-2] == "alerts":
-    field_b = path.get_field(proto_b)
-    return "{} -> {}".format(
-        sc_pb.Alert.Name(field_a), sc_pb.Alert.Name(field_b))
+# def _alert_formatter(path, proto_a, proto_b):
+#   field_a = path.get_field(proto_a)
+#   if path[-2] == "alerts":
+#     field_b = path.get_field(proto_b)
+#     return "{} -> {}".format(
+#         sc_pb.Alert.Name(field_a), sc_pb.Alert.Name(field_b))
 
 
-class ProtoDiffTest(absltest.TestCase):
+# class ProtoDiffTest(absltest.TestCase):
 
-  def testNoDiffs(self):
-    a = sc_pb.ResponseObservation()
-    b = sc_pb.ResponseObservation()
-    diff = proto_diff.compute_diff(a, b)
-    self.assertIsNone(diff)
+#   def testNoDiffs(self):
+#     a = sc_pb.ResponseObservation()
+#     b = sc_pb.ResponseObservation()
+#     diff = proto_diff.compute_diff(a, b)
+#     self.assertIsNone(diff)
 
-  def testAddedField(self):
-    a = sc_pb.ResponseObservation()
-    b = sc_pb.ResponseObservation(
-        observation=sc_pb.Observation(game_loop=1))
-    diff = proto_diff.compute_diff(a, b)
-    self.assertIsNotNone(diff)
-    self.assertLen(diff.added, 1, diff)
-    self.assertEqual(str(diff.added[0]), "observation")
-    self.assertEqual(diff.added, diff.all_diffs())
-    self.assertEqual(diff.report(), "Added observation.")
+#   def testAddedField(self):
+#     a = sc_pb.ResponseObservation()
+#     b = sc_pb.ResponseObservation(
+#         observation=sc_pb.Observation(game_loop=1))
+#     diff = proto_diff.compute_diff(a, b)
+#     self.assertIsNotNone(diff)
+#     self.assertLen(diff.added, 1, diff)
+#     self.assertEqual(str(diff.added[0]), "observation")
+#     self.assertEqual(diff.added, diff.all_diffs())
+#     self.assertEqual(diff.report(), "Added observation.")
 
-  def testAddedFields(self):
-    a = sc_pb.ResponseObservation(
-        observation=sc_pb.Observation(
-            alerts=[sc_pb.AlertError]))
-    b = sc_pb.ResponseObservation(
-        observation=sc_pb.Observation(
-            alerts=[sc_pb.AlertError, sc_pb.MergeComplete]),
-        player_result=[sc_pb.PlayerResult()])
-    diff = proto_diff.compute_diff(a, b)
-    self.assertIsNotNone(diff)
-    self.assertLen(diff.added, 2, diff)
-    self.assertEqual(str(diff.added[0]), "observation.alerts[1]")
-    self.assertEqual(str(diff.added[1]), "player_result")
-    self.assertEqual(diff.added, diff.all_diffs())
-    self.assertEqual(
-        diff.report(),
-        "Added observation.alerts[1].\n"
-        "Added player_result.")
+#   def testAddedFields(self):
+#     a = sc_pb.ResponseObservation(
+#         observation=sc_pb.Observation(
+#             alerts=[sc_pb.AlertError]))
+#     b = sc_pb.ResponseObservation(
+#         observation=sc_pb.Observation(
+#             alerts=[sc_pb.AlertError, sc_pb.MergeComplete]),
+#         player_result=[sc_pb.PlayerResult()])
+#     diff = proto_diff.compute_diff(a, b)
+#     self.assertIsNotNone(diff)
+#     self.assertLen(diff.added, 2, diff)
+#     self.assertEqual(str(diff.added[0]), "observation.alerts[1]")
+#     self.assertEqual(str(diff.added[1]), "player_result")
+#     self.assertEqual(diff.added, diff.all_diffs())
+#     self.assertEqual(
+#         diff.report(),
+#         "Added observation.alerts[1].\n"
+#         "Added player_result.")
 
-  def testRemovedField(self):
-    a = sc_pb.ResponseObservation(observation=sc_pb.Observation(game_loop=1))
-    b = sc_pb.ResponseObservation(observation=sc_pb.Observation())
-    diff = proto_diff.compute_diff(a, b)
-    self.assertIsNotNone(diff)
-    self.assertLen(diff.removed, 1, diff)
-    self.assertEqual(str(diff.removed[0]), "observation.game_loop")
-    self.assertEqual(diff.removed, diff.all_diffs())
-    self.assertEqual(
-        diff.report(),
-        "Removed observation.game_loop.")
+#   def testRemovedField(self):
+#     a = sc_pb.ResponseObservation(observation=sc_pb.Observation(game_loop=1))
+#     b = sc_pb.ResponseObservation(observation=sc_pb.Observation())
+#     diff = proto_diff.compute_diff(a, b)
+#     self.assertIsNotNone(diff)
+#     self.assertLen(diff.removed, 1, diff)
+#     self.assertEqual(str(diff.removed[0]), "observation.game_loop")
+#     self.assertEqual(diff.removed, diff.all_diffs())
+#     self.assertEqual(
+#         diff.report(),
+#         "Removed observation.game_loop.")
 
-  def testRemovedFields(self):
-    a = sc_pb.ResponseObservation(observation=sc_pb.Observation(
-        game_loop=1,
-        score=score_pb2.Score(),
-        alerts=[sc_pb.AlertError, sc_pb.MergeComplete]))
-    b = sc_pb.ResponseObservation(observation=sc_pb.Observation(
-        alerts=[sc_pb.AlertError]))
-    diff = proto_diff.compute_diff(a, b)
-    self.assertIsNotNone(diff)
-    self.assertLen(diff.removed, 3, diff)
-    self.assertEqual(str(diff.removed[0]), "observation.alerts[1]")
-    self.assertEqual(str(diff.removed[1]), "observation.game_loop")
-    self.assertEqual(str(diff.removed[2]), "observation.score")
-    self.assertEqual(diff.removed, diff.all_diffs())
-    self.assertEqual(
-        diff.report(),
-        "Removed observation.alerts[1].\n"
-        "Removed observation.game_loop.\n"
-        "Removed observation.score.")
+#   def testRemovedFields(self):
+#     a = sc_pb.ResponseObservation(observation=sc_pb.Observation(
+#         game_loop=1,
+#         score=score_pb2.Score(),
+#         alerts=[sc_pb.AlertError, sc_pb.MergeComplete]))
+#     b = sc_pb.ResponseObservation(observation=sc_pb.Observation(
+#         alerts=[sc_pb.AlertError]))
+#     diff = proto_diff.compute_diff(a, b)
+#     self.assertIsNotNone(diff)
+#     self.assertLen(diff.removed, 3, diff)
+#     self.assertEqual(str(diff.removed[0]), "observation.alerts[1]")
+#     self.assertEqual(str(diff.removed[1]), "observation.game_loop")
+#     self.assertEqual(str(diff.removed[2]), "observation.score")
+#     self.assertEqual(diff.removed, diff.all_diffs())
+#     self.assertEqual(
+#         diff.report(),
+#         "Removed observation.alerts[1].\n"
+#         "Removed observation.game_loop.\n"
+#         "Removed observation.score.")
 
-  def testChangedField(self):
-    a = sc_pb.ResponseObservation(observation=sc_pb.Observation(game_loop=1))
-    b = sc_pb.ResponseObservation(observation=sc_pb.Observation(game_loop=2))
-    diff = proto_diff.compute_diff(a, b)
-    self.assertIsNotNone(diff)
-    self.assertLen(diff.changed, 1, diff)
-    self.assertEqual(str(diff.changed[0]), "observation.game_loop")
-    self.assertEqual(diff.changed, diff.all_diffs())
-    self.assertEqual(diff.report(), "Changed observation.game_loop: 1 -> 2.")
+#   def testChangedField(self):
+#     a = sc_pb.ResponseObservation(observation=sc_pb.Observation(game_loop=1))
+#     b = sc_pb.ResponseObservation(observation=sc_pb.Observation(game_loop=2))
+#     diff = proto_diff.compute_diff(a, b)
+#     self.assertIsNotNone(diff)
+#     self.assertLen(diff.changed, 1, diff)
+#     self.assertEqual(str(diff.changed[0]), "observation.game_loop")
+#     self.assertEqual(diff.changed, diff.all_diffs())
+#     self.assertEqual(diff.report(), "Changed observation.game_loop: 1 -> 2.")
 
-  def testChangedFields(self):
-    a = sc_pb.ResponseObservation(observation=sc_pb.Observation(
-        game_loop=1, alerts=[sc_pb.AlertError, sc_pb.LarvaHatched]))
-    b = sc_pb.ResponseObservation(observation=sc_pb.Observation(
-        game_loop=2, alerts=[sc_pb.AlertError, sc_pb.MergeComplete]))
-    diff = proto_diff.compute_diff(a, b)
-    self.assertIsNotNone(diff)
-    self.assertLen(diff.changed, 2, diff)
-    self.assertEqual(str(diff.changed[0]), "observation.alerts[1]")
-    self.assertEqual(str(diff.changed[1]), "observation.game_loop")
-    self.assertEqual(diff.changed, diff.all_diffs())
-    self.assertEqual(
-        diff.report(),
-        "Changed observation.alerts[1]: 7 -> 8.\n"
-        "Changed observation.game_loop: 1 -> 2.")
+#   def testChangedFields(self):
+#     a = sc_pb.ResponseObservation(observation=sc_pb.Observation(
+#         game_loop=1, alerts=[sc_pb.AlertError, sc_pb.LarvaHatched]))
+#     b = sc_pb.ResponseObservation(observation=sc_pb.Observation(
+#         game_loop=2, alerts=[sc_pb.AlertError, sc_pb.MergeComplete]))
+#     diff = proto_diff.compute_diff(a, b)
+#     self.assertIsNotNone(diff)
+#     self.assertLen(diff.changed, 2, diff)
+#     self.assertEqual(str(diff.changed[0]), "observation.alerts[1]")
+#     self.assertEqual(str(diff.changed[1]), "observation.game_loop")
+#     self.assertEqual(diff.changed, diff.all_diffs())
+#     self.assertEqual(
+#         diff.report(),
+#         "Changed observation.alerts[1]: 7 -> 8.\n"
+#         "Changed observation.game_loop: 1 -> 2.")
 
-    self.assertEqual(
-        diff.report([_alert_formatter]),
-        "Changed observation.alerts[1]: LarvaHatched -> MergeComplete.\n"
-        "Changed observation.game_loop: 1 -> 2.")
+#     self.assertEqual(
+#         diff.report([_alert_formatter]),
+#         "Changed observation.alerts[1]: LarvaHatched -> MergeComplete.\n"
+#         "Changed observation.game_loop: 1 -> 2.")
 
-  def testTruncation(self):
-    a = sc_pb.ResponseObservation(observation=sc_pb.Observation(
-        game_loop=1, alerts=[sc_pb.AlertError, sc_pb.LarvaHatched]))
-    b = sc_pb.ResponseObservation(observation=sc_pb.Observation(
-        game_loop=2, alerts=[sc_pb.AlertError, sc_pb.MergeComplete]))
-    diff = proto_diff.compute_diff(a, b)
-    self.assertIsNotNone(diff)
-    self.assertEqual(
-        diff.report([_alert_formatter], truncate_to=9),
-        "Changed observation.alerts[1]: LarvaH....\n"
-        "Changed observation.game_loop: 1 -> 2.")
-    self.assertEqual(
-        diff.report([_alert_formatter], truncate_to=-1),
-        "Changed observation.alerts[1]: ....\n"
-        "Changed observation.game_loop: ... -> ....")
+#   def testTruncation(self):
+#     a = sc_pb.ResponseObservation(observation=sc_pb.Observation(
+#         game_loop=1, alerts=[sc_pb.AlertError, sc_pb.LarvaHatched]))
+#     b = sc_pb.ResponseObservation(observation=sc_pb.Observation(
+#         game_loop=2, alerts=[sc_pb.AlertError, sc_pb.MergeComplete]))
+#     diff = proto_diff.compute_diff(a, b)
+#     self.assertIsNotNone(diff)
+#     self.assertEqual(
+#         diff.report([_alert_formatter], truncate_to=9),
+#         "Changed observation.alerts[1]: LarvaH....\n"
+#         "Changed observation.game_loop: 1 -> 2.")
+#     self.assertEqual(
+#         diff.report([_alert_formatter], truncate_to=-1),
+#         "Changed observation.alerts[1]: ....\n"
+#         "Changed observation.game_loop: ... -> ....")
 
 
 if __name__ == "__main__":

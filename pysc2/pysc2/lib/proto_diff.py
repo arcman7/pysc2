@@ -38,10 +38,12 @@ class ProtoPath(object):
   def get_field(self, proto):
     """Returns field at this proto path, in the specified proto."""
     value = proto
+    print(value)
     for k in self._path:
       if isinstance(k, int):
         value = value[k]
       else:
+        print('k: ', k)
         value = getattr(value, k)
 
     return value
