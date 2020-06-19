@@ -3,7 +3,7 @@ const s2clientprotocol = require('s2clientprotocol') //eslint-disable-line
 const { common_pb, spatial_pb } = s2clientprotocol
 const all_collections_generated_classes = require(path.resolve(__dirname, './all_collections_generated_classes.js'))
 const pythonUtils = require(path.resolve(__dirname, './pythonUtils.js'))
-const { isinstance, len, randomUniform } = pythonUtils
+const { isinstance, namedtuple, randomUniform } = pythonUtils
 
 Math.radians = function(degrees) {
   return degrees * Math.PI / 180;
@@ -12,7 +12,8 @@ Math.degrees = function(radians) {
   return radians * 180 / Math.PI;
 }
 
-class Point extends all_collections_generated_classes.Point {
+// class Point extends all_collections_generated_classes.Point {
+class Point extends namedtuple('Point', ['x', 'y']) {
   //A basic Point class.//
   constructor(x, y) {
     super({})
@@ -23,7 +24,7 @@ class Point extends all_collections_generated_classes.Point {
       const point = x.x
       this.x = point.getX() || 0.0
       this.y = point.getY() || 0.0
-    } else if (isinstance(x, [common_pb.Point, spatial_pb.PointI, common_pb.Point2D])) {
+    } else if (isinstance(x, [common_pb.Point, spatial_pb.PointI, common_pb.Point2D]) || x.toObject) {
       const point = x
       this.x = point.getX() || 0.0
       this.y = point.getY() || 0.0
@@ -37,18 +38,10 @@ class Point extends all_collections_generated_classes.Point {
     this.length = 2
   }
 
-  get map() {
-    return [this.x, this.y].map
-  }
-
-  get forEach() {
-    return [this.x, this.y].forEach
-  }
-
   static build(obj) {
     //Build a Point from an object that has properties `x` and `y`.//
     let usedObj = obj
-    if (isinstance(obj, [common_pb.Point, common_pb.PointI, common_pb.Point2D])) {
+    if (isinstance(obj, [common_pb.Point, common_pb.PointI, common_pb.Point2D]) || obj.toObject) {
       usedObj = {
         x: obj.getX(),
         y: obj.getY(),
@@ -59,7 +52,7 @@ class Point extends all_collections_generated_classes.Point {
         y: arguments[1], //eslint-disable-line
       }
     }
-    return this._make(usedObj)
+    return new Point(usedObj)
   }
 
   static unit_rand() {
@@ -69,7 +62,7 @@ class Point extends all_collections_generated_classes.Point {
 
   assign_to(obj) {
     // Assign `x` and `y` to an object that has properties `x` and `y`.//
-    if (isinstance(obj, [common_pb.Point, common_pb.PointI, common_pb.Point2D])) {
+    if (isinstance(obj, [common_pb.Point, common_pb.PointI, common_pb.Point2D]) || obj.toObject) {
       obj.setX(this.x)
       obj.setY(this.y)
       return

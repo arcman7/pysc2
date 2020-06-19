@@ -54,7 +54,7 @@ class Map {
   get path() {
     //The full path to the map file: directory, filename and file ending.//
     if (this.filename) {
-      let map_path = path.join(this.directory, this.filename)
+      let map_path = path.join(this.directory, this.filename.replace(/\s/g, '').replace(/'/g, ''))
       if (map_path.slice(map_path.length - 7, map_path.length) !== '.SC2Map') {
         map_path += '.SC2Map'
       }
@@ -63,7 +63,7 @@ class Map {
     return ''
   }
 
-  date(run_config) {
+  data(run_config) {
     //Return the map data.//
     try {
       return run_config.map_data(this.path, this.players)
@@ -111,7 +111,7 @@ function get_maps() {
     if (mp.filename || mp.battle_net) {
       const map_name = mp.name
       if (maps[map_name]) {
-        throw new DuplicateMapError(`Duplicate map found: ${map_name}`)
+        throw new DuplicateMapError(`Duplicate map found: "${map_name}"\n  existing:\n${mp}\n  Duplicate:\n${maps[map_name]}`)
       }
       maps[map_name] = mp
     }
@@ -119,7 +119,7 @@ function get_maps() {
   return maps
 }
 
-function get(map_name) {
+function get(map_name = '') {
   //Get an instance of a map by name. Errors if the map doesn't exist.//
   if (map_name instanceof Map) {
     return map_name
@@ -127,7 +127,9 @@ function get(map_name) {
   // Get the list of maps. This isn't at module scope to avoid problems of maps
   // being defined after this module is imported.
   const maps = get_maps()
-  const map_class = maps.get(map_name)
+  const map_class = maps[map_name]
+    || maps[map_name.replace(/'/g, '')]
+    || maps[map_name.replace(/\s/g, '')]
   if (map_class) {
     return new map_class() //eslint-disable-line
   }

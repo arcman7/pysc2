@@ -1,5 +1,4 @@
 const path = require('path') //eslint-disable-line
-// const net = require('net') //eslint-disable-line
 const Enum = require('python-enum') //eslint-disable-line
 const s2clientprotocol = require('s2clientprotocol') //eslint-disable-line
 const websocket = require('ws') //eslint-disable-line
@@ -20,8 +19,7 @@ You are allowed to send additional requests before receiving a response to an ea
 */
 const { sc2api_pb } = s2clientprotocol
 const sc_pb = sc2api_pb
-// const { socket } = net
-const { assert, withPython, snakeToPascal } = pythonUtils
+const { assert, snakeToPascal, withPython, withPythonAsync } = pythonUtils
 
 flags.defineInteger('sc2_verbose_protocol', 0, `
   Print the communication packets with SC2. 0 disables.
@@ -29,9 +27,6 @@ flags.defineInteger('sc2_verbose_protocol', 0, `
   'packet. 20 is a good starting value.`
 ) //eslint-disable-line
 
-const FLAGS = flags.FLAGS
-
-const sw = stopwatch.sw
 
 // Create a python version of the Status enum in the proto.
 const Status = Enum.Enum('Status', sc_pb.Status)
@@ -58,10 +53,15 @@ class ProtocolError extends Error {
 //   /* not sure we need this in javascript */
 // }
 class StarcraftProtocol {
-  constructor(sock) {
+  constructor(ws, passedSw) {
+    // set the stop watch to a specific instance if provided
+    this._sw = passedSw || stopwatch.sw
+    const sw = this._sw
+    flags.parse(null, true)
     this._status = Status.LAUNCHED
-    this._sock = sock
-    this._port = sock.address().port
+    this._sock = ws._socket
+    this._port = this._sock.address().port
+    this._ws = ws
     this._count = 1
     // apply @decoraters
     this.read = sw.decorate(this.read.bind(this))
@@ -69,15 +69,10 @@ class StarcraftProtocol {
     // set up sync-like read
     this._trigger = null
     this._que = []
-    this._sock.on('data', (response) => {
-      withPython(sw("read_response"), () => {
-        if (!response) {
-          throw new ProtocolError('Got an empty response from SC2.')
-        }
-      })
-      withPython(sw('parse_response'), () => {
-        response = sc_pb.Response.deserializeBinary(response)
-      })
+    this._ws.on('message', (response) => {
+      if (!response) {
+        throw new ProtocolError('Got an empty response from SC2.')
+      }
       if (this._trigger) {
         this._trigger(response)
         this._trigger = null
@@ -98,7 +93,8 @@ class StarcraftProtocol {
 
   close() {
     if (this._sock) {
-      this._sock.terminate()
+      this._ws.terminate()
+      this._ws = null
       this._sock = null
     }
     this._status = Status.QUIT
@@ -107,21 +103,22 @@ class StarcraftProtocol {
   async read() {
     //Read a Response, do some validation, and return it.//
     let start
-    if (FLAGS.sc2_verbose_protocol) {
+    if (flags.get('sc2_verbose_protocol')) {
       this._log(`-------------- [${this._port}] Reading response --------------`)
       // performance.now() => measured in milliseconds.
       start = performance.now() * 1000
     }
     const response = await this._read()
-    if (FLAGS.sc2_verbose_protocol) {
-      this.log(`-------------- [${this._port}] Read ${response.getResponseCase()} in ${performance.now() * 1000 - start} msec --------------\n${this._packet_str(response)}`)
+    if (flags.get('sc2_verbose_protocol')) {
+      this._log(`-------------- [${this._port}] Read ${response.getResponseCase()} in ${performance.now() * 1000 - start} msec --------------\n${this._packet_str(response)}`)
     }
     if (response.getStatus && !response.getStatus()) {
       throw new ProtocolError('Got an incomplete response without a status')
     }
     const prev_status = this._status
     this._status = Status(response.getStatus())
-    if (response.getError && response.getError()) {
+    if (response.hasError && response.hasError() && response.getError()) {
+    // if (response.getError && response.getError()) {
       const err_str = `Error in RPC response (likely a bug).\n Prev status: ${prev_status}, new status: ${this._status} \n ${response.getError()}`
       this._log(err_str)
       throw new ProtocolError(err_str)
@@ -131,8 +128,16 @@ class StarcraftProtocol {
 
   write(request) {
     //Write a Request.//
-    if (FLAGS.sc2_verbose_protocol) {
-      this._log(`-------------- [${this._port}] Writing request: ${request.getResponseCase()} --------------\n${this._packet_str(request)}`)
+    if (flags.get('sc2_verbose_protocol')) {
+      const printObj = request.toObject()
+      if (printObj.saveMap && printObj.saveMap.mapData) {
+        printObj.saveMap.mapData = `<buffer ${printObj.saveMap.mapData.length} bytes>`
+      }
+      if (printObj.startReplay && printObj.startReplay.mapData) {
+        printObj.startReplay.mapData = `<buffer ${printObj.startReplay.mapData.length} bytes>`
+        printObj.startReplay.replayData = `<buffer ${printObj.startReplay.replayData.length} bytes>`
+      }
+      this._log(`-------------- [${this._port}] Writing request: ${JSON.stringify(printObj)} --------------\n${this._packet_str(request)}`)
     }
     this._write(request)
   }
@@ -171,10 +176,18 @@ class StarcraftProtocol {
     try {
       res = await this.send_req(req)
     } catch (err) {
+      console.warn('PORT: ', this._port, '\nreq:\n', req.toObject(), '\nres:\n', res ? res.toObject() : 'undefined')
       throw new ConnectionError(`Error during ${name}: ${err}`)
     }
-    if (res.getId && res.getId() !== req.id) {
-      throw new ConnectionError(`Error during ${name}: Got a response with a different id`)
+    if (res.getId && res.getId() !== req.getId()) {
+      const reqObj = req.toObject()
+      Object.keys(reqObj).forEach((key) => {
+        if (key.match('data') && reqObj[key]) {
+          reqObj[key] = `<data ${reqObj[key].length}>`
+        }
+      })
+      console.warn('PORT: ', this._port, '\nreq:\n', reqObj, '\nres:\n', res ? res.toObject() : 'undefined')
+      throw new ConnectionError(`Error during ${name}: Got a response with a different id\n expected: ${req.getId()}, got: ${res.getId()}`)
     }
 
     // proto getters: getFoo, getFooList
@@ -183,7 +196,7 @@ class StarcraftProtocol {
 
   _packet_str(packet) { //eslint-disable-line
     //Return a string form of this packet.//
-    const max_lines = FLAGS.sc2_verbose_protocol
+    const max_lines = flags.get('sc2_verbose_protocol')
     const packet_str = String(packet).trim()
     if (max_lines <= 0) {
       return packet_str
@@ -208,21 +221,27 @@ class StarcraftProtocol {
 
   async _read() {
     //Actually read the response and parse it, returning a Response.//
-    if (this._que.length) {
-      return this._que.shift()
-    }
-    return new Promise((resolve) => { this._trigger = resolve })
+    let response = await withPythonAsync(this._sw('read_response'), async () => {
+      if (this._que.length) {
+        return this._que.shift()
+      }
+      return new Promise((resolve) => { this._trigger = resolve })
+    })
+    withPython(this._sw('parse_response'), () => {
+      response = sc_pb.Response.deserializeBinary(response)
+    })
+    return response
   }
 
   _write(request) {
     //Actually serialize and write the request.//
     let request_str
-    withPython(sw('serialize_request'), () => {
+    withPython(this._sw('serialize_request'), () => {
       request_str = request.serializeBinary()
     })
-    withPython(sw('write_request'), () => {
+    withPython(this._sw('write_request'), () => {
       try { //eslint-disable-line
-        this._sock.send(request_str)
+        this._ws.send(request_str)
       } catch (err) {
         /* TODO: Handling of different error types
             raise ConnectionError("Connection already closed. SC2 probably crashed. "

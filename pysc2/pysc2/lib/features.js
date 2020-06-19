@@ -9,14 +9,13 @@ const static_data = require(path.resolve(__dirname, './static_data.js'))
 const stopwatch = require(path.resolve(__dirname, './stopwatch.js'))
 const transform = require(path.resolve(__dirname, './transform.js'))
 const pythonUtils = require(path.resolve(__dirname, './pythonUtils.js'))
-const all_collections_generated_classes = require(path.resolve(__dirname, './all_collections_generated_classes.js'))
 const np = require(path.resolve(__dirname, './numpy.js'))
 
 const sw = stopwatch.sw
 const { raw_pb, sc2api_pb } = s2clientprotocol
 const sc_raw = raw_pb
 const sc_pb = sc2api_pb
-const { Defaultdict, int, isinstance, len, map, withPython, setUpProtoAction, sum, zip, getArgsArray } = pythonUtils
+const { Defaultdict, getArgsArray, getattr, int, isinstance, len, namedtuple, setUpProtoAction, sum, unpackbits, ValueError, withPython, zip } = pythonUtils
 const EPSILON = 1e-5
 
 const FeatureType = Enum.Enum('FeatureType', {
@@ -26,7 +25,7 @@ const FeatureType = Enum.Enum('FeatureType', {
 
 const PlayerRelative = Enum.IntEnum('PlayerRelative', {
   /*The values for the `player_relative` feature layers.*/
-  null: 0,
+  none: 0,
   SELF: 1,
   ALLY: 2,
   NEUTRAL: 3,
@@ -42,7 +41,7 @@ const Visibility = Enum.IntEnum('Visibility', {
 
 const Effects = Enum.IntEnum('Effects', {
   /*Values for the `effects` feature layer.*/
-  null: 0,
+  none: 0,
   PsiStorm: 1,
   GuardianShield: 2,
   TemporalFieldGrowing: 3,
@@ -91,7 +90,7 @@ const ScoreByCategory = Enum.IntEnum('ScoreByCategory', {
 
 const ScoreCategories = Enum.IntEnum('ScoreCategories', {
   /*Indices for the `score_by_category` observation's second dimension.*/
-  null: 0,
+  none: 0,
   army: 1,
   economy: 2,
   technology: 3,
@@ -217,7 +216,8 @@ const ProductionQueue = Enum.IntEnum('ProductionQueue', {
   build_progress: 1,
 })
 
-class Feature extends all_collections_generated_classes.Feature {
+// class Feature extends all_collections_generated_classes.Feature {
+class Feature extends namedtuple('Feature', ['index', 'name', 'layer_set', 'full_name', 'scale', 'type', 'palette', 'clip']) {
   /*Define properties of a feature layer.
 
   Attributes:
@@ -246,41 +246,85 @@ class Feature extends all_collections_generated_classes.Feature {
     }
   }
 
+  static get sdtypes() {
+    return {
+      1: 'uint8',
+      8: 'uint8',
+      16: 'uint16',
+      32: 'int32',
+    }
+  }
+
   unpack(obs) {
     //Return a correctly shaped numpy array for this feature.//
-    const planes = obs.feature_layer_data[this.layer_set]
-    const plane = planes[this.name]
+    const planes = getattr(obs.getFeatureLayerData(), this.layer_set)
+    const plane = getattr(planes, this.name) || new sc_pb.ImageData()
+    if (this.name == 'unit_type') {
+      // console.log(plane.toObject())
+    }
     return this.unpack_layer(plane)
+  }
+
+  unpack_layer(plane) {//eslint-disable-line
+    return Feature.unpack_layer(plane)
   }
 
   static unpack_layer(plane) {
     //Return a correctly shaped numpy array given the feature layer bytes.//
-    const size = point.Point.build(plane.size)
+    if (plane.getSize() === undefined) {
+      return null
+    }
+    const size = point.Point.build(plane.getSize())
     if (size[0] === 0 && size[1] === 0) {
       // New layer that isn't implemented in this SC2 version.
       return null
     }
-    let data = np.frombuffer(plane.data, Feature.dtypes[plane.bits_per_pixel])
-    if (plane.bits_per_pixel === 1) {
-      data = np.unpackbits(data)
-      if (data.shape[0] != (size.x * size.y)) {
+    // console.log('-----------------------------------')
+    let data = plane.getData()
+    // console.log('data: ', data.length)
+    const buffer = data.buffer
+    // console.log('is ArrayBuffer: '/*, buffer instanceof ArrayBuffer*/, buffer.byteLength, ' byteOffset: ', data.byteOffset)
+    // console.log('buffer length: ', buffer.byteLength)
+    // console.log('bits per pixel: ', plane.getBitsPerPixel())
+
+    if (plane.getBitsPerPixel() !== 8 && plane.getBitsPerPixel() !== 1) {
+      data = new Feature.dtypes[plane.getBitsPerPixel()](
+        buffer.slice(data.byteOffset, data.byteOffset + data.length)
+      )
+    }
+
+    // console.log('typeArray data: ', data.length)
+    // console.log('shape: ', size.x, ' x ', size.y)
+    if (plane.getBitsPerPixel() === 1) {
+      data = unpackbits(data)
+      if (data.length !== (size.x * size.y)) {
         // This could happen if the correct length isn't a multiple of 8, leading
         // to some padding bits at the end of the string which are incorrectly
         // interpreted as data.
         data = data.slice(0, size.x * size.y)
       }
+      // data = unpackbitsToShape(data, [size.x, size.y])
+      // data.shape = [size.x, size.y]
+      // return data
     }
-    return data.reshape(size.y, size.x)
+
+    data = np.tensor(data, [size.y, size.x], 'int32')
+    return data
+  }
+
+  unpack_rgb_image(plane) {//eslint-disable-line
+    return Feature.unpack_rgb_image(plane)
   }
 
   static unpack_rgb_image(plane) {
     //Return a correctly shaped numpy array given the image bytes.//
-    if (plane.bits_per_pixel !== 24) {
-      throw new Error(`ValueError: plane.bits_per_pixel ${plane.bits_per_pixel} !== 24`)
+    if (plane.getBitsPerPixel() !== 24) {
+      throw new ValueError(`plane.bits_per_pixel ${plane.getBitsPerPixel()} !== 24`)
     }
-    const size = point.Point.build(plane.size)
-    const data = np.frombuffer(plane.data, np.uint8)
-    return data.reshape(size.y, size.x, 3)
+    const size = point.Point.build(plane.getSize())
+    let data = plane.getData()
+    data = np.tensor(data, [size.y, size.x, 3])
+    return data
   }
 
   color(plane) {
@@ -293,17 +337,23 @@ class Feature extends all_collections_generated_classes.Feature {
 
 Feature.unpack_layer = sw.decorate(Feature.unpack_layer)
 Feature.unpack_rgb_image = sw.decorate(Feature.unpack_rgb_image)
-const ScreenFeatures_fields = all_collections_generated_classes.ScreenFeatures._fields
-class ScreenFeatures extends all_collections_generated_classes.ScreenFeatures {
+
+class ScreenFeatures extends namedtuple('ScreenFeatures', [
+  'height_map', 'visibility_map', 'creep', 'power', 'player_id',
+  'player_relative', 'unit_type', 'selected', 'unit_hit_points',
+  'unit_hit_points_ratio', 'unit_energy', 'unit_energy_ratio', 'unit_shields',
+  'unit_shields_ratio', 'unit_density', 'unit_density_aa', 'effects',
+  'hallucinations', 'cloaked', 'blip', 'buffs', 'buff_duration', 'active',
+  'build_progress', 'pathable', 'buildable', 'placeholder']) {
   constructor(kwargs) {
     //The set of screen feature layers.//
     const feats = {}
     let val
     Object.keys(kwargs).forEach((name) => {
       val = kwargs[name]
-      const { scale, type_, palette, clip } = val
+      const [scale, type_, palette, clip] = val
       feats[name] = new Feature({
-        index: ScreenFeatures_fields.indexOf(name),
+        index: ScreenFeatures._fields.indexOf(name),
         name,
         layer_set: 'renders',
         full_name: 'screen ' + name,
@@ -316,17 +366,20 @@ class ScreenFeatures extends all_collections_generated_classes.ScreenFeatures {
     super(feats)
   }
 }
-const MinimapFeatures_fields = all_collections_generated_classes.MinimapFeatures._fields
-class MinimapFeatures extends all_collections_generated_classes.MinimapFeatures {
+
+class MinimapFeatures extends namedtuple('MinimapFeatures', [
+  'height_map', 'visibility_map', 'creep', 'camera', 'player_id',
+  'player_relative', 'selected', 'unit_type', 'alerts', 'pathable',
+  'buildable']) {
   //The set of minimap feature layers.//
   constructor(kwargs) {
     const feats = {}
     let val
     Object.keys(kwargs).forEach((name) => {
       val = kwargs[name]
-      const { scale, type_, palette } = val
+      const [scale, type_, palette] = val
       feats[name] = new Feature({
-        index: MinimapFeatures_fields.indexOf(name),
+        index: MinimapFeatures._fields.indexOf(name),
         name,
         layer_set: 'minimap_renders',
         full_name: 'minimap ' + name,
@@ -349,7 +402,7 @@ const SCREEN_FEATURES = new ScreenFeatures({
     colors.PLAYER_ABSOLUTE_PALETTE, false],
   player_relative: [5, FeatureType.CATEGORICAL,
     colors.PLAYER_RELATIVE_PALETTE, false],
-  unit_type: [Math.max(static_data.UNIT_TYPES) + 1, FeatureType.CATEGORICAL,
+  unit_type: [Math.max(...static_data.UNIT_TYPES) + 1, FeatureType.CATEGORICAL,
     colors.unit_type, false],
   selected: [2, FeatureType.CATEGORICAL, colors.SELECTED_PALETTE, false],
   unit_hit_points: [1600, FeatureType.SCALAR, colors.hot, true],
@@ -364,7 +417,7 @@ const SCREEN_FEATURES = new ScreenFeatures({
   hallucinations: [2, FeatureType.CATEGORICAL, colors.POWER_PALETTE, false],
   cloaked: [2, FeatureType.CATEGORICAL, colors.POWER_PALETTE, false],
   blip: [2, FeatureType.CATEGORICAL, colors.POWER_PALETTE, false],
-  buffs: [Math.max(static_data.BUFFS) + 1, FeatureType.CATEGORICAL,
+  buffs: [Math.max(...static_data.BUFFS) + 1, FeatureType.CATEGORICAL,
     colors.buffs, false],
   buff_duration: [256, FeatureType.SCALAR, colors.hot, false],
   active: [2, FeatureType.CATEGORICAL, colors.POWER_PALETTE, false],
@@ -383,7 +436,7 @@ const MINIMAP_FEATURES = new MinimapFeatures({
   player_relative: [5, FeatureType.CATEGORICAL,
     colors.PLAYER_RELATIVE_PALETTE],
   selected: [2, FeatureType.CATEGORICAL, colors.winter],
-  unit_type: [Math.max(static_data.UNIT_TYPES) + 1, FeatureType.CATEGORICAL,
+  unit_type: [Math.max(...static_data.UNIT_TYPES) + 1, FeatureType.CATEGORICAL,
     colors.unit_type],
   alerts: [2, FeatureType.CATEGORICAL, colors.winter],
   pathable: [2, FeatureType.CATEGORICAL, colors.winter],
@@ -393,23 +446,23 @@ const MINIMAP_FEATURES = new MinimapFeatures({
 function _to_point(dims) {
   //Convert (width, height) or size -> point.Point.//
   if (!dims) {
-    throw new Error(`ValueError: ${dims}`)
+    throw new ValueError(`Must pass a valid dims argument, got:\n${dims}`)
   }
   if (isinstance(dims, [Array])) {
     if (dims.length !== 2) {
-      throw new Error(`ValueError: A two element array is expected here, got ${dims}.`)
+      throw new ValueError(`A two element array is expected here, got ${dims}.`)
     } else {
       const width = int(dims[0])
       const height = int(dims[1])
       if (width <= 0 || height <= 0) {
-        throw new Error(`ValueError: Must specify +ve dims, got ${dims}.`)
+        throw new ValueError(`Must specify +ve dims, got ${dims}.`)
       }
       return new point.Point(width, height)
     }
   } else {
     const size = int(dims)
     if (size <= 0) {
-      throw new Error(`ValueError: Must specify +ve value for size, got ${dims}.`)
+      throw new ValueError(`Must specify +ve value for size, got ${dims}.`)
     }
     return new point.Point(size, size)
   }
@@ -426,7 +479,14 @@ class Dimensions {
       minimap: A (width, height) int tuple or a single int to be used for both.
     */
     if (!screen || !minimap) {
-      throw new Error(`ValueError: screen and minimap must both be set, screen=${screen}, minimap=${minimap}.`)
+      // arguments got passed as object
+      if (screen.screen && screen.minimap) {
+        const args = arguments[0] //eslint-disable-line
+        screen = args.screen
+        minimap = args.minimap
+      } else {
+        throw new ValueError(`screen and minimap must both be set, screen=${screen}, minimap=${minimap}.`)
+      }
     }
     this._screen = _to_point(screen)
     this._minimap = _to_point(minimap)
@@ -552,18 +612,18 @@ class AgentInterfaceFormat {
 
     if (action_space) {
       if (!isinstance(action_space, actions.ActionSpace)) {
-        throw new Error('ValueError: action_space must be of type ActionSpace.')
+        throw new ValueError(' action_space must be of type ActionSpace.')
       }
       if (action_space === actions.ActionSpace.RAW) {
         use_raw_actions = true
       } else if ((action_space === actions.ActionSpace.FEATURES && !(feature_dimensions)) || (action_space === actions.ActionSpace.RGB && !(rgb_dimensions))) {
-        throw new Error(`ValueError: Action space must match the observations, action space=${action_space}, feature_dimensions=${feature_dimensions}, rgb_dimensions=${rgb_dimensions} `)
+        throw new ValueError(`Action space must match the observations, action space=${action_space}, feature_dimensions=${feature_dimensions}, rgb_dimensions=${rgb_dimensions} `)
       }
     } else {
       if (use_raw_actions) {//eslint-disable-line
         action_space = actions.ActionSpace.RAW
       } else if (feature_dimensions && rgb_dimensions) {
-        throw new Error('ValueError: You must specify the action space if you have both screen and rgb observations.')
+        throw new ValueError('You must specify the action space if you have both screen and rgb observations.')
       } else if (feature_dimensions) {
         action_space = actions.ActionSpace.FEATURES
       } else {
@@ -577,16 +637,16 @@ class AgentInterfaceFormat {
 
     if (use_raw_actions) {
       if (!use_raw_units) {
-        throw new Error('ValueError: You must set use_raw_units if you intend to use_raw_actions')
+        throw new ValueError('You must set use_raw_units if you intend to use_raw_actions')
       }
       if (action_space !== actions.ActionSpace.RAW) {
-        throw new Error('Don\'t specify both an action_space and use_raw_actions.')
+        throw new ValueError('Don\'t specify both an action_space and use_raw_actions.')
       }
     }
 
     if (rgb_dimensions && (rgb_dimensions.screen.x < rgb_dimensions.minimap.x
       || rgb_dimensions.screen.y < rgb_dimensions.minimap.y)) {
-      throw new Error(`RGB Screen (${rgb_dimensions.screen}) can't be smaller than the minimap (${rgb_dimensions.minimap}).`)
+      throw new ValueError(`RGB Screen (${rgb_dimensions.screen}) can't be smaller than the minimap (${rgb_dimensions.minimap}).`)
     }
 
     this._feature_dimensions = feature_dimensions
@@ -789,7 +849,7 @@ function parse_agent_interface_format({
           return i + 1
         }
       }
-      throw new Error('ValueError: Failed to sample action delay??')
+      throw new ValueError('Failed to sample action delay??')
     }
     return fn
   }
@@ -806,7 +866,7 @@ function parse_agent_interface_format({
   return new AgentInterfaceFormat(usedArgs)
 }
 
-function features_from_game_info(game_info, agent_interface_format = null, map_name = null, kwargs) {
+function features_from_game_info({ game_info, agent_interface_format = null, map_name = null, kwargs }) {
   /*Construct a Features object using data extracted from game info.
 
   Args:
@@ -825,7 +885,7 @@ function features_from_game_info(game_info, agent_interface_format = null, map_n
         game_info's resolutions.
   */
   if (!map_name) {
-    map_name = game_info.map_name
+    map_name = game_info.getMapName()
   }
   let fl_opts
   let feature_dimensions
@@ -856,7 +916,7 @@ function features_from_game_info(game_info, agent_interface_format = null, map_n
   const map_size = game_info.getStartRaw().getMapSize()
 
   const requested_races = {}
-  game_info.getPlayerInfo().forEach((info) => {
+  game_info.getPlayerInfoList().forEach((info) => {
     if (info.getType() !== sc_pb.PlayerType.OBSERVER) {
       requested_races[info.getPlayerId()] = info.getRaceRequested()
     }
@@ -864,32 +924,35 @@ function features_from_game_info(game_info, agent_interface_format = null, map_n
 
   if (agent_interface_format) {
     if (kwargs) {
-      throw new Error('ValueError: Either give an agent_interface_format or kwargs, not both.')
+      throw new ValueError(' Either give an agent_interface_format or kwargs, not both.')
     }
     const aif = agent_interface_format
-    if (aif.rgb_dimensions !== rgb_dimensions ||
-      aif.feature_dimensions !== feature_dimensions ||
-      (feature_dimensions &&
-       aif.camera_width_world_units !== camera_width_world_units)) {
+    if (aif.rgb_dimensions !== rgb_dimensions
+      || aif.feature_dimensions !== feature_dimensions
+      || (feature_dimensions
+      && aif.camera_width_world_units !== camera_width_world_units)) {
       throw new Error(`The supplied agent_interface_format doesn't match the resolutions computed from the game_info:
   rgb_dimensions: ${aif.rgb_dimensions} !== ${rgb_dimensions}
   feature_dimensions: ${aif.feature_dimensions} !== ${feature_dimensions}
   camera_width_world_units: ${aif.camera_width_world_units} !== ${camera_width_world_units}`)
     }
   } else {
-    agent_interface_format = new AgentInterfaceFormat({
+    const args = {
       feature_dimensions,
       rgb_dimensions,
       camera_width_world_units,
-      kwargs,
+    }
+    Object.keys(kwargs).forEach((key) => {
+      args[key] = kwargs[key]
     })
+    agent_interface_format = new AgentInterfaceFormat(args)
   }
-  return new Feature({
+  return new Features( //eslint-disable-line
     agent_interface_format,
     map_size,
     map_name,
     requested_races,
-  })
+  )
 }
 
 function _init_valid_functions(action_dimensions) {
@@ -981,7 +1044,7 @@ class Features {
           use_camera_position is.
     */
     if (!agent_interface_format) {
-      throw new Error('ValueError: Please specify agent_interface_format')
+      throw new ValueError(' Please specify agent_interface_format')
     }
 
     this._agent_interface_format = agent_interface_format
@@ -1016,7 +1079,7 @@ class Features {
     this._requested_races = requested_races
 
     if (requested_races !== null && requested_races.length <= 2) {
-      throw new Error('ValueError: requested_races.length is greater than 2')
+      throw new ValueError(' requested_races.length is greater than 2')
     }
     // apply @sw.decorate
     this.transform_obs = sw.decorate(this.transform_obs.bind(this))
@@ -1044,7 +1107,7 @@ class Features {
           should mainly happen if called by the constructor).
     */
     if (!map_size || !camera_width_world_units) {
-      throw new Error(`ValueError:
+      throw new ValueError(`
           "Either pass the game_info with raw enabled, or map_size and "
           "camera_width_world_units in order to use feature_units or camera"
           "position.`)
@@ -1197,34 +1260,34 @@ class Features {
 
   transform_obs(obs) {
     //Render some SC2 observations into something an agent can handle.//
-    const empty_unit = np.array([], /*dtype=*/np.int32).reshape([0, UnitLayer._keys.length])
-    const out = named_array.NamedDict({ // Fill out some that are sometimes empty.
+    const dtype = 'int32'
+    const empty_unit = np.array(Array(UnitLayer._keys.length).fill(0), [UnitLayer._keys.length], dtype)
+    const out = new named_array.NamedDict({ // Fill out some that are sometimes empty.
       'single_select': empty_unit,
       'multi_select': empty_unit,
       'build_queue': empty_unit,
       'cargo': empty_unit,
-      'production_queue': np.array([], /*dtype=*/np.int32).reshape(
-        [0, ProductionQueue._keys.length]
-      ),
-      'last_actions': np.array([], /*dtype=*/np.int32),
-      'cargo_slots_available': np.array([0], /*dtype=*/np.int32),
-      'home_race_requested': np.array([0], /*dtype=*/np.int32),
-      'away_race_requested': np.array([0], /*dtype=*/np.int32),
+      'production_queue': np.array(Array(ProductionQueue._keys.length).fill(0), [ProductionQueue._keys.length], dtype),
+      'last_actions': np.array([0], [1], dtype),
+      'cargo_slots_available': np.array([0], [1], dtype),
+      'home_race_requested': np.array([0], [1], dtype),
+      'away_race_requested': np.array([0], [1], dtype),
       'map_name': this._map_name,
     })
     let raw // defined on line 1497
     function or_zeros(layer, size) {
       if (layer !== null) {
-        return layer.astype(np.int32, /*copy=*/false)
+        // python uses np.astype <Copy of the array, cast to a specified type.>
+        // return Array(...layer.values) // tensorflow buffer.values
+        return layer
       }
-      return np.zeros([size.y, size.x], /*dtype=*/np.int32)
+      return np.zeros([size.y, size.x], 'int32')
     }
     const aif = this._agent_interface_format
-
     if (aif.feature_dimensions) {
       withPython(sw('feature_screen'), () => {
         const stacks = SCREEN_FEATURES.map((f) => {
-          return or_zeros(f.unpack(obs.observation), aif.feature_dimensions.scren)
+          return or_zeros(f.unpack(obs.getObservation()), aif.feature_dimensions.screen)
         })
         out['feature_screen'] = named_array.NamedNumpyArray(
           np.stack(stacks),
@@ -1233,9 +1296,9 @@ class Features {
       })
       withPython(sw('feature_minimap'), () => {
         const stacks = MINIMAP_FEATURES.map((f) => {
-          return or_zeros(f.unpack(obs.observation), aif.feature_dimensions.minimap)
+          return or_zeros(f.unpack(obs.getObservation()), aif.feature_dimensions.minimap)
         })
-        out['feature_minimap'] = named_array.NamedNumpyArray(
+        out['feature_minimap'] = new named_array.NamedNumpyArray(
           np.stack(stacks),
           /*names=*/[MinimapFeatures, null, null]
         )
@@ -1244,167 +1307,161 @@ class Features {
     if (aif.rgb_dimensions) {
       withPython(sw('rgb_screen'), () => {
         out['rgb_screen'] = Feature.unpack_rgb_image(
-          obs.observation.render_data.map).astype(np.int32)
+          obs.getObservation().getRenderData().getMap()
+        )
       })
       withPython(sw('rgb_minimap'), () => {
         out['rgb_minimap'] = Feature.unpack_rgb_image(
-          obs.observation.render_data.minimap).astype(np.int32)
+          obs.getObservation().getRenderData().getMinimap()
+        )
       })
     }
     if (!this._raw) {
       withPython(sw('last_actions'), () => {
-        const acts = Object.keys(obs.actions).map((key) => {
-          const a = obs.actions[key]
+        const acts = obs.getActionsList().map((a) => {
           return this.reverse_action(a).function
         })
-        out['last_actions'] = np.array(
-          acts,
-          /*dtype=*/np.int32
-        )
+        out['last_actions'] = np.array(acts)
       })
     }
     out['action_result'] = np.array(
-      Object.keys(obs.action_errors).map((key) => {
-        const o = obs.action_errors[key]
-        return o.result
-      }),
-      /*dtype=*/np.int32
+      (getattr(obs, 'action_errors') || getattr(obs, 'action_errors_list'))
+        .map((o) => o.getResult())
     )
 
-    out['alerts'] = np.array(obs.observation.alerts, /*dtype=*/np.int32)
+    out['alerts'] = np.array(obs.getObservation().getAlertsList())
 
-    out['game_loop'] = np.array([obs.observation.game_loop], /*dtype=*/np.int32)
+    out['game_loop'] = np.array([obs.getObservation().getGameLoop()])
 
     withPython(sw('score'), () => {
-      const score_details = obs.observation.score.score_details
+      let score_details
+      if (obs.getObservation().hasScore()) {
+        score_details = obs.getObservation().getScore().getScoreDetails()
+      } else {
+        score_details = new sc_pb.ScoreDetails()
+        obs.getObservation().setScore(new sc_pb.Score())
+        score_details.setFoodUsed(new sc_pb.CategoryScoreDetails())
+        score_details.setKilledMinerals(new sc_pb.CategoryScoreDetails())
+        score_details.setKilledVespene(new sc_pb.CategoryScoreDetails())
+        score_details.setLostMinerals(new sc_pb.CategoryScoreDetails())
+        score_details.setLostVespene(new sc_pb.CategoryScoreDetails())
+        score_details.setFriendlyFireMinerals(new sc_pb.CategoryScoreDetails())
+        score_details.setFriendlyFireVespene(new sc_pb.CategoryScoreDetails())
+        score_details.setUsedMinerals(new sc_pb.CategoryScoreDetails())
+        score_details.setUsedVespene(new sc_pb.CategoryScoreDetails())
+        score_details.setTotalUsedMinerals(new sc_pb.CategoryScoreDetails())
+        score_details.setTotalUsedVespene(new sc_pb.CategoryScoreDetails())
+        score_details.setTotalDamageDealt(new sc_pb.VitalScoreDetails())
+        score_details.setTotalDamageTaken(new sc_pb.VitalScoreDetails())
+        score_details.setTotalHealed(new sc_pb.VitalScoreDetails())
+        obs.getObservation().getScore().setScoreDetails(score_details)
+      }
       out['score_cumulative'] = named_array.NamedNumpyArray([
-        obs.observation.score.score,
-        score_details.idle_production_time,
-        score_details.idle_worker_time,
-        score_details.total_value_units,
-        score_details.total_value_structures,
-        score_details.killed_value_units,
-        score_details.killed_value_structures,
-        score_details.collected_minerals,
-        score_details.collected_vespene,
-        score_details.collection_rate_minerals,
-        score_details.collection_rate_vespene,
-        score_details.spent_minerals,
-        score_details.spent_vespene,
-      ], /*names=*/ScoreCumulative, /*dtype=*/np.int32)
+        obs.getObservation().getScore().getScore() || 0,
+        score_details.getIdleProductionTime() || 0,
+        score_details.getIdleWorkerTime() || 0,
+        score_details.getTotalValueUnits() || 0,
+        score_details.getTotalValueStructures() || 0,
+        score_details.getKilledValueUnits() || 0,
+        score_details.getKilledValueStructures() || 0,
+        score_details.getCollectedMinerals() || 0,
+        score_details.getCollectedVespene() || 0,
+        score_details.getCollectionRateMinerals() || 0,
+        score_details.getCollectionRateVespene() || 0,
+        score_details.getSpentMinerals() || 0,
+        score_details.getSpentVespene() || 0,
+      ], /*names=*/ScoreCumulative)
 
       function get_score_details(key, details, categories) {
-        const row = details[key.name]
-        return Object.keys(categories)
-          .map((category) => row[category.name])
+        const row = (getattr(details, key) || getattr(details, key + '_list'))
+        return categories._keys
+          .map((categoryKey) => getattr(row, categoryKey))
       }
+
       out['score_by_category'] = named_array.NamedNumpyArray(
-        Object.keys(ScoreByCategory).map((k) => {
-          const key = ScoreByCategory[k]
-          return get_score_details(key, score_details, ScoreCategories)
-        }),
-        /*names=*/[ScoreByCategory, ScoreCategories],
-        /*dtype=*/np.int32
+        ScoreByCategory._keys.map((key) => get_score_details(key, score_details, ScoreCategories)),
+        /*names=*/[ScoreByCategory, ScoreCategories]
       )
 
       out['score_by_vital'] = named_array.NamedNumpyArray(
-        Object.keys(ScoreByVital).map((k) => {
-          const key = ScoreByCategory[k]
-          return get_score_details(key, score_details, ScoreVitals)
-        }),
-        /*names=*/[ScoreByVital, ScoreVitals],
-        /*dtype=*/np.int32
+        ScoreByVital._keys.map((key) => get_score_details(key, score_details, ScoreVitals)),
+        /*names=*/[ScoreByVital, ScoreVitals]
       )
     })
-    const player = obs.observation.player_common
+    const player = obs.getObservation().getPlayerCommon()
     out['player'] = named_array.NamedNumpyArray(
       [
-        player.player_id,
-        player.minerals,
-        player.vespene,
-        player.food_used,
-        player.food_cap,
-        player.food_army,
-        player.food_workers,
-        player.idle_worker_count,
-        player.army_count,
-        player.warp_gate_count,
-        player.larva_count,
+        getattr(player, 'player_id'),
+        getattr(player, 'minerals'),
+        getattr(player, 'vespene'),
+        getattr(player, 'food_used'),
+        getattr(player, 'food_cap'),
+        getattr(player, 'food_army'),
+        getattr(player, 'food_workers'),
+        getattr(player, 'idle_worker_count'),
+        getattr(player, 'army_count'),
+        getattr(player, 'warp_gate_count'),
+        getattr(player, 'larva_count'),
       ],
-      /*names=*/Player,
-      /*dtype=*/np.int32
+      /*names=*/Player
     )
 
     function unit_vec(u) {
       return np.array([
-        u.unit_type,
-        u.player_relative,
-        u.health,
-        u.shields,
-        u.energy,
-        u.transport_slots_taken,
-        int(u.build_progress * 100), // discretize
-      ], /*dtype=*/np.int32)
+        u.getUnitType(),
+        u.getPlayerRelative(),
+        u.getHealth(),
+        u.getShields(),
+        u.getEnergy(),
+        u.getTransportSlotsTaken(),
+        int(u.getBuildProgress() * 100), // discretize
+      ])
     }
-    const ui = obs.observation.ui_data
+    const ui = obs.getObservation().getUiData()
 
     withPython(sw('ui'), () => {
-      const groups = np.zeros([10, 2], /*dtype=*/np.int32)
-      Object.keys(ui.groups).forEach((key) => {
-        const g = ui.groups[key]
-        // check this
-        groups[g.control_group_index] = [g.leader_unit_type, g.count]
+      const groups = np.zeros([10, 2])
+      ui.getGroupsList().forEach((g) => {
+        groups[g.getControlGroupIndex()] = [g.getLeaderUnitType(), g.getCount()]
       })
       out['control_groups'] = groups
 
-      if (ui.has('single')) {
+      if (ui.hasSingle()) {
         out['single_select'] = named_array.NamedNumpyArray(
-          [unit_vec(ui.single.unit)], [null, UnitLayer]
+          [unit_vec(ui.getSingle().getUnit())], [null, UnitLayer]
         )
-      } else if (ui.has('multi')) {
+      } else if (ui.hasMulti()) {
         out['multi_select'] = named_array.NamedNumpyArray(
-          Object.keys(ui.multi.units).map((key) => {
-            const u = ui.multi.units[key]
-            return unit_vec(u)
-          })
+          ui.getMulti().getUnitsList().map((u) => unit_vec(u)),
+          [null, UnitLayer]
         )
-      } else if (ui.has('cargo')) {
+      } else if (ui.hasCargo()) {
         out['single_select'] = named_array.NamedNumpyArray(
-          [unit_vec(ui.cargo.unit)], [null, UnitLayer]
+          [unit_vec(ui.getCargo().getUnit())], [null, UnitLayer]
         )
         out['cargo'] = named_array.NamedNumpyArray(
-          Object.keys(ui.cargo.passengers).map((key) => {
-            const u = ui.cargo.passengers[key]
-            return unit_vec(u)
-          }),
+          ui.getCargo().getPassengersList().map((u) => unit_vec(u)),
           [null, UnitLayer]
         )
         out['cargo_slots_available'] = np.array(
-          [ui.cargo.slots_available],
-          /*dtype=*/np.int32
+          [ui.getCargo().getSlotsAvailable()],
         )
-      } else if (ui.has('production')) {
+      } else if (ui.hasProduction()) {
         out['single_select'] = named_array.NamedNumpyArray(
-          [unit_vec(ui.production.unit)], [null, UnitLayer]
+          [unit_vec(ui.getProduction().getUnit())], [null, UnitLayer]
         )
-        if (ui.production.build_queue) {
+        if (ui.getProduction().getBuildQueueList()) {
           out['build_queue'] = named_array.NamedNumpyArray(
-            Object.keys(ui.production.build_queue).map((key) => {
-              const u = ui.production.build_queue[key]
-              return unit_vec(u)
-            }),
-            [null, UnitLayer],
-            /*dtype=*/np.int32
+            ui.getProduction().getBuildQueueList().map((u) => unit_vec(u)),
+            [null, UnitLayer]
           )
         }
-        if (ui.production.production_queue) {
+        if (ui.getProduction().getProductionQueueList()) {
           out['production_queue'] = named_array.NamedNumpyArray(
-            Object.keys(ui.production.production_queue).map((key) => {
-              const item = ui.production.production_queue[key]
-              return [item.ability_id, item.build_progress * 100]
-            }),
-            [null, ProductionQueue],
-            /*dtype=*/np.int32
+            ui.getProduction().getProductionQueueList().map((item) => [
+              item.getAbilityId(), item.getBuildProgress() * 100
+            ]),
+            [null, ProductionQueue]
           )
         }
       }
@@ -1412,116 +1469,106 @@ class Features {
     const tag_types = {} // Only populate the cache if it's needed.
     function get_addon_type(tag) {
       if (!Object.keys(tag_types).length) {
-        Object.keys(raw.units).forEach((key) => {
-          const u = raw.units[key]
-          tag_types[u.tag] = u.unit_type
+        raw.getUnitsList().forEach((u) => {
+          tag_types[u.getTag()] = u.getUnitType()
         })
       }
-      return tag_types.get(tag, 0)
+      return tag_types[tag] || 0
     }
     function full_unit_vec(u, pos_transform, is_raw = false) {
       //Compute unit features.//
       const screen_pos = pos_transform.fwd_pt(
-        point.Point.build(u.pos)
+        point.Point.build(u.getPos())
       )
-      const screen_radius = pos_transform.fwd_dist(u.radius)
+      const screen_radius = pos_transform.fwd_dist(u.getRadius())
       function raw_order(i) {
-        if (u.order.length === undefined) {
-          throw new Error('ValueError: u.order.length is undefined\nu.order: ', u.order)
-        }
-        if (u.orders.length > i) {
+        if (u.getOrdersList().length > i) {
           // TODO(tewalds): Return a generalized func id.
-          return actions.RAW_ABILITY_ID_TO_FUNC_ID.get(u.orders[i].ability_id, 0)
+          return actions.RAW_ABILITY_ID_TO_FUNC_ID[u.getOrdersList()[i].ability_id] || 0
         }
         return 0
       }
       const features = [
         // Match unit_vec order
-        u.unit_type,
-        u.alliance, // Self = 1, Ally = 2, Neutral = 3, Enemy = 4
-        u.health,
-        u.shield,
-        u.energy,
-        u.cargo_space_taken,
-        int(u.build_progress * 100), // discretize
+        u.getUnitType(),
+        u.getAlliance(), // this = 1, Ally = 2, Neutral = 3, Enemy = 4
+        u.getHealth(),
+        u.getShield(),
+        u.getEnergy(),
+        u.getCargoSpaceTaken(),
+        int(u.getBuildProgress() * 100), // discretize
 
         // Resume API order
-        u.health_max > 0 ? int(u.health / u.health_max * 255) : 0,
-        u.shield_max > 0 ? int(u.shield / u.shield_max * 255) : 0,
-        u.energy_max > 0 ? int(u.energy / u.energy_max * 255) : 0,
-        u.display_type, // Visible = 1, Snapshot = 2, Hidden = 3
-        u.owner, // 1-15, 16 = neutral
+        u.getHealthMax() > 0 ? int(u.getHealth() / u.getHealthMax() * 255) : 0,
+        u.getShieldMax() > 0 ? int(u.getShield() / u.getShieldMax() * 255) : 0,
+        u.getEnergyMax() > 0 ? int(u.getEnergy() / u.getEnergyMax() * 255) : 0,
+        u.getDisplayType(), // Visible = 1, Snapshot = 2, Hidden = 3
+        u.getOwner(), // 1-15, 16 = neutral
         screen_pos.x,
         screen_pos.y,
-        u.facing,
+        u.getFacing(),
         screen_radius,
-        u.cloak, // Cloaked = 1, CloakedDetected = 2, NotCloaked = 3
-        u.is_selected,
-        u.is_blip,
-        u.is_powered,
-        u.mineral_contents,
-        u.vespene_contents,
+        u.getCloak(), // Cloaked = 1, CloakedDetected = 2, NotCloaked = 3
+        u.getIsSelected(),
+        u.getIsBlip(),
+        u.getIsPowered(),
+        u.getMineralContents(),
+        u.getVespeneContents(),
 
         // Not populated for enemies or neutral
-        u.cargo_space_max,
-        u.assigned_harvesters,
-        u.ideal_harvesters,
-        u.weapon_cooldown,
-        u.orders.length,
+        u.getCargoSpaceMax(),
+        u.getAssignedHarvesters(),
+        u.getIdealHarvesters(),
+        u.getWeaponCooldown(),
+        u.getOrdersList().length,
         raw_order(0),
         raw_order(1),
-        is_raw ? u.tag : 0,
-        u.is_hallucination,
-        u.buff_ids.length >= 1 ? u.buff_ids[0] : 0,
-        u.buff_ids.length >= 2 ? u.buff_ids[1] : 0,
-        u.add_on_tag ? get_addon_type(u.add_on_tag) : 0,
-        u.is_active,
-        u.is_on_screen,
-        u.orders.length >= 1 ? int(u.orders[0].progress * 100) : 0,
-        u.orders.length >= 2 ? int(u.orders[1].progress * 100) : 0,
+        is_raw ? u.getTag() : 0,
+        u.getIsHallucination(),
+        u.getBuffIdsList().length >= 1 ? u.getBuffIdsList()[0] : 0,
+        u.getBuffIdsList().length >= 2 ? u.getBuffIdsList()[1] : 0,
+        u.getAddOnTag() ? get_addon_type(u.getAddOnTag()) : 0,
+        u.getIsActive(),
+        u.getIsOnScreen(),
+        u.getOrdersList().length >= 1 ? int(u.getOrdersList()[0].getProgress() * 100) : 0,
+        u.getOrdersList().length >= 2 ? int(u.getOrdersList()[1].getProgress() * 100) : 0,
         raw_order(2),
         raw_order(3),
         0,
-        u.buff_duration_remain,
-        u.buff_duration_max,
-        u.attack_upgrade_level,
-        u.armor_upgrade_level,
-        u.shield_upgrade_level,
+        u.getBuffDurationRemain(),
+        u.getBuffDurationMax(),
+        u.getAttackUpgradeLevel(),
+        u.getArmorUpgradeLevel(),
+        u.getShieldUpgradeLevel(),
       ]
       return features
     }
-    raw = obs.observation.raw_data
+    raw = obs.getObservation().getRawData()
 
     if (aif.use_feature_units) {
-      console.log('*** THIS SECTION MUST BE FIXED ****')
       withPython(sw('feature_units'), () => {
         // Update the camera location so we can calculate world to screen pos
-        this._update_camera(point.Point.build(raw.player.camera))
-        const feature_units = Object.keys(raw.units).filter((key) => {
-          const u = raw.units[key]
-          return u.is_on_screen
-        })
+        this._update_camera(point.Point.build(raw.getPlayer().getCamera()))
+        const feature_units = raw.getUnitsList().filter((u) => u.getIsOnScreen())
           .map((u) => full_unit_vec(u, this._world_to_feature_screen_px))
         out['feature_units'] = named_array.NamedNumpyArray(
-          feature_units, [null, FeatureUnit], /*dtype=*/np.int64
+          feature_units, [null, FeatureUnit],
         )
 
         const feature_effects = []
         const feature_screen_size = aif.feature_dimensions.screen
-        Object.keys(raw.effects).forEach((key) => {
-          const effect = raw.effects[key]
-          Object.keys(effect.pos).forEach((k) => {
-            const pos = effect.pos[k]
+        raw.getEffectsList().forEach((effect) => {
+          effect.getPosList().forEach((pos) => {
             const screen_pos = this._world_to_feature_screen_px.fwd_pt(
               point.Point.build(pos)
             )
             if (screen_pos.x >= 0 && screen_pos.x < feature_screen_size.x
               && screen_pos.y >= 0 && screen_pos.y < feature_screen_size.y) {
               feature_effects.push([
-                effect.effect_id,
-                effect.alliance,
-                effect.owner,
-                effect.radius,
+                effect.getEffectId(),
+                effect.getAlliance(),
+                effect.getOwner(),
+                effect.getRadius(),
                 screen_pos.x,
                 screen_pos.y,
               ])
@@ -1529,7 +1576,7 @@ class Features {
           })
         })
         out['feature_effects'] = named_array.NamedNumpyArray(
-          feature_effects, [null, EffectPos], /*dtype=*/np.int32
+          feature_effects, [null, EffectPos]
         )
       })
     }
@@ -1537,14 +1584,11 @@ class Features {
       let raw_units
       withPython(sw('raw_units'), () => {
         withPython(sw('to_list'), () => {
-          raw_units = Object.keys(raw.units).map((key) => {
-            const u = raw.units[key]
-            return full_unit_vec(u, this._world_to_minimap_px, /*is_raw=*/true)
-          })
+          raw_units = raw.getUnitsList().map((u) => full_unit_vec(u, this._world_to_minimap_px, /*is_raw=*/true))
         })
         withPython(sw('to_numpy'), () => {
           out['raw_units'] = named_array.NamedNumpyArray(
-            raw_units, [null, FeatureUnit], /*dtype=*/np.int64
+            raw_units, [null, FeatureUnit]
           )
         })
         if (raw_units) {
@@ -1558,49 +1602,46 @@ class Features {
         }
 
         const raw_effects = []
-        Object.keys(raw.effects).forEach((key) => {
-          const effect = raw.effects[key]
-          Object.keys(effect.pos).forEach((k) => {
-            const pos = effect.pos[k]
+        raw.getEffectsList().forEach((effect) => {
+          effect.getPosList().forEach((pos) => {
             const raw_pos = this._world_to_minimap_px.fwd_pt(point.Point.build(pos))
             raw_effects.push([
-              effect.effect_id,
-              effect.alliance,
-              effect.owner,
-              effect.radius,
+              effect.getEffectId(),
+              effect.getAlliance(),
+              effect.getOwner(),
+              effect.getRadius(),
               raw_pos.x,
               raw_pos.y,
             ])
           })
         })
         out['raw_effects'] = named_array.NamedNumpyArray(
-          raw_effects, [null, EffectPos], /*dtype=*/np.int32
+          raw_effects, [null, EffectPos]
         )
       })
     }
-    out['upgrades'] = np.array(raw.player.upgrade_ids, /*dtype=*/np.int32)
+    out['upgrades'] = np.array(raw.getPlayer().getUpgradeIdsList())
 
     function cargo_units(u, pos_transform, is_raw = false) {
       //Compute unit features.//
       const screen_pos = pos_transform.fwd_pt(
-        point.Point.build(u.pos)
+        point.Point.build(u.getPos())
       )
       const features = []
-      Object.keys(u.passengers).forEach((key) => {
-        const v = u.passengers[key]
+      u.getPassengersList().forEach((v) => {
         features.push([
-          v.unit_type,
-          u.alliance, // this = 1, Ally = 2, Neutral = 3, Enemy = 4
-          v.health,
-          v.shield,
-          v.energy,
+          v.getUnitType(),
+          u.getAlliance(), // this = 1, Ally = 2, Neutral = 3, Enemy = 4
+          v.getHealth(),
+          v.getShield(),
+          v.getEnergy(),
           0, // cargo_space_taken
           0, // build_progress
-          v.health_max > 0 ? int(v.health / v.health_max * 255) : 0,
-          v.shield_max > 0 ? int(v.shield / v.shield_max * 255) : 0,
-          v.energy_max > 0 ? int(v.energy / v.energy_max * 255) : 0,
+          v.getHealthMax() > 0 ? int(v.getHealth() / v.getHealthMax() * 255) : 0,
+          v.getShieldMax() > 0 ? int(v.getShield() / v.getShieldMax() * 255) : 0,
+          v.getEnergyMax() > 0 ? int(v.getEnergy() / v.getEnergyMax() * 255) : 0,
           0, // display_type
-          u.owner, // 1-15, 16 = neutral
+          u.getOwner(), // 1-15, 16 = neutral
           screen_pos.x,
           screen_pos.y,
           0, // facing
@@ -1618,7 +1659,7 @@ class Features {
           0, // order_length
           0, // order_id_0
           0, // order_id_1
-          is_raw ? v.tag : 0,
+          is_raw ? v.getTag() : 0,
           0, // is hallucination
           0, // buff_id_1
           0, // buff_id_2
@@ -1646,9 +1687,8 @@ class Features {
           withPython(sw('feature_units'), () => {
             withPython(sw('to_list'), () => {
               feature_cargo_units = []
-              Object.keys(raw.units).forEach((key) => {
-                const u = raw.units[key]
-                if (!u.is_on_screen) {
+              raw.getUnitsList().forEach((u) => {
+                if (!u.getIsOnScreen()) {
                   return
                 }
                 feature_cargo_units
@@ -1657,12 +1697,14 @@ class Features {
             })
             withPython(sw('to_numpy'), () => {
               if (feature_cargo_units) {
-                let all_feature_units = np.array(
-                  feature_cargo_units, /*dtype=*/np.int64)
+                let all_feature_units = np.array(feature_cargo_units)
                 all_feature_units = np.concatenate(
-                  [out['feature_units'], feature_cargo_units], /*axis=*/0)
+                  [out['feature_units'], feature_cargo_units], /*axis=*/
+                  0
+                )
                 out['feature_units'] = named_array.NamedNumpyArray(
-                  all_feature_units, [null, FeatureUnit], /*dtype=*/np.int64)
+                  all_feature_units, [null, FeatureUnit]
+                )
               }
             })
           })
@@ -1672,9 +1714,8 @@ class Features {
           withPython(sw('raw_units'), () => {
             withPython(sw('to_list'), () => {
               raw_cargo_units = []
-              Object.keys(raw.units).forEach((key) => {
-                const u = raw.units[key]
-                if (!u.is_on_screen) {
+              raw.getUnitsList().forEach((u) => {
+                if (!u.getIsOnScreen()) {
                   return
                 }
                 raw_cargo_units
@@ -1683,12 +1724,12 @@ class Features {
             })
             withPython(sw('to_numpy'), () => {
               if (raw_cargo_units) {
-                raw_cargo_units = np.array(raw_cargo_units, /*dtype=*/np.int64)
+                raw_cargo_units = np.array(raw_cargo_units)
                 const all_raw_units = np.concatenate(
                   [out['raw_units'], raw_cargo_units], /*axis=*/0
                 )
                 out['raw_units'] = named_array.NamedNumpyArray(
-                  all_raw_units, [null, FeatureUnit], /*dtype=*/np.int64
+                  all_raw_units, [null, FeatureUnit]
                 )
                 const temp = []
                 for (let i = 0; i < out['raw_units'].length; i++) {
@@ -1705,64 +1746,58 @@ class Features {
     if (aif.use_unit_counts) {
       withPython(sw('unit_counts'), () => {
         const unit_counts = new Defaultdict(0)
-        Object.keys(raw.units).forEach((key) => {
-          const u = raw.units[key]
-          if (u.alliance !== sc_raw.Self) {
+        raw.getUnitsList().forEach((u) => {
+          if (u.getAlliance() !== sc_raw.Alliance.SELF) {
             return
           }
           unit_counts[u.unit_type] += 1
         })
         out['unit_counts'] = named_array.NamedNumpyArray(
-          Object.keys(unit_counts).map((key) => { //eslint-disable-line
-            return [key, unit_counts[key]]
-          }).sort((a, b) => a[0] < b[0]),
-          [null, UnitCounts],
-          /*dtype=*/np.int32
+          Object.keys(unit_counts).map((key) => [key, unit_counts[key]])
+            .sort((a, b) => a[0] < b[0]),
+          [null, UnitCounts]
         )
       })
     }
 
     if (aif.use_camera_position) {
       const camera_position = this._world_to_minimap_px.fwd_pt(
-        point.Point.build(raw.player.camera)
+        point.Point.build(raw.getPlayer().getCamera())
       )
-      out['camera_position'] = np.array((camera_position.x, camera_position.y),
-        /*dtype=*/np.int32)
-      out['camera_size'] = np.array((this._camera_size.x, this._camera_size.y),
-        /*dtype=*/np.int32)
+      out['camera_position'] = np.array([camera_position.x, camera_position.y])
+      out['camera_size'] = np.array([this._camera_size.x, this._camera_size.y])
     }
     if (!this._raw) {
       out['available_actions'] = np.array(
-        this.available_actions(obs.observation), /*dtype=*/np.int32
+        this.available_actions(obs.getObservation())
       )
     }
 
     if (this._requested_races !== null) {
       out['home_race_requested'] = np.array(
-        [this._requested_races[player.player_id]], /*dtype=*/np.int32
+        [this._requested_races[player.getPlayerId()]]
       )
       Object.keys(this._requested_races).forEach((player_id) => {
         const race = this._requested_races[player_id]
-        if (player_id !== player.player_id) {
-          out['away_race_requested'] = np.array([race], /*dtype=*/np.int32)
+        if (player_id !== player.getPlayerId()) {
+          out['away_race_requested'] = np.array([race])
         }
       })
     }
     if (aif.use_feature_units || aif.use_raw_units) {
       function transform_radar(radar) { //eslint-disable-line
-        const p = this._world_to_minimap_px.fwd_pt(point.Point.build(radar.pos))
-        return [p.x, p.y, radar.radius]
+        const p = this._world_to_minimap_px.fwd_pt(point.Point.build(radar.getPos()))
+        return [p.x, p.y, radar.getRadius()]
       }
       out['radar'] = named_array.NamedNumpyArray(
-        [map(transform_radar, obs.observation.raw_data.radar)],
-        [null, Radar], /*dtype=*/np.int32
+        obs.getObservation().getRawData().getRadarList().map(transform_radar),
+        [null, Radar]
       )
     }
     // Send the entire proto as well (in a function, so it isn't copied).
     if (this._send_observation_proto) {
-      out["_response_observation"] = () => obs
+      out['_response_observation'] = () => obs
     }
-
     return out
   }
 
@@ -1809,7 +1844,7 @@ class Features {
         }
       })
       if (!found_applicable) {
-        throw new Error(`ValueError("Failed to find applicable action for ${JSON.stringify(a.toObject())}`)
+        throw new ValueError(`Failed to find applicable action for ${JSON.stringify(a.toObject())}`)
       }
     }
     const results = []
@@ -1849,16 +1884,16 @@ class Features {
         func = actions.FUNCTIONS[func_id.key]
       }
     } catch (err) {
-      throw new Error(`ValueError: Invalid function id: ${func_id.key}.`)
+      throw new ValueError(`Invalid function id: ${func_id.key}.`)
     }
 
     // Available?
     if (!skip_available && !this._raw && !this.available_actions(obs).hasOwnProperty(func_id.key)) {
-      throw new Error(`ValueError: Function ${func_id.key} ${func.name} is currently not available`)
+      throw new ValueError(`Function ${func_id.key} ${func.name} is currently not available`)
     }
     // Right number of args?
     if (func_call.arguments.length !== func.args.length) {
-      throw new Error(`ValueError: Wrong number of arguments for function: ${func}, got:${func_call} ${func_call.arguments}`)
+      throw new ValueError(`Wrong number of arguments for function: ${func}, got:${func_call} ${func_call.arguments}`)
     }
     // Args are valid?
     const aif = this._agent_interface_format
@@ -1868,7 +1903,7 @@ class Features {
         if (len(arg) >= 1 && len(arg) <= t.count) {
           return
         }
-        throw new Error(`ValueError: Wrong number of values for argument of ${func}, got: ${func_call.arguments}`)
+        throw new ValueError(`Wrong number of values for argument of ${func}, got: ${func_call.arguments}`)
       }
       let sizes
       if (t.name === 'screen' || t.name === 'screen2') {
@@ -1881,12 +1916,12 @@ class Features {
         sizes = t.sizes
       }
       if (sizes.length !== arg.length) {
-        throw new Error(`ValueError: Wrong number of values for argument of ${func}, got: ${func_call.arguments}`)
+        throw new ValueError(`Wrong number of values for argument of ${func}, got: ${func_call.arguments}`)
       }
       zip(sizes, arg).forEach((p) => {
         const [s, a] = p
         if (!(a >= 0) && (a < s)) {
-          throw new Error(`ValueError: Argument is out of range for ${func}, got: ${func_call.arguments}`)
+          throw new ValueError(`Argument is out of range for ${func}, got: ${func_call.arguments}`)
         }
       })
     })
@@ -1962,7 +1997,6 @@ class Features {
     const aif = this._agent_interface_format
 
     function func_call_ability(ability_id, cmd_type) {
-      let args = []
       if (!actions.ABILITY_IDS.hasOwnProperty(ability_id)) {
         console.warn(`Unknown ability_id: ${ability_id}. This is probably dance or cheer, or some unknown new or map specific ability. Treating it as a no-op.", ability_id`)
         return FUNCTIONS.no_op()
@@ -1979,6 +2013,7 @@ class Features {
         key = ks[i]
         const func = actions.ABILITY_IDS[ability_id][key]
         if (func.function_type === cmd_type) {
+          const args = []
           for (let j = 2; j < arguments.length; j++) {
             args.push(arguments[j]) //eslint-disable-line
           }
@@ -1986,7 +2021,7 @@ class Features {
         }
       }
 
-      throw new Error(`ValueError: Unknown ability_id: ${ability_id}, type: ${cmd_type.__name__}. Likely a bug.`)
+      throw new ValueError(`Unknown ability_id: ${ability_id}, type: ${cmd_type.__name__}. Likely a bug.`)
     }
 
     if (action.getActionUi()) {
@@ -2067,7 +2102,7 @@ class Features {
       }
     }
     if (action.getActionRaw() || action.getActionRender()) {
-      throw new Error(`ValueError: Unknown action:\n${action}`)
+      throw new ValueError(`Unknown action:\n${action}`)
     }
 
     return FUNCTIONS.no_op()
@@ -2125,7 +2160,7 @@ class Features {
           return actions.RAW_FUNCTIONS[func.id](...args)
         }
       }
-      throw new Error(`ValueError: Unknown ability_id: ${ability_id}, type:${cmd_type.__name__}. Likely a bug.`)
+      throw new ValueError(`Unknown ability_id: ${ability_id}, type:${cmd_type.__name__}. Likely a bug.`)
     }
     if (action.getRawAction()) {
       const raw_act = action.getRawAction()
@@ -2169,7 +2204,7 @@ class Features {
         return func_call_ability(ability_id, actions.raw_autocast, unit_tags)
       }
       if (raw_act.getUnitCommand()) {
-        throw new Error(`ValueError: 'Unknown action:\n${action}`)
+        throw new ValueError(`Unknown action:\n${action}`)
       }
 
       if (raw_act.getCameraMove()) {

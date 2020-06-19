@@ -1,13 +1,26 @@
 const path = require('path') //eslint-disable-line
-const lib = require(path.resolve(__dirname), './lib.js')
+const lib = require(path.resolve(__dirname, './lib.js'))
 
-class MiniGame extends lib.Map {}
-MiniGame.directory = 'MiniGame'
+class MiniGame extends lib.Map {
+  get directory() { return this.constructor.directory }
+
+  get download() { return this.constructor.download }
+
+  get players() { return this.constructor.players }
+
+  get score_index() { return this.constructor.score_index }
+
+  get game_steps_per_episode() { return this.constructor.game_steps_per_episode }
+
+  get step_mul() { return this.constructor.step_mul }
+}
+MiniGame.directory = 'mini_games'
 MiniGame.download = 'https://github.com/deepmind/pysc2#get-the-maps'
 MiniGame.players = 1
 MiniGame.score_index = 0
 MiniGame.game_steps_per_episode = 0
 MiniGame.step_mul = 8
+MiniGame._subclasses = []
 
 lib.Map._subclasses.push(MiniGame)
 
@@ -27,8 +40,13 @@ const modExports = {
 }
 
 mini_games.forEach((name) => {
-  modExports[name] = class extends MiniGame {}
-  modExports[name].filename = name
+  modExports[name] = class extends MiniGame {
+    static get filename() { return name }
+
+    get filename() { return name } //eslint-disable-line
+
+    static get name() { return name }
+  }
   lib.Map._subclasses.push(modExports[name])
   MiniGame._subclasses.push(modExports[name])
 })

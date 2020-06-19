@@ -16,27 +16,24 @@
 class StaticData {
   //Expose static data in a more useful form than the raw protos.//
 
-  constructor(self, data) {
+  constructor(data) {
     //Takes data from RequestData.//
     const _units = {}
     const _unit_stats = {}
     const _upgrades = {}
     const _abilities = {}
-    const _general_abilities = {}
-    Object.keys(data.units).forEach((key) => {
-      const u = data.units[key]
-      _units[u.unit_id] = u.name
-      _unit_stats[u.unit_id] = u
+    const _general_abilities = new Set()
+    data.unitsList.forEach((u) => {
+      _units[u.unitId] = u.name
+      _unit_stats[u.unitId] = u
     })
-    Object.keys(data.upgrades).forEach((key) => {
-      const a = data.upgrades[key]
-      _upgrades[a.upgrade_id] = a
+    data.upgradesList.forEach((a) => {
+      _upgrades[a.upgradeId] = a
     })
-    Object.keys(data.abilities).forEach((key) => {
-      const a = data.abilities[key]
-      _upgrades[a.ability_id] = a
-      if (a.remaps_to_ability_id) {
-        _general_abilities[a.remaps_to_ability_id] = a.ability_id
+    data.abilitiesList.forEach((a) => {
+      _abilities[a.abilityId] = a
+      if (a.remapsToAbilityId) {
+        _general_abilities.add(a.remapsToAbilityId)
       }
     })
     this._units = _units
@@ -46,7 +43,9 @@ class StaticData {
     this._general_abilities = _general_abilities
     Object.keys(this._abilities).forEach((key) => {
       const a = this._abilities[key]
-      a.hotkey = a.hotkey.toLowerCase()
+      if (a.hotkey) {
+        a.hotkey = a.hotkey.toLowerCase()
+      }
     })
   }
 

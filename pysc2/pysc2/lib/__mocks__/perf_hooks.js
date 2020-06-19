@@ -1,6 +1,7 @@
 const usedVal = { val: 0 }
 const perf_hooks = {
   usedVal,
+  useRealish: false,
   set return_val(val) {
     usedVal.val = val
   },
@@ -9,6 +10,9 @@ const perf_hooks = {
   },
   performance: {
     now() {
+      if (perf_hooks.useRealish) {
+        return Date.now()
+      }
       return usedVal.val
     },
   },

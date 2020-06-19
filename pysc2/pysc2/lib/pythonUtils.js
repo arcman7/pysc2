@@ -26,10 +26,33 @@ class ABCMeta {
 }
 
 function any(iterable) {
-  for (var index = 0; index < iterable.length; index++) {
+  for (let index = 0; index < iterable.length; index++) {
     if (iterable[index]) return true
   }
   return false
+}
+
+function arrayCompare(a, b, sameOrder = false) {
+  if (sameOrder) {
+    for (let i = 0; i < a.length; i++) {
+      if (a[i] !== b[i]) {
+        return false
+      }
+    }
+    return true
+  }
+  const aSeen = {}
+  const bSeen = {}
+  for (let i = 0; i < a.length; i++) {
+    aSeen[a[i]] = true
+    bSeen[b[i]] = true
+  }
+  for (let i = 0; i < a.length; i++) {
+    if (!(aSeen[a[i]] && bSeen[a[i]])) {
+      return false
+    }
+  }
+  return true
 }
 
 function assert(cond, errMsg) {
@@ -89,6 +112,7 @@ function getArgsArray(func, kwargs) {
 }
 getArgsArray.argSignatures = {}
 getArgsArray.getArgNames = getArgNames
+<<<<<<< HEAD
 //eslint-disable-next-line
 String.prototype.splitlines = function() {
   return this.split(/\r?\n/)
@@ -99,6 +123,17 @@ function hashCode(str) {
   var hash = 0;
   if (str.length == 0) {
     return hash
+=======
+function getattr(proto, key) {
+  if (!proto[`get${snakeToPascal(key)}`]) {
+    return
+  }
+  return proto[`get${snakeToPascal(key)}`]()
+}
+function iter(container) {
+  if (container.__iter__) {
+    return container.__iter__()
+>>>>>>> 26eb4d165f3e7b802f5acdf55dfc8537ba6afd9f
   }
   for (let i = 0; i < str.length; i++) {
     const char = str.charCodeAt(i);
@@ -114,7 +149,7 @@ String.prototype.ljust = function(length, char = ' ') {
   while (fill.length + this.length < length) {
     fill[fill.length] = char;
   }
-  return fill.join('') + this;
+  return this + fill.join('');
 }
 //eslint-disable-next-line
 String.prototype.rjust = function(length, char = ' ') {
@@ -122,7 +157,7 @@ String.prototype.rjust = function(length, char = ' ') {
   while (fill.length + this.length < length) {
     fill[fill.length] = char;
   }
-  return this + fill.join('');
+  return fill.join('') + this;
 }
 function isinstance(a, compare) {
   const keys = Object.keys(compare);
@@ -148,6 +183,18 @@ function isinstance(a, compare) {
 function isObject(a) {
   return a === Object(a)
 }
+<<<<<<< HEAD
+=======
+function int(numOrStr) {
+  return Math.floor(numOrStr)
+}
+function len(container) {
+  if (container.__len__) {
+    return container.__len__()
+  }
+  return Object.keys(container).length;
+}
+>>>>>>> 26eb4d165f3e7b802f5acdf55dfc8537ba6afd9f
 function map(func, collection) {
   function clone(obj) {
     if (obj === null || typeof obj !== 'object') {
@@ -166,12 +213,141 @@ function map(func, collection) {
     collection[key] = func(collection[key])
   })
 }
+<<<<<<< HEAD
 
+=======
+function namedtuple(name, fields) {
+  let consLogic = '';
+  let consArgs = '';
+  fields.forEach((field, i) => {
+    consArgs += i < fields.length - 1 ? `${field}, ` : `${field}`;
+    consLogic += i < fields.length - 1 ? `this.${field} = ${field};\n    ` : `this.${field} = ${field};`;
+  });
+  const classStr = `const _fields = ${JSON.stringify(fields)}; return class ${name} extends Array {
+  static get classname() { return '${name}' }
+  static get _fields() { return ${JSON.stringify(fields)} }
+  constructor(${consArgs}) {
+    if (typeof arguments[0] === 'object' && arguments.length === 1 && _fields.length > 1) {
+      const args = []
+      const kwargs = arguments[0]
+      _fields.forEach((field, index) => {
+        args[index] = kwargs[field]
+      })
+      super(...args)
+      _fields.forEach((field, index) => {
+        args[index] = kwargs[field]
+        this[field] = kwargs[field]
+      })
+      return
+    }
+    super(...arguments)
+    ${consLogic}
+  }
+  static _make(kwargs) {
+    return new this.prototype.constructor(kwargs);
+  }
+  _replace(kwargs) {
+    this.constructor._fields.forEach((field) => {
+        kwargs[field] = kwargs[field] || this[field];
+    });
+    return this.constructor._make(kwargs);
+  }
+  __reduce__() {
+    return [this.constructor, this.constructor._fields.map((field) => this[field])];
+  }
+${fields.map((field, index) => { //eslint-disable-line
+    return `  get ${field}() {\n    return this[${index}]\n  }\n  set ${field}(val) {\n    this[${index}] = val; return val\n  }`
+  }).join('\n')}
+}`;
+  return Function(classStr)() //eslint-disable-line
+}
+function NotImplementedError(message) {
+  ///<summary>The error thrown when the given function isn't implemented.</summary>
+  const sender = (new Error) //eslint-disable-line
+    .stack
+    .split('\n')[2]
+    .replace(' at ', '');
+
+  this.message = `The method ${sender} isn't implemented.`;
+
+  // Append the message if given.
+  if (message) {
+    this.message += ` Message: "${message}".`;
+  }
+
+  let str = this.message;
+
+  while (str.indexOf('  ') > -1) {
+    str = str.replace('  ', ' ');
+  }
+
+  this.message = str;
+}
+function nonZero(arr) {
+  // This function outputs a array of indices of nonzero elements
+  const rows = []
+  const cols = []
+  const shape = arr.shape
+  arr = arr.arraySync()
+  for (let row = 0; row < shape[0]; row++) {
+    for (let col = 0; col < shape[1]; col++) {
+      if (arr[row][col] !== 0) {
+        rows.push(row)
+        cols.push(col)
+      }
+    }
+  }
+  return [rows, cols]
+}
+function randomChoice(arr) {
+  // This function does not support "size" of output shape.
+  if (Array.isArray(arr)) {
+    arr = [Array(arr).key()]
+  }
+  return arr[Math.floor(Math.random() * arr.length)]
+}
+function randomSample(arr, size) {
+  var shuffled = arr.slice(0)
+  let i = arr.length
+  let temp
+  let index
+  while (i--) {
+    index = Math.floor((i + 1) * Math.random())
+    temp = shuffled[index]
+    shuffled[index] = shuffled[i]
+    shuffled[i] = temp
+  }
+  return shuffled.slice(0, size)
+}
+>>>>>>> 26eb4d165f3e7b802f5acdf55dfc8537ba6afd9f
 function randomUniform(min, max) {
-  return Math.random() * (max - min) + min;
+  return Math.random() * (max - min) + min
 }
 randomUniform.int = function (min, max) {
   return Math.round(randomUniform(min, max))
+}
+async function sequentialTaskQueue(tasks) {
+  const results = []
+  const reducer = (promiseChain, currentTask) => { //eslint-disable-line
+    return promiseChain.then((result) => {
+      if (result) {
+        results.push(result)
+      }
+      return currentTask()
+    })
+  }
+  await tasks.reduce(reducer, Promise.resolve())
+  return results
+}
+function setattr(proto, key, value) {
+  if (Array.isArray(value) && proto[`set${snakeToPascal(key)}List`]) {
+    proto[`set${snakeToPascal(key)}List`](value)
+  } else if (proto[`set${snakeToPascal(key)}`]) {
+    proto[`set${snakeToPascal(key)}`](value)
+  } else {
+    console.error(`Failed to find setter method for field "${key}"\n using "set${snakeToPascal(key)}" or "set${snakeToPascal(key)}List"\n on proto:\n`, proto.toObject())
+    throw new Error(`Failed to find setter method for field "${key}" on proto.`)
+  }
 }
 function setUpProtoAction(action, name) {
   if (name === 'no_op') {
@@ -334,6 +510,19 @@ function setUpProtoAction(action, name) {
     return action
   }
 }
+<<<<<<< HEAD
+=======
+const snakeToCamel = (str) => {
+  if (!str.match('_')) {
+    return str
+  }
+  return str
+    .toLowerCase().replace(/([-_][a-z])/g, (group) => group
+      .toUpperCase()
+      .replace('-', '')
+      .replace('_', ''))
+}
+>>>>>>> 26eb4d165f3e7b802f5acdf55dfc8537ba6afd9f
 function sum(collection) {
   let total = 0
   Object.keys(collection).forEach((key) => {
@@ -361,50 +550,87 @@ class DefaultDict {
   }
 }
 
-function withPython(withInterface, callback) {
-  if (!withInterface.__enter__ || !withInterface.__exit__) {
-    throw new Error('ValueError: withInterface must define a __enter__ and __exit__ method')
+// function rawUnpackbits(uint8data) {
+//   if (Number.isInteger(uint8data)) {
+//     uint8data = Uint8Array.from([uint8data])
+//   }
+//   if (uint8data instanceof Array) {
+//     uint8data = Uint8Array.from(uint8data)
+//   }
+//   const results = new Uint8Array(8 * uint8data.length)
+//   let byte
+//   let offset
+//   for (let i = 0; i < uint8data.length; i++) {
+//     byte = uint8data[i]
+//     offset = (8 * i)
+//     results[offset + 7] = ((byte & (1 << 0)) >> 0)
+//     results[offset + 6] = ((byte & (1 << 1)) >> 1)
+//     results[offset + 5] = ((byte & (1 << 2)) >> 2)
+//     results[offset + 4] = ((byte & (1 << 3)) >> 3)
+//     results[offset + 3] = ((byte & (1 << 4)) >> 4)
+//     results[offset + 2] = ((byte & (1 << 5)) >> 5)
+//     results[offset + 1] = ((byte & (1 << 6)) >> 6)
+//     results[offset + 0] = ((byte & (1 << 7)) >> 7)
+//   }
+//   return results
+// }
+
+// let BYTE_CACHE = (Array(255)).map((_, index) => index)
+// for (let i = 0; i < 256; i++) {
+//   BYTE_CACHE[i] = rawUnpackbits(i)
+// }
+// BYTE_CACHE = BYTE_CACHE.map((val) => rawUnpackbits(val))
+// // console.log(BYTE_CACHE)
+// function unpackbits(uint8data) {
+//   if (Number.isInteger(uint8data)) {
+//     uint8data = Uint8Array.from([uint8data])
+//   }
+//   if (uint8data instanceof Array) {
+//     uint8data = Uint8Array.from(uint8data)
+//   }
+//   const results = new Uint8Array(8 * uint8data.length)
+//   for (let i = 0; i < uint8data.length - 8; i++) {
+//     results.set(BYTE_CACHE[uint8data[i]], 8 * i)
+//   }
+//   return results
+// }
+function unpackbits(uint8data) {
+  if (Number.isInteger(uint8data)) {
+    uint8data = Uint8Array.from([uint8data])
   }
-  let tempResult = withInterface.__enter__()
-  tempResult = callback(tempResult)
-  withInterface.__exit__()
-  return tempResult
+  if (uint8data instanceof Array) {
+    uint8data = Uint8Array.from(uint8data)
+  }
+  const results = new Uint8Array(8 * uint8data.length)
+  let byte
+  let offset
+  for (let i = 0; i < uint8data.length; i++) {
+    byte = uint8data[i]
+    offset = (8 * i)
+    results[offset + 7] = ((byte & (1 << 0)) >> 0)
+    results[offset + 6] = ((byte & (1 << 1)) >> 1)
+    results[offset + 5] = ((byte & (1 << 2)) >> 2)
+    results[offset + 4] = ((byte & (1 << 3)) >> 3)
+    results[offset + 3] = ((byte & (1 << 4)) >> 4)
+    results[offset + 2] = ((byte & (1 << 5)) >> 5)
+    results[offset + 1] = ((byte & (1 << 6)) >> 6)
+    results[offset + 0] = ((byte & (1 << 7)) >> 7)
+  }
+  return results
 }
 
-function int(numOrStr) {
-  return Math.floor(numOrStr)
-}
-
-/**
- From:
- https://gist.github.com/tregusti/0b37804798a7634bc49c#gistcomment-2193237
-
- * @summary A error thrown when a method is defined but not implemented (yet).
- * @param {any} message An additional message for the error.
- */
-function NotImplementedError(message) {
-  ///<summary>The error thrown when the given function isn't implemented.</summary>
-  const sender = (new Error) //eslint-disable-line
-    .stack
-    .split('\n')[2]
-    .replace(' at ', '');
-
-  this.message = `The method ${sender} isn't implemented.`;
-
-  // Append the message if given.
-  if (message) {
-    this.message += ` Message: "${message}".`;
+function unpackbitsToShape(uint8data, shape = [1, 1]) {
+  var data = unpackbits(uint8data)
+  const dims = [shape[0] | 0, shape[1] | 0]
+  const result = new Array(dims[0])
+  const width = dims[1]
+  let offset
+  for (let i = 0 | 0; i < dims[0]; i++) {
+    offset = (width * i)
+    result[i] = data.slice(offset, offset + width)
   }
-
-  let str = this.message;
-
-  while (str.indexOf('  ') > -1) {
-    str = str.replace('  ', ' ');
-  }
-
-  this.message = str;
+  return result
 }
-
 function ValueError(value) {
   /*
   The error thrown when an invalid argument is passed.
@@ -429,7 +655,37 @@ function ValueError(value) {
 
   this.message = str;
 }
+function withPython(withInterface, callback) {
+  if (!withInterface.__enter__ || !withInterface.__exit__) {
+    throw new Error('ValueError: withInterface must define a __enter__ and __exit__ method')
+  }
+  let tempResult = withInterface.__enter__.call(withInterface)
+  tempResult = callback(tempResult)
+  if (tempResult instanceof Promise) {
+    tempResult.then(() => withInterface.__exit__.call(withInterface))
+  } else {
+    withInterface.__exit__.call(withInterface)
+  }
+  return tempResult
+}
+async function withPythonAsync(withInterface, callback) {
+  if (!withInterface.__enter__ || !withInterface.__exit__) {
+    throw new Error('ValueError: withInterface must define a __enter__ and __exit__ method')
+  }
+  let tempResult = withInterface.__enter__()
+  tempResult = await callback(tempResult)
+  withInterface.__exit__()
+  return tempResult
+}
 
+
+/**
+ From:
+ https://gist.github.com/tregusti/0b37804798a7634bc49c#gistcomment-2193237
+
+ * @summary A error thrown when a method is defined but not implemented (yet).
+ * @param {any} message An additional message for the error.
+ */
 function zip() {
   var args = [].slice.call(arguments); //eslint-disable-line
   var shortest = args.length === 0 ? [] : args.reduce(function(a, b) {
@@ -440,45 +696,21 @@ function zip() {
     return args.map(function(array) { return array[i] })
   });
 }
-// function zip(arrays) {
-//   return Array.apply(null,Array(arrays[0].length)).map(function(_, i) { //eslint-disable-line
-//     return arrays.map(function(array){ return array[i] }) //eslint-disable-line
-//   });
-// }
-
-function randomChoice(arr) {
-  // This function does not support "size" of output shape.
-  if (Array.isArray(arr)) {
-    arr = [Array(arr).key()]
-  }
-  return arr[Math.floor(Math.random() * arr.length)]
-}
-function nonZero(arr) {
-  // This function outputs a array of indices of nonzero elements
-  const rows = []
-  const cols = []
-  const shape = arr.shape
-  arr = arr.arraySync()
-  for (let row = 0; row < shape[0]; row++) {
-    for (let col = 0; col < shape[1]; col++) {
-      if (arr[row][col] !== 0) {
-        rows.push(row)
-        cols.push(col)
-      }
-    }
-  }
-  return [rows, cols]
-}
 
 module.exports = {
   ABCMeta,
   any,
+  arrayCompare,
   assert,
   Array,
   DefaultDict,
   eq,
   getArgsArray,
+<<<<<<< HEAD
   hashCode,
+=======
+  getattr,
+>>>>>>> 26eb4d165f3e7b802f5acdf55dfc8537ba6afd9f
   len,
   int,
   iter,
@@ -486,13 +718,19 @@ module.exports = {
   isObject,
   map,
   NotImplementedError,
+  nonZero,
+  randomChoice,
+  randomSample,
   randomUniform,
+  sequentialTaskQueue,
+  setattr,
   setUpProtoAction,
   String,
   sum,
+  unpackbits,
+  unpackbitsToShape,
   ValueError,
   withPython,
+  withPythonAsync,
   zip,
-  randomChoice,
-  nonZero,
 }

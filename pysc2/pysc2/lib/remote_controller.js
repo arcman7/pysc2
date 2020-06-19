@@ -1,15 +1,16 @@
 const flags = require('flags') //eslint-disable-line
 const Websocket = require('ws') //eslint-disable-line
 const s2clientprotocol = require('s2clientprotocol') //eslint-disable-line
+const Enum = require('python-enum') //eslint-disable-line
 const { performance } = require('perf_hooks') //eslint-disable-line
 const path = require('path') //eslint-disable-line
 const protocol = require(path.resolve(__dirname, 'protocol.js'))
 const stopwatch = require(path.resolve(__dirname, 'stopwatch.js'))
 const static_data = require(path.resolve(__dirname, 'static_data.js'))
 
-const { debug_pb, sc2ai_pb } = s2clientprotocol
+const { debug_pb, sc2api_pb } = s2clientprotocol
 const sc_debug = debug_pb
-const sc_pb = sc2ai_pb
+const sc_pb = sc2api_pb
 //eslint-disable-next-line
 String.prototype.center = String.prototype.center || function(space, char) {
   const usedSpace = Math.floor(space / 2)
@@ -19,9 +20,7 @@ String.prototype.center = String.prototype.center || function(space, char) {
 flags.defineBoolean('sc2_log_actions', false, 'Print all the actions sent to SC2. If you want observations\n as well, consider using `sc2_verbose_protocol`.')
 flags.defineInteger('sc2_timeout', 120, 'Timeout to connect and wait for rpc responses.')
 
-const FLAGS = flags.FLAGS
-
-const sw = stopwatch.sw
+// let sw = stopwatch.sw
 
 const Status = protocol.Status
 
@@ -42,20 +41,25 @@ class RequestError extends Error {
 
 function check_error(res, error_enum) {
   //Raise if the result has an error, otherwise return the result.//
-  if (res.hasError()) {
-    const enum_name = error_enum.DESCRIPTOR.full_name
-    const error_name = error_enum.Name(res.getError())
+  if (res && res.hasError()) {
+    const enum_name = error_enum.name
+    const error_name = error_enum(res.getError()).key
     const details = res.getErrorDetails() || '<none>'
-    throw new RequestError(`${enum_name}, ${error_name}, ${details}`, res)
+    throw new RequestError(`${enum_name}.${error_name}, ${details}`,
+      { error: res.getError(), error_details: res.getErrorDetails() })
+  }
+  if (!res) {
+    throw new RequestError('No response.')
   }
   return res
 }
 
-function decorate_check_error(error_enum) {
+function decorate_check_error(error_class_name, error_enum_dict) {
+  const error_enum = Enum(error_class_name, error_enum_dict)
   //Decorator to call `check_error` on the return value.//
   function decorator(func) {
-    function _check_error() {
-      return check_error(func(...arguments), error_enum) //eslint-disable-line
+    async function _check_error() {
+      return check_error(await func(...arguments), error_enum) //eslint-disable-line
     }
     return _check_error
   }
@@ -92,7 +96,7 @@ function valid_status() {
   function decorator(func) {
     function _valid_status() {
       if (!valid.has(self.status)) {
-        throw new protocol.ProtocolError(`${func.name} called while in state: ${self.status}, valid: ${valid}`)
+        throw new protocol.ProtocolError(`${func.name} called while in state: ${self.status}, valid: ${JSON.stringify(Array.from(valid.keys()))}`)
       }
       return func(...arguments) //eslint-disable-line
     }
@@ -109,7 +113,7 @@ function catch_game_end(func) {
     try {
       return func(...arguments) //eslint-disable-line
     } catch (protocol_error) {
-      if (prev_status === Status.in_game && String(protocol_error).match('Game has already ended')) {
+      if (prev_status === Status.IN_GAME && String(protocol_error).match('Game has already ended')) {
         /*
          It's currently possible for us to receive this error even though
          our previous status was in_game. This shouldn't happen according
@@ -140,96 +144,99 @@ class RemoteController {
   take a value and construct the Request itself, or return something more useful
   than a Response* object.
   */
-  constructor(host, port, proc = null, timeout_seconds = FLAGS.sc2_timeout) {
+  constructor(host, port, proc = null, timeout_seconds = null, passedSw) {
+    // set the stop watch to a specific instance if provided
+    this._sw = passedSw || stopwatch.sw
+    const sw = this._sw
+    flags.parse(null, true)
+    timeout_seconds = timeout_seconds || flags.get('sc2_timeout')
     this._connect = sw.decorate(this._connect.bind(this))
     // apply @decorators
-    this.create_game = valid_status.call(this, Status.launched, Status.ended, Status.in_game, Status.in_replay)(
-      decorate_check_error(sc_pb.ResponseCreateGame.Error)(
+    this.create_game = valid_status.call(this, Status.LAUNCHED, Status.ENDED, Status.IN_GAME, Status.IN_REPLAY)(
+      decorate_check_error('ResponseCreateGame', sc_pb.ResponseCreateGame.Error)(
         sw.decorate(this.create_game.bind(this))
       )
     )
-    this.save_map = valid_status.call(this, Status.launched, Status.init_game)(
-      decorate_check_error(sc_pb.ResponseCreateGame.Error)(
+    this.save_map = valid_status.call(this, Status.LAUNCHED, Status.INIT_GAME)(
+      decorate_check_error('ResponseSaveMap', sc_pb.ResponseSaveMap.Error)(
         sw.decorate(this.save_map.bind(this))
       )
     )
-    this.join_game = valid_status.call(this, Status.launched, Status.init_game)(
-      decorate_check_error(sc_pb.ResponseJoinGame.Error)(
+    this.join_game = valid_status.call(this, Status.LAUNCHED, Status.INIT_GAME)(
+      decorate_check_error('ResponseJoinGame', sc_pb.ResponseJoinGame.Error)(
         sw.decorate(this.join_game.bind(this))
       )
     )
-    this.restart = valid_status.call(this, Status.ended, Status.in_game)(
-      decorate_check_error(sc_pb.ResponseRestartGame.Error)(
+    this.restart = valid_status.call(this, Status.ENDED, Status.IN_GAME)(
+      decorate_check_error('ResponseRestartGame', sc_pb.ResponseRestartGame.Error)(
         sw.decorate(this.restart.bind(this))
       )
     )
-    this.start_replay = valid_status.call(this, Status.launched, Status.ended, Status.in_game, Status.in_replay)(
-      decorate_check_error(sc_pb.ResponseStartReplay.Error)(
+    this.start_replay = valid_status.call(this, Status.LAUNCHED, Status.ENDED, Status.IN_GAME, Status.IN_REPLAY)(
+      decorate_check_error('ResponseStartReplay', sc_pb.ResponseStartReplay.Error)(
         sw.decorate(this.start_replay.bind(this))
       )
     )
-    this.game_info = valid_status.call(this, Status.in_game, Status.in_replay)(
+    this.game_info = valid_status.call(this, Status.IN_GAME, Status.IN_REPLAY)(
       sw.decorate(this.game_info.bind(this))
     )
-    this.data_raw = valid_status.call(this, Status.in_game, Status.in_replay)(
+    this.data_raw = valid_status.call(this, Status.IN_GAME, Status.IN_REPLAY)(
       sw.decorate(this.data_raw.bind(this))
     )
-    this.observe = valid_status.call(this, Status.in_game, Status.in_replay, Status.ended)(
+    this.observe = valid_status.call(this, Status.IN_GAME, Status.IN_REPLAY, Status.ENDED)(
       sw.decorate(this.observe.bind(this))
     )
-    this.step = valid_status.call(this, Status.in_game, Status.in_replay)(
+    this.step = valid_status.call(this, Status.IN_GAME, Status.IN_REPLAY)(
       catch_game_end(
         sw.decorate(this.step.bind(this))
       )
     )
-    this.actions = skip_status.call(this, Status.in_replay)(
-      valid_status.call(this, Status.in_game)(
+    this.actions = skip_status.call(this, Status.IN_REPLAY)(
+      valid_status.call(this, Status.IN_GAME)(
         catch_game_end(
           sw.decorate(this.actions.bind(this))
         )
       )
     )
-    this.observer_actions = skip_status.call(this, Status.in_game)(
-      valid_status.call(this, Status.in_replay)(
+    this.observer_actions = skip_status.call(this, Status.IN_GAME)(
+      valid_status.call(this, Status.IN_REPLAY)(
         sw.decorate(this.observer_actions.bind(this))
       )
     )
-    this.leave = valid_status.call(this, Status.in_game, Status.ended)(
+    this.leave = valid_status.call(this, Status.IN_GAME, Status.ENDED)(
       sw.decorate(this.leave.bind(this))
     )
-    this.save_replay = valid_status.call(this, Status.in_game, Status.in_replay, Status.ended)(
+    this.save_replay = valid_status.call(this, Status.IN_GAME, Status.IN_REPLAY, Status.ENDED)(
       sw.decorate(this.save_replay.bind(this))
     )
-    this.debug = valid_status.call(this, Status.in_game)(
+    this.debug = valid_status.call(this, Status.IN_GAME)(
       sw.decorate(this.debug.bind(this))
     )
-    this.query = valid_status.call(this, Status.in_game, Status.in_replay)(
+    this.query = valid_status.call(this, Status.IN_GAME, Status.IN_REPLAY)(
       sw.decorate(this.query.bind(this))
     )
-    this.quit = skip_status.call(this, Status.quit)(
+    this.quit = skip_status.call(this, Status.QUIT)(
       sw.decorate(this.quit.bind(this))
     )
     this.ping = sw.decorate(this.ping.bind(this))
-    this.replay_info = decorate_check_error(sc_pb.ResponseReplayInfo.Error)(
+    this.replay_info = decorate_check_error('ResponseReplayInfo', sc_pb.ResponseReplayInfo.Error)(
       sw.decorate(this.replay_info.bind(this))
     )
     this._last_obs = null
     /** must call from factory  _setClientConnection() **/
-    // const sock = this._connect(host, port, proc, timeout_seconds).then((sock) => {
-    //   this._client = new protocol.StarcraftProtocol(sock)
-    //   this.ping()
-    // })
   }
 
-  async _setClientConnection(host, port, proc, timeout_seconds = FLAGS.sc2_timeout) {
+  async _setClientConnection(host, port, proc, timeout_seconds, passedSw) {
+    timeout_seconds = timeout_seconds || flags.get('sc2_timeout')
     const sock = await this._connect(host, port, proc, timeout_seconds)
-    this._client = new protocol.StarcraftProtocol(sock)
+    this._client = new protocol.StarcraftProtocol(sock, passedSw)
     await this.ping()
     return true
   }
 
   _connect(host, port, proc, timeout_seconds) { //eslint-disable-line
     timeout_seconds = Number(timeout_seconds)
+    const milisecond = 1000
     //Connect to the websocket, retrying as needed. Returns the socket.//
     if (host.match(':') && host[0] !== '[') { // Support ipv6 addresses.
       host = `[${host}]`
@@ -242,7 +249,7 @@ class RemoteController {
     })
     let i = 0
     const connectTimeout = setInterval(() => {
-      const is_running = proc && proc.is_running
+      const is_running = proc && !proc._hasExited
       was_running = was_running || is_running
       if ((i >= Math.floor(timeout_seconds / 4) || was_running) && !is_running) {
         console.warn('SC2 isn\'t running, so bailing early on the websocket connection.')
@@ -260,7 +267,7 @@ class RemoteController {
           // sends out pings plus a conservative assumption of the latency.
           this.pingTimeout = setTimeout(() => {
             this.terminate()
-          }, timeout_seconds * 1200)
+          }, timeout_seconds * milisecond)
         }
         ws.on('open', () => {
           clearInterval(connectTimeout)
@@ -277,6 +284,7 @@ class RemoteController {
         if (err.status_code === 404) {
           // SC2 is listening, but hasn't set up the /sc2api endpoint yet.
         } else {
+          console.error(err)
           throw err
         }
       }
@@ -285,7 +293,7 @@ class RemoteController {
         clearInterval(connectTimeout)
         throw new ConnectError('Failed to connect to the SC2 websocket. Is it up?')
       }
-    }, 1000)
+    }, 6 * 1000)
     return p
   }
 
@@ -294,7 +302,7 @@ class RemoteController {
   }
 
   get status_ended() {
-    return this.status == protocol.Status.ended
+    return this.status == protocol.Status.ENDED
   }
 
   create_game(req_create_game) {
@@ -304,10 +312,10 @@ class RemoteController {
 
   save_map(map_path, map_data) {
     //Save a map into temp dir so create game can access it in multiplayer.//
-    const req = new sc_pb.RequestSaveMap()
-    req.setMapPath(map_path)
-    req.setMapData(map_data)
-    return this._client.send({ save_map: req })
+    const saveReq = new sc_pb.RequestSaveMap()
+    saveReq.setMapPath(map_path)
+    saveReq.setMapData(map_data)
+    return this._client.send({ save_map: saveReq })
   }
 
   join_game(req_join_game) {
@@ -341,14 +349,15 @@ class RemoteController {
     return this._client.send({ data: req })
   }
 
-  data() {
+  async data() {
     //Get the static data for the current game.//
-    return static_data.StaticData(this.data_raw())
+    const reqData = await this.data_raw()
+    return new static_data.StaticData(reqData.toObject())
   }
 
   async observe(disable_fog = false, target_game_loop = 0) {
     //Get a current observation.//
-    const req = sc_pb.RequestObservation()
+    const req = new sc_pb.RequestObservation()
     req.setGameLoop(target_game_loop)
     req.setDisableFog(disable_fog)
     let obs = await this._client.send({ observation: req })
@@ -376,7 +385,7 @@ class RemoteController {
       this._last_obs = obs
     }
 
-    if (FLAGS.sc2_log_actions && obs.getActionsList()) {
+    if (flags.get('sc2_log_actions') && obs.getActionsList()) {
       process.stderr.write(' Executed actions '.center(60, '<') + '\n')
       obs.getActionsList().forEach((act) => {
         process.stderr.write(act.toObject())
@@ -399,7 +408,7 @@ class RemoteController {
 
   actions(req_action) {
     //Send a `sc_pb.RequestAction`, which may include multiple actions.//
-    if (FLAGS.sc2_log_actions && req_action.getActionsList().length) {
+    if (flags.get('sc2_log_actions') && req_action.getActionsList().length) {
       process.stderr.write(' Sending observer actions '.center(60, '>') + '\n')
       const acts = req_action.getActionsList()
       acts.forEach((act) => {
@@ -420,7 +429,7 @@ class RemoteController {
 
   observer_actions(req_observer_action) {
     //Send a `sc_pb.RequestObserverAction`.
-    if (FLAGS.sc2_log_actions && req_observer_action.getActionsList()) {
+    if (flags.get('sc2_log_actions') && req_observer_action.getActionsList()) {
       process.stderr.write(' Sending observer actions '.center(60, ">") + "\n")
       const acts = req_observer_action.getActionsList()
       acts.forEach((action) => {
@@ -460,22 +469,21 @@ class RemoteController {
 
   async save_replay() {
     //Save a replay, returning the data.//
-    const res = await this._client.send({
-      save_replay: new sc_pb.RequestSaveReplay()
-    })
-    return res.data
+    const res = await this._client.send({ save_replay: new sc_pb.RequestSaveReplay() })
+    return res.getData()
   }
 
   debug(debug_commands) {
     //Run a debug command//
-    let req = debug_commands
+    const debugReq = new sc_pb.RequestDebug()
     if (debug_commands instanceof sc_debug.DebugCommand) {
-      req = new sc_pb.RequestDebug()
-      req.addDebug(debug_commands)
-    } else if (!(debug_commands instanceof sc_pb.RequestDebug)) {
-      throw new Error(`debug_commands an instance of either sc_debug.DebugCommand or sc2ai_pb.RequestDebug, got instead:\n ${debug_commands}`)
+      debugReq.setDebugList([debug_commands])
+    } else if (Array.isArray(debug_commands)) {
+      debugReq.setDebugList(debug_commands)
+    } else {
+      throw new Error(`debug_commands an instance of sc_debug.DebugCommand got instead:\n ${debug_commands}`)
     }
-    this._client.send({ debug: req })
+    return this._client.send({ debug: debugReq })
   }
 
   query(query) {
@@ -519,13 +527,13 @@ class RemoteController {
   }
 }
 
-async function RemoteControllerFacory(host, port, proc, timeout_seconds) {
-  const rm = new RemoteController(host, port, proc, timeout_seconds)
-  await rm._setClientConnection(host, port, proc, timeout_seconds)
+async function RemoteControllerFactory(host, port, proc, timeout_seconds, passedSw) {
+  const rm = new RemoteController(host, port, proc, timeout_seconds, passedSw)
+  await rm._setClientConnection(host, port, proc, timeout_seconds, passedSw)
   return rm
 }
 
 module.exports = {
   RemoteController,
-  RemoteControllerFacory,
+  RemoteControllerFactory,
 }
