@@ -1,4 +1,3 @@
-//Creates SC2 processes and games for remote agents to connect into.
 const s2clientprotocol = require('s2clientprotocol')
 const path = require('path')
 const maps = require(path.resolve(__dirname, '..', 'maps'))
@@ -9,17 +8,39 @@ const remote_controller = require(path.resolve(__dirname, '..', 'lib', 'remote_c
 const sc_common = s2clientprotocol.common_pb2
 const sc_pb = s2clientprotocol.sc2api_pb2
 
+//Creates SC2 processes and games for remote agents to connect into.//
 
 class VsAgent extends object {
+  /*
+  Host a remote agent vs remote agent game.
 
-  constructor() {
+  Starts two SC2 processes, one for each of two remote agents to connect to.
+  Call create_game, then have the agents connect to their respective port in
+  host_ports, specifying lan_ports in the join game request.
+
+  Agents should leave the game once it has finished, then another game can
+  be created. Note that failure of either agent to leave prior to creating
+  the next game will lead to SC2 crashing.
+
+  Best used as a context manager for simple and timely resource release.
+
+  **NOTE THAT** currently re-connecting to the same SC2 process is flaky.
+  If you experience difficulties the workaround is to only create one game
+  per instantiation of VsAgent.
+  */
+  constructor(lan_ports) {
     this._num_agents = 2
     this._run_config = run_configs.get()
     this._processes = []
     this._controllers = []
-    this._saved_maps = set()
+    this._saved_maps = new Set()
     // Reserve LAN ports.
-    this._lan_ports = portspicker.pick_unused_ports(this._num_agents * 2)
+    if (!lan_ports) {
+      throw new Error('Must provide lan_ports to VsAgent constructor')
+    }
+    if (lan_ports.length)
+    this.lan_ports = lan_ports
+    // this._lan_ports = portspicker.pick_unused_ports(this._num_agents * 2)
     // Start SC2 processes.
     for (var i = 1; i < this._num_agents.length; i++) {
       const process = this._run_config.start(extra_ports = this._lan_ports)

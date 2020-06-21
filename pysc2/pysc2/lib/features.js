@@ -1575,7 +1575,6 @@ class Features {
             }
           })
         })
-        console.log('here at feature_effects')
         out['feature_effects'] = named_array.NamedNumpyArray(
           feature_effects, [null, EffectPos]
         )
@@ -1616,11 +1615,11 @@ class Features {
             ])
           })
         })
-        console.log('--------------------------------- here at raw_effects ---------------------------------')
+        // console.log('--------------------------------- here at raw_effects ---------------------------------')
         out['raw_effects'] = named_array.NamedNumpyArray(
           raw_effects, [null, EffectPos]
         )
-        console.log('after raw effects')
+        // console.log('after raw effects')
       })
     }
     out['upgrades'] = np.array(raw.getPlayer().getUpgradeIdsList())

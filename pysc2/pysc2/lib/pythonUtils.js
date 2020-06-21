@@ -548,50 +548,6 @@ function snakeToPascal(str) {
   return usedStr[0].toUpperCase() + usedStr.slice(1, usedStr.length)
 }
 
-// function rawUnpackbits(uint8data) {
-//   if (Number.isInteger(uint8data)) {
-//     uint8data = Uint8Array.from([uint8data])
-//   }
-//   if (uint8data instanceof Array) {
-//     uint8data = Uint8Array.from(uint8data)
-//   }
-//   const results = new Uint8Array(8 * uint8data.length)
-//   let byte
-//   let offset
-//   for (let i = 0; i < uint8data.length; i++) {
-//     byte = uint8data[i]
-//     offset = (8 * i)
-//     results[offset + 7] = ((byte & (1 << 0)) >> 0)
-//     results[offset + 6] = ((byte & (1 << 1)) >> 1)
-//     results[offset + 5] = ((byte & (1 << 2)) >> 2)
-//     results[offset + 4] = ((byte & (1 << 3)) >> 3)
-//     results[offset + 3] = ((byte & (1 << 4)) >> 4)
-//     results[offset + 2] = ((byte & (1 << 5)) >> 5)
-//     results[offset + 1] = ((byte & (1 << 6)) >> 6)
-//     results[offset + 0] = ((byte & (1 << 7)) >> 7)
-//   }
-//   return results
-// }
-
-// let BYTE_CACHE = (Array(255)).map((_, index) => index)
-// for (let i = 0; i < 256; i++) {
-//   BYTE_CACHE[i] = rawUnpackbits(i)
-// }
-// BYTE_CACHE = BYTE_CACHE.map((val) => rawUnpackbits(val))
-// // console.log(BYTE_CACHE)
-// function unpackbits(uint8data) {
-//   if (Number.isInteger(uint8data)) {
-//     uint8data = Uint8Array.from([uint8data])
-//   }
-//   if (uint8data instanceof Array) {
-//     uint8data = Uint8Array.from(uint8data)
-//   }
-//   const results = new Uint8Array(8 * uint8data.length)
-//   for (let i = 0; i < uint8data.length - 8; i++) {
-//     results.set(BYTE_CACHE[uint8data[i]], 8 * i)
-//   }
-//   return results
-// }
 function unpackbits(uint8data) {
   if (Number.isInteger(uint8data)) {
     uint8data = Uint8Array.from([uint8data])

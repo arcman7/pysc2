@@ -76,10 +76,6 @@ function assign(values, name, keyPathArray) {
   })
 }
 function unpack(values, names, nameIndex = 0, keyPathArray = []) {
-  // if (isinstance(names, Enum.EnumMeta) && names.member_names_.length === 6) {
-  // console.log('1st line unpack *************************'.rpad(nameIndex, '  '))
-  // console.log(`(${nameIndex}) => unpack( [ ${names} ], nameIndex: ${nameIndex}, [${keyPathArray}] )`.rpad(nameIndex, '  '))
-  // }
   //sanitize input
   if (isinstance(names, Enum.EnumMeta)) {
     names = names.member_names_
@@ -104,30 +100,14 @@ function unpack(values, names, nameIndex = 0, keyPathArray = []) {
   } else if (isinstance(nameList, Enum.EnumMeta)) {
     nameList = nameList.member_names_
   }
-  // if (names.length === 6) {
-  // console.log('nameList: '.rpad(nameIndex, '  '), nameList)
-  // }
-  try {//eslint-disable-line
-    // for (let i = 0; i < values.length; i++) {
-    nameList.forEach((name, index) => {
-      // if (nameList.length === 6) {
-      // console.log(`(${index}) => assign( ${name}, [${keyPathArray.concat(index)}])`.rpad(nameIndex, '  '))
-      assign(values, name, keyPathArray.concat(index))
-      if (values.length <= index) {
-        return
-      }
-      // console.log('RECURSE calling unpack: *************************'.rpad(nameIndex, '  '))
-      // console.log(`(${nameIndex}) => unpack( [ ${names} ], nameIndex: ${nameIndex + 1}, [${keyPathArray.concat(index)}] )`.rpad(nameIndex, '  '))
-      unpack(values, names, nameIndex + 1, keyPathArray.concat(index))
-      // return
-      // }
-      // assign(values, name, keyPathArray.concat(index))
-      // unpack(values, names, nameIndex + 1, keyPathArray.concat(index))
-    })
-  } catch (err) {
-    // console.log('nameList: ', nameList, ' nameIndex: ', nameIndex, '\nerr: ', err)
-    throw err
-  }
+
+  nameList.forEach((name, index) => {
+    assign(values, name, keyPathArray.concat(index))
+    if (values.length <= index) {
+      return
+    }
+    unpack(values, names, nameIndex + 1, keyPathArray.concat(index))
+  })
 }
 
 class NamedDict {
@@ -271,9 +251,6 @@ class NamedNumpyArray extends Array {// extends np.ndarray:
     const copy = values.map((e) => e)
     this._named_array_values = copy
     // Finally convert to a NamedNumpyArray.
-    if (names[0] && names[0].length === 6) {
-      console.log('unpack(', this.length, ', ', names, ')')
-    }
     unpack(this, names)
   }
 
@@ -305,7 +282,7 @@ class NamedNumpyArray extends Array {// extends np.ndarray:
       if (Array.isArray(ele)) {
         const temp = this.where(conditionFunc, ele, results, false)
         results.concat(temp)
-        // NOTE: below will NOT work
+        // NOTE: below will NOT wor
         // results = results.concat(this.where(conditionFunc, ele, results, false))
         return
       }
