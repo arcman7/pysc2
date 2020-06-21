@@ -362,7 +362,7 @@ async function obsTest() {
     function get_effect_obs(obs, effect_id) {
       for (let i = 0; i < obs.length; i++) {
         const ob = obs[i]
-        if (ob.getEffect() == effect_id) {
+        if (ob.effect == effect_id) {
           return ob
         }
       }
@@ -482,6 +482,14 @@ async function obsTest() {
     })
 
     // Also in the raw effects
+    const raw1 = transform_obs1['raw_effects']
+    e = get_effect_obs(raw1, features.Effects.GuardianShield)
+    assert(e, 'e is not null')
+    // Not located at [30, 30] due to map shape and minimap coords
+    assert(e.x > 20, 'e.getX() > 20')
+    assert(e.y > 20, 'e.getY() > 20')
+    assert(e.alliance === sc_raw.Alliance.SELF, 'e.getAlliance() === sc_raw.Alliance.SELF')
+    assert(e.owner === 1, 'e.getOwner() === 1')
   }
   boundedArgsDecorator = utils.GameReplayTestCase.setup({})
   decoratedFunc = boundedArgsDecorator(test_effects)
