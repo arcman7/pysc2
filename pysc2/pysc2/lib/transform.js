@@ -107,7 +107,7 @@ class PixelToCoord extends Transform {
   }
 
   fwd_pt(pt) { //eslint-disable-line
-    return pt.floor
+    return pt.floor()
   }
 
   back_dist(dist) { //eslint-disable-line

@@ -52,16 +52,21 @@ Array.prototype.where = function where(conditionFunc, start = this._named_array_
 function assign(values, name, keyPathArray) {
   let value = values
   let parent
-  let index
   let lookUpIndex
   if (name === null || name === undefined) {
     return
   }
-  while (keyPathArray.length) {
-    if (keyPathArray.length === 1) {
+  let i = 0
+  let index
+  while (i < keyPathArray.length) {
+    if (i === (keyPathArray.length - 1)) {
       parent = value
     }
-    index = keyPathArray.shift()
+    index = keyPathArray[i]
+    i++
+    if (value === undefined) {
+      console.log('values:\n  ', values, '\nname:\n  ', name, '\nkeyPathArray:\n  ', keyPathArray)
+    }
     lookUpIndex = index
     value = value[index]
   }
@@ -71,6 +76,10 @@ function assign(values, name, keyPathArray) {
   })
 }
 function unpack(values, names, nameIndex = 0, keyPathArray = []) {
+  // if (isinstance(names, Enum.EnumMeta) && names.member_names_.length === 6) {
+  // console.log('1st line unpack *************************'.rpad(nameIndex, '  '))
+  // console.log(`(${nameIndex}) => unpack( [ ${names} ], nameIndex: ${nameIndex}, [${keyPathArray}] )`.rpad(nameIndex, '  '))
+  // }
   //sanitize input
   if (isinstance(names, Enum.EnumMeta)) {
     names = names.member_names_
@@ -95,13 +104,29 @@ function unpack(values, names, nameIndex = 0, keyPathArray = []) {
   } else if (isinstance(nameList, Enum.EnumMeta)) {
     nameList = nameList.member_names_
   }
-  try {
+  // if (names.length === 6) {
+  // console.log('nameList: '.rpad(nameIndex, '  '), nameList)
+  // }
+  try {//eslint-disable-line
+    // for (let i = 0; i < values.length; i++) {
     nameList.forEach((name, index) => {
+      // if (nameList.length === 6) {
+      // console.log(`(${index}) => assign( ${name}, [${keyPathArray.concat(index)}])`.rpad(nameIndex, '  '))
       assign(values, name, keyPathArray.concat(index))
+      if (values.length <= index) {
+        return
+      }
+      // console.log('RECURSE calling unpack: *************************'.rpad(nameIndex, '  '))
+      // console.log(`(${nameIndex}) => unpack( [ ${names} ], nameIndex: ${nameIndex + 1}, [${keyPathArray.concat(index)}] )`.rpad(nameIndex, '  '))
       unpack(values, names, nameIndex + 1, keyPathArray.concat(index))
+      // return
+      // }
+      // assign(values, name, keyPathArray.concat(index))
+      // unpack(values, names, nameIndex + 1, keyPathArray.concat(index))
     })
   } catch (err) {
-    console.log('nameList: ', nameList, ' nameIndex: ', nameIndex, '\nerr: ', err)
+    // console.log('nameList: ', nameList, ' nameIndex: ', nameIndex, '\nerr: ', err)
+    throw err
   }
 }
 
@@ -246,6 +271,9 @@ class NamedNumpyArray extends Array {// extends np.ndarray:
     const copy = values.map((e) => e)
     this._named_array_values = copy
     // Finally convert to a NamedNumpyArray.
+    if (names[0] && names[0].length === 6) {
+      console.log('unpack(', this.length, ', ', names, ')')
+    }
     unpack(this, names)
   }
 

@@ -151,7 +151,7 @@ String.prototype.splitlines = function() {
 }
 //eslint-disable-next-line
 String.prototype.ljust = function(length, char = ' ') {
-  const fill = [];
+  const fill = []
   while (fill.length + this.length < length) {
     fill[fill.length] = char;
   }
@@ -159,9 +159,25 @@ String.prototype.ljust = function(length, char = ' ') {
 }
 //eslint-disable-next-line
 String.prototype.rjust = function(length, char = ' ') {
-  const fill = [];
+  const fill = []
   while (fill.length + this.length < length) {
     fill[fill.length] = char;
+  }
+  return fill.join('') + this;
+}
+//eslint-disable-next-line
+String.prototype.lpad = function(length, char = ' ') {
+  const fill = Array(length);
+  for (let i = 0; i < length; i++) {
+    fill[i] = char;
+  }
+  return this + fill.join('');
+}
+//eslint-disable-next-line
+String.prototype.rpad = function(length, char = ' ') {
+  const fill = Array(length);
+  for (let i = 0; i < length; i++) {
+    fill[i] = char;
   }
   return fill.join('') + this;
 }

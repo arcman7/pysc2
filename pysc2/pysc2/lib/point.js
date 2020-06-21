@@ -46,7 +46,7 @@ class Point extends namedtuple('Point', ['x', 'y']) {
         x: obj.getX(),
         y: obj.getY(),
       }
-    } else if (Number(obj) == obj) { // is number
+    } else if (Number(obj) == obj) { // arguments: (a, b) a and b are numbers
       usedObj = {
         x: obj,
         y: arguments[1], //eslint-disable-line
@@ -87,22 +87,22 @@ class Point extends namedtuple('Point', ['x', 'y']) {
 
   round() {
     // Round `x` and `y` to integers.//
-    return this.constructor.build(Math.round(this.x), Math.round(this.y))
+    return new Point(Math.round(this.x), Math.round(this.y))
   }
 
   floor() {
     // Round `x` and `y` down to integers.//
-    return this.constructor.build(Math.floor(this.x), Math.floor(this.y))
+    return new Point(Math.floor(this.x), Math.floor(this.y))
   }
 
   ceil() {
     // Round `x` and `y` up to integers.//
-    return this.constructor.build(Math.ceil(this.x), Math.ceil(this.y))
+    return new Point(Math.ceil(this.x), Math.ceil(this.y))
   }
 
   abs() {
     // Take the absolute value of `x` and `y`.//
-    return this.constructor.build(Math.abs(this.x), Math.abs(this.y))
+    return new Point(Math.abs(this.x), Math.abs(this.y))
   }
 
   len() {
