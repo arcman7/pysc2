@@ -1,7 +1,7 @@
 const deepdiff = require('deep-diff')
 const dir = require('path')
 const pythonUtils = require(dir.resolve(__dirname, './pythonUtils.js'))
-const { hashCode, len, ValueError, zip } = pythonUtils
+const { getattr, hashCode, len, ValueError, zip } = pythonUtils
 
 const _ARRAY_PLACEHOLDER = '*'
 
@@ -15,22 +15,8 @@ class ProtoPath extends Array {
     Args:
       path: Tuple of attribute names / array indices on the path to a field.
     */
-    let result = ''
-    path.forEach((k) => {
-      if (Number.isInteger(k) || k === _ARRAY_PLACEHOLDER) {
-        result += `[${k}]`
-      } else if (result) {
-        result += '.' + k
-      } else {
-        result += '' + k
-      }
-    })
     super(...path)
     this._path = path
-  }
-
-  get length() {
-    return this._path.length
   }
 
   get_field(proto) {
@@ -40,7 +26,7 @@ class ProtoPath extends Array {
       if (Number.isInteger(k)) {
         value = value[k]
       } else {
-        value = value[0].getAttribute(k)
+        value = getattr(value, k)
       }
     })
     return value
@@ -90,12 +76,10 @@ class ProtoPath extends Array {
     this._path.forEach((k) => {
       if (Number.isInteger(k) || k == _ARRAY_PLACEHOLDER) {
         result += `[${k}]`
+      } else if (result) {
+        result += ('.' + k)
       } else {
-        if (result) {
-          result += '.' + k
-        } else {
-          result += '' + k
-        }
+        result += k
       }
     })
     return result
@@ -143,7 +127,7 @@ class ProtoDiffs {
   }
 
   all_diffs() {
-    return this.chagned.concat(this.added).concat(this.removed)
+    return this.changed.concat(this.added).concat(this.removed)
   }
 
   report(differencers = null, truncate_to = 0) {
@@ -172,8 +156,11 @@ class ProtoDiffs {
       results.push(`Removed ${r}.`)
     })
 
-    for (const key_c in this._changed) { // eslint-disable-line
-      const c = this._changed[key_c]
+    for (let i = 0; i < this._changed.length; i++) { // eslint-disable-line
+      const c = this._changed[i]
+      // if (c == undefined) {
+      //   console.log(this._changed, key_c)
+      // }
       let result = null
       if (differencers) {
         for (const key_d in differencers) { // eslint-disable-line
@@ -186,6 +173,9 @@ class ProtoDiffs {
       }
 
       if (!result) {
+        // if (c.get_field == undefined) {
+        //   console.log(this._changed, key_c, c)
+        // }
         result = `${_truncate(c.get_field(this._proto_a), truncate_to)} -> ${_truncate(c.get_field(this._proto_b), truncate_to)}`
       } else {
         result = _truncate(result, truncate_to)
@@ -214,15 +204,7 @@ function _truncate(val, truncate_to) {
 }
 
 function _dict_path_to_proto_path(dict_path) {
-  dict_path = dict_path.slice(5) // strip off 'root[...]'
-  const keys = dict_path.split('][') // tokenize
-  return new ProtoPath(keys.map((k) => {
-    // key or idx
-    if (k[0] == "'") {
-      return k.slice(1, -1)
-    }
-    return parseInt(k, 10)
-  }))
+  return new ProtoPath(dict_path)
 }
 
 function compute_diff(proto_a, proto_b) {
@@ -304,10 +286,11 @@ function compute_diff(proto_a, proto_b) {
     }
   ]
   */
+
   if (diff) {
-    const changed_paths = diff.filter((ele) => ele.kind === 'E')
-    const added_paths = diff.filter((ele) => (ele.kind === 'N') || (ele.kind === 'A' && ele.item && ele.item.kind === 'N'))
-    const removed_paths = diff.filter((ele) => (ele.kind === 'D') || (ele.kind === 'A' && ele.item && ele.item.kind === 'D'))
+    const changed_paths = diff.filter((ele) => ele.kind === 'E').map((e) => _dict_path_to_proto_path(e.path))
+    const added_paths = diff.filter((ele) => (ele.kind === 'N') || (ele.kind === 'A' && ele.item && ele.item.kind === 'N')).map((e) => _dict_path_to_proto_path(e.path))
+    const removed_paths = diff.filter((ele) => (ele.kind === 'D') || (ele.kind === 'A' && ele.item && ele.item.kind === 'D')).map((e) => _dict_path_to_proto_path(e.path))
 
     if (changed_paths.length + added_paths.length + removed_paths.length !== diff.length) {
       throw new ValueError(`Unhandled diffs: ${diff}`)
@@ -320,7 +303,7 @@ function compute_diff(proto_a, proto_b) {
       added_paths,
       removed_paths
     )
-  } else {
+  } else { // eslint-disable-line
     return null
   }
 }

@@ -53,8 +53,8 @@ describe('proto_diff.js', () => {
 
     test('testIndexing', () => {
       const path = new proto_diff.ProtoPath(['observation', 'actions', 1])
-      expect(path[0]).toBe('observation')
-      expect(path[1]).toBe('actions')
+      expect(path[0].toString()).toBe('observation')
+      expect(path[1].toString()).toBe('actions')
       expect(path[path.length - 2]).toBe('actions')
       expect(path[path.length - 1]).toBe(1)
     })
@@ -68,7 +68,9 @@ describe('proto_diff.js', () => {
       const game_loop = new proto_diff.ProtoPath(['observation', 'game_loop'])
       const alert = new proto_diff.ProtoPath(['observation', 'alerts', 0])
       expect(game_loop.get_field(proto)).toBe(1)
-
+      expect(alert.get_field(proto)).toBe(sc_pb.Alert.ALERTERROR)
+      const test = new proto_diff.ProtoPath(game_loop._path.slice(0, game_loop._path.length - 1))
+      expect(test.get_field(proto)).toBe(observation)
     })
 
     test('testWithAnonymousArrayIndices', () => {
@@ -81,8 +83,12 @@ describe('proto_diff.js', () => {
     })
   })
 
-  // function _alert_formatter(path proto_a, proto_b) {
-
+  // function _alert_formatter(path, proto_a, proto_b) {
+  //   const field_a = path.get_field(proto_a)
+  //   if (path[path.length - 2] == 'alerts') {
+  //     const field_b = path.get_field(proto_b)
+  //     return `${sc_pb.Alert}`
+  //   }
   // }
 
   describe('  ProtoDiffTest', () => {
@@ -102,10 +108,9 @@ describe('proto_diff.js', () => {
       const diff = proto_diff.compute_diff(a, b)
       expect(diff).not.toBeNull()
       expect(diff.added.length).toBe(1)
-      // self.assertLen(diff.added, 1, diff)
-      // self.assertEqual(str(diff.added[0]), "observation")
-      // self.assertEqual(diff.added, diff.all_diffs())
-      // self.assertEqual(diff.report(), "Added observation.")
+      expect(diff.added[0].toString()).toBe('observation')
+      expect(diff.added).toMatchObject(diff.all_diffs())
+      expect(diff.report()).toBe('Added observation.')
     })
 
     test('testAddedFields', () => {
@@ -116,18 +121,15 @@ describe('proto_diff.js', () => {
       observation1.setAlertsList([sc_pb.Alert.ALERTERROR])
       a.setObservation(observation1)
       observation2.setAlertsList([sc_pb.Alert.ALERTERROR, sc_pb.Alert.MERGECOMPLETE])
-      observation2.setPlayerResultList([sc_pb.PlayerResult()])
       b.setObservation(observation2)
+      b.setPlayerResultList([new sc_pb.PlayerResult()])
       const diff = proto_diff.compute_diff(a, b)
       expect(diff).not.toBeNull()
-      // self.assertLen(diff.added, 2, diff)
-      // self.assertEqual(str(diff.added[0]), "observation.alerts[1]")
-      // self.assertEqual(str(diff.added[1]), "player_result")
-      // self.assertEqual(diff.added, diff.all_diffs())
-      // self.assertEqual(
-      //     diff.report(),
-      //     "Added observation.alerts[1].\n"
-      //     "Added player_result.")
+      expect(diff.added.length).toBe(2)
+      expect(diff.added[0].toString()).toBe('observation.alertsList')
+      expect(diff.added[1].toString()).toBe('playerResultList')
+      expect(diff.added).toMatchObject(diff.all_diffs())
+      expect(diff.report()).toBe('Added observation.alertsList.\nAdded playerResultList.')
     })
 
     test('testRemovedField', () => {
@@ -136,19 +138,14 @@ describe('proto_diff.js', () => {
       var b = new sc_pb.ResponseObservation()
       var observation2 = new sc_pb.Observation()
       observation1.setGameLoop(1)
-      observation1.setScore(score_pb.Score())
-      observation1.setAlertsList([sc_pb.Alert.ALERTERROR, sc_pb.Alert.MERGECOMPLETE])
       a.setObservation(observation1)
-      observation2.setAlertsList([sc_pb.Alert.ALERTERROR])
       b.setObservation(observation2)
       const diff = proto_diff.compute_diff(a, b)
       expect(diff).not.toBeNull()
-      // self.assertLen(diff.removed, 1, diff)
-      // self.assertEqual(str(diff.removed[0]), "observation.game_loop")
-      // self.assertEqual(diff.removed, diff.all_diffs())
-      // self.assertEqual(
-      //     diff.report(),
-      //     "Removed observation.game_loop.")
+      expect(diff.removed.length).toBe(1)
+      expect(diff.removed[0].toString()).toBe('observation.gameLoop')
+      expect(diff.removed).toMatchObject(diff.all_diffs())
+      expect(diff.report()).toBe('Removed observation.gameLoop.')
     })
 
     test('testRemovedFields', () => {
@@ -156,7 +153,37 @@ describe('proto_diff.js', () => {
       var observation1 = new sc_pb.Observation()
       var b = new sc_pb.ResponseObservation()
       var observation2 = new sc_pb.Observation()
+      observation1.setGameLoop(1)
+      observation1.setScore(new score_pb.Score())
+      observation1.setAlertsList([sc_pb.Alert.ALERTERROR, sc_pb.MERGECOMPLETE])
+      a.setObservation(observation1)
+      observation2.setAlertsList([sc_pb.Alert.ALERTERROR])
+      b.setObservation(observation2)
+      const diff = proto_diff.compute_diff(a, b)
+      expect(diff).not.toBeNull()
+      expect(diff.removed.length).toBe(3)
+      expect(diff.removed[0].toString()).toBe('observation.alertsList')
+      expect(diff.removed[1].toString()).toBe('observation.gameLoop')
+      expect(diff.removed[2].toString()).toBe('observation.score')
+      expect(diff.removed).toMatchObject(diff.all_diffs())
+      expect(diff.report()).toBe('Removed observation.alertsList.\nRemoved observation.gameLoop.\nRemoved observation.score.')
+    })
 
+    test('testChangedField', () => {
+      var a = new sc_pb.ResponseObservation()
+      var observation1 = new sc_pb.Observation()
+      var b = new sc_pb.ResponseObservation()
+      var observation2 = new sc_pb.Observation()
+      observation1.setGameLoop(1)
+      observation2.setGameLoop(2)
+      a.setObservation(observation1)
+      b.setObservation(observation2)
+      const diff = proto_diff.compute_diff(a, b)
+      expect(diff).not.toBeNull()
+      expect(diff.changed.length).toBe(1)
+      expect(diff.changed[0].toString()).toBe('observation.gameLoop')
+      expect(diff.changed).toMatchObject(diff.all_diffs())
+      expect(diff.report()).toBe('Changed observation.gameLoop: 1 -> 2.')
     })
   })
 })

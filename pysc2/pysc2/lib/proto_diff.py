@@ -38,12 +38,10 @@ class ProtoPath(object):
   def get_field(self, proto):
     """Returns field at this proto path, in the specified proto."""
     value = proto
-    print(value)
     for k in self._path:
       if isinstance(k, int):
         value = value[k]
       else:
-        print('k: ', k)
         value = getattr(value, k)
 
     return value
@@ -80,7 +78,6 @@ class ProtoPath(object):
     return hash(self._path)
 
   def __repr__(self):
-    return 'oggaa booogaaa this is how i look'
     result = ""
     for k in self._path:
       if isinstance(k, int) or k == _ARRAY_PLACEHOLDER:
@@ -285,10 +282,6 @@ def compute_diff(proto_a, proto_b):
 
   {'values_changed': {"root['observation']['alerts'][1]": {'new_value': 'MergeComplete', 'old_value': 'LarvaHatched'}, "root['observation']['game_loop']": {'new_value': 2, 'old_value': 1}}}
   """
-  
-  print('dict1:\n', dict1)
-  print('dict2:\n', dict2)
-  print(diff)
 
   
   if diff:

@@ -2,6 +2,8 @@ const s2clientprotocol = require('s2clientprotocol') //eslint-disable-line
 
 const { common_pb, raw_pb, spatial_pb, ui_pb } = s2clientprotocol
 
+/*eslint-disable no-use-before-define*/
+
 class ABCMeta {
   static get abstractMethods() { return [] }
 
@@ -60,12 +62,7 @@ function assert(cond, errMsg) {
     throw new Error(errMsg)
   }
 }
-function len(container) {
-  if (container.__len__) {
-    return container.__len__()
-  }
-  return Object.keys(container).length;
-}
+
 function eq(a, b) {
   if (a.__eq__) {
     return a.__eq__(b)
@@ -75,15 +72,7 @@ function eq(a, b) {
   }
   return a === b
 }
-function iter(container) {
-  if (container.__iter__) {
-    return container.__iter__()
-  }
-  if (len(container)) {
-    return Object.keys(container).map((key) => container[key])
-  }
-  throw new Error('ValueError: Cannont iterate over non-iterable')
-}
+
 //eslint-disable-next-line
 Array.prototype.extend = function(array) {
   for (let i = 0; i < array.length; i++) {
@@ -112,7 +101,6 @@ function getArgsArray(func, kwargs) {
 }
 getArgsArray.argSignatures = {}
 getArgsArray.getArgNames = getArgNames
-<<<<<<< HEAD
 //eslint-disable-next-line
 String.prototype.splitlines = function() {
   return this.split(/\r?\n/)
@@ -123,17 +111,6 @@ function hashCode(str) {
   var hash = 0;
   if (str.length == 0) {
     return hash
-=======
-function getattr(proto, key) {
-  if (!proto[`get${snakeToPascal(key)}`]) {
-    return
-  }
-  return proto[`get${snakeToPascal(key)}`]()
-}
-function iter(container) {
-  if (container.__iter__) {
-    return container.__iter__()
->>>>>>> 26eb4d165f3e7b802f5acdf55dfc8537ba6afd9f
   }
   for (let i = 0; i < str.length; i++) {
     const char = str.charCodeAt(i);
@@ -141,6 +118,16 @@ function iter(container) {
     hash &= hash; // Convert to 32bit integer
   }
   return hash;
+}
+
+function getattr(proto, key) {
+  if (proto[`get${snakeToPascal(key)}`]) {
+    return proto[`get${snakeToPascal(key)}`]()
+  }
+  if (proto[`get${snakeToPascal(key)}List`]) {
+    return proto[`get${snakeToPascal(key)}List`]()
+  }
+  return null
 }
 
 //eslint-disable-next-line
@@ -159,6 +146,11 @@ String.prototype.rjust = function(length, char = ' ') {
   }
   return fill.join('') + this;
 }
+
+function int(numOrStr) {
+  return Math.floor(numOrStr)
+}
+
 function isinstance(a, compare) {
   const keys = Object.keys(compare);
   if (Array.isArray(compare) && keys.length) {
@@ -180,21 +172,28 @@ function isinstance(a, compare) {
   }
   return a instanceof compare;
 }
+
 function isObject(a) {
   return a === Object(a)
 }
-<<<<<<< HEAD
-=======
-function int(numOrStr) {
-  return Math.floor(numOrStr)
+
+function iter(container) {
+  if (container.__iter__) {
+    return container.__iter__()
+  }
+  if (len(container)) {
+    return Object.keys(container).map((key) => container[key])
+  }
+  throw new Error('ValueError: Cannont iterate over non-iterable')
 }
+
 function len(container) {
   if (container.__len__) {
     return container.__len__()
   }
   return Object.keys(container).length;
 }
->>>>>>> 26eb4d165f3e7b802f5acdf55dfc8537ba6afd9f
+
 function map(func, collection) {
   function clone(obj) {
     if (obj === null || typeof obj !== 'object') {
@@ -213,9 +212,7 @@ function map(func, collection) {
     collection[key] = func(collection[key])
   })
 }
-<<<<<<< HEAD
 
-=======
 function namedtuple(name, fields) {
   let consLogic = '';
   let consArgs = '';
@@ -261,6 +258,7 @@ ${fields.map((field, index) => { //eslint-disable-line
 }`;
   return Function(classStr)() //eslint-disable-line
 }
+
 function NotImplementedError(message) {
   ///<summary>The error thrown when the given function isn't implemented.</summary>
   const sender = (new Error) //eslint-disable-line
@@ -283,6 +281,7 @@ function NotImplementedError(message) {
 
   this.message = str;
 }
+
 function nonZero(arr) {
   // This function outputs a array of indices of nonzero elements
   const rows = []
@@ -299,6 +298,7 @@ function nonZero(arr) {
   }
   return [rows, cols]
 }
+
 function randomChoice(arr) {
   // This function does not support "size" of output shape.
   if (Array.isArray(arr)) {
@@ -306,6 +306,7 @@ function randomChoice(arr) {
   }
   return arr[Math.floor(Math.random() * arr.length)]
 }
+
 function randomSample(arr, size) {
   var shuffled = arr.slice(0)
   let i = arr.length
@@ -319,13 +320,15 @@ function randomSample(arr, size) {
   }
   return shuffled.slice(0, size)
 }
->>>>>>> 26eb4d165f3e7b802f5acdf55dfc8537ba6afd9f
+
 function randomUniform(min, max) {
   return Math.random() * (max - min) + min
 }
+
 randomUniform.int = function (min, max) {
   return Math.round(randomUniform(min, max))
 }
+
 async function sequentialTaskQueue(tasks) {
   const results = []
   const reducer = (promiseChain, currentTask) => { //eslint-disable-line
@@ -339,6 +342,7 @@ async function sequentialTaskQueue(tasks) {
   await tasks.reduce(reducer, Promise.resolve())
   return results
 }
+
 function setattr(proto, key, value) {
   if (Array.isArray(value) && proto[`set${snakeToPascal(key)}List`]) {
     proto[`set${snakeToPascal(key)}List`](value)
@@ -349,6 +353,7 @@ function setattr(proto, key, value) {
     throw new Error(`Failed to find setter method for field "${key}" on proto.`)
   }
 }
+
 function setUpProtoAction(action, name) {
   if (name === 'no_op') {
     return action
@@ -510,8 +515,7 @@ function setUpProtoAction(action, name) {
     return action
   }
 }
-<<<<<<< HEAD
-=======
+
 const snakeToCamel = (str) => {
   if (!str.match('_')) {
     return str
@@ -522,7 +526,12 @@ const snakeToCamel = (str) => {
       .replace('-', '')
       .replace('_', ''))
 }
->>>>>>> 26eb4d165f3e7b802f5acdf55dfc8537ba6afd9f
+
+function snakeToPascal(str) {
+  const usedStr = snakeToCamel(str)
+  return usedStr[0].toUpperCase() + usedStr.slice(1, usedStr.length)
+}
+
 function sum(collection) {
   let total = 0
   Object.keys(collection).forEach((key) => {
@@ -550,50 +559,6 @@ class DefaultDict {
   }
 }
 
-// function rawUnpackbits(uint8data) {
-//   if (Number.isInteger(uint8data)) {
-//     uint8data = Uint8Array.from([uint8data])
-//   }
-//   if (uint8data instanceof Array) {
-//     uint8data = Uint8Array.from(uint8data)
-//   }
-//   const results = new Uint8Array(8 * uint8data.length)
-//   let byte
-//   let offset
-//   for (let i = 0; i < uint8data.length; i++) {
-//     byte = uint8data[i]
-//     offset = (8 * i)
-//     results[offset + 7] = ((byte & (1 << 0)) >> 0)
-//     results[offset + 6] = ((byte & (1 << 1)) >> 1)
-//     results[offset + 5] = ((byte & (1 << 2)) >> 2)
-//     results[offset + 4] = ((byte & (1 << 3)) >> 3)
-//     results[offset + 3] = ((byte & (1 << 4)) >> 4)
-//     results[offset + 2] = ((byte & (1 << 5)) >> 5)
-//     results[offset + 1] = ((byte & (1 << 6)) >> 6)
-//     results[offset + 0] = ((byte & (1 << 7)) >> 7)
-//   }
-//   return results
-// }
-
-// let BYTE_CACHE = (Array(255)).map((_, index) => index)
-// for (let i = 0; i < 256; i++) {
-//   BYTE_CACHE[i] = rawUnpackbits(i)
-// }
-// BYTE_CACHE = BYTE_CACHE.map((val) => rawUnpackbits(val))
-// // console.log(BYTE_CACHE)
-// function unpackbits(uint8data) {
-//   if (Number.isInteger(uint8data)) {
-//     uint8data = Uint8Array.from([uint8data])
-//   }
-//   if (uint8data instanceof Array) {
-//     uint8data = Uint8Array.from(uint8data)
-//   }
-//   const results = new Uint8Array(8 * uint8data.length)
-//   for (let i = 0; i < uint8data.length - 8; i++) {
-//     results.set(BYTE_CACHE[uint8data[i]], 8 * i)
-//   }
-//   return results
-// }
 function unpackbits(uint8data) {
   if (Number.isInteger(uint8data)) {
     uint8data = Uint8Array.from([uint8data])
@@ -678,7 +643,6 @@ async function withPythonAsync(withInterface, callback) {
   return tempResult
 }
 
-
 /**
  From:
  https://gist.github.com/tregusti/0b37804798a7634bc49c#gistcomment-2193237
@@ -706,17 +670,15 @@ module.exports = {
   DefaultDict,
   eq,
   getArgsArray,
-<<<<<<< HEAD
-  hashCode,
-=======
   getattr,
->>>>>>> 26eb4d165f3e7b802f5acdf55dfc8537ba6afd9f
-  len,
+  hashCode,
   int,
   iter,
   isinstance,
   isObject,
+  len,
   map,
+  namedtuple,
   NotImplementedError,
   nonZero,
   randomChoice,
@@ -725,6 +687,8 @@ module.exports = {
   sequentialTaskQueue,
   setattr,
   setUpProtoAction,
+  snakeToCamel,
+  snakeToPascal,
   String,
   sum,
   unpackbits,
