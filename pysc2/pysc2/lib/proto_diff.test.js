@@ -83,13 +83,22 @@ describe('proto_diff.js', () => {
     })
   })
 
-  // function _alert_formatter(path, proto_a, proto_b) {
-  //   const field_a = path.get_field(proto_a)
-  //   if (path[path.length - 2] == 'alerts') {
-  //     const field_b = path.get_field(proto_b)
-  //     return `${sc_pb.Alert}`
-  //   }
-  // }
+  function _alert_formatter(path, proto_a, proto_b) {
+    const field_a = path.get_field(proto_a)
+    let a
+    let b
+    if (path[path.length - 2] == 'alertsList') {
+      const field_b = path.get_field(proto_b)
+      Object.keys(sc_pb.Alert).forEach((k) => {
+        if (sc_pb.Alert[k] == field_a) {
+          a = k
+        } else if (sc_pb.Alert[k] == field_b) {
+          b = k
+        }
+      })
+      return `${a} -> ${b}`
+    }
+  }
 
   describe('  ProtoDiffTest', () => {
     test('testNoDiffs', () => {
@@ -184,6 +193,44 @@ describe('proto_diff.js', () => {
       expect(diff.changed[0].toString()).toBe('observation.gameLoop')
       expect(diff.changed).toMatchObject(diff.all_diffs())
       expect(diff.report()).toBe('Changed observation.gameLoop: 1 -> 2.')
+    })
+
+    test('testChangedFields', () => {
+      var a = new sc_pb.ResponseObservation()
+      var observation1 = new sc_pb.Observation()
+      var b = new sc_pb.ResponseObservation()
+      var observation2 = new sc_pb.Observation()
+      observation1.setGameLoop(1)
+      observation1.setAlertsList([sc_pb.Alert.ALERTERROR, sc_pb.Alert.LARVAHATCHED])
+      a.setObservation(observation1)
+      observation2.setGameLoop(2)
+      observation2.setAlertsList([sc_pb.Alert.ALERTERROR, sc_pb.Alert.MERGECOMPLETE])
+      b.setObservation(observation2)
+      const diff = proto_diff.compute_diff(a, b)
+      expect(diff).not.toBeNull()
+      expect(diff.changed.length).toBe(2)
+      expect(diff.changed[0].toString()).toBe('observation.alertsList[1]')
+      expect(diff.changed[1].toString()).toBe('observation.gameLoop')
+      expect(diff.changed).toMatchObject(diff.all_diffs())
+      expect(diff.report()).toBe('Changed observation.alertsList[1]: 7 -> 8.\nChanged observation.gameLoop: 1 -> 2.')
+      expect(diff.report([_alert_formatter])).toBe('Changed observation.alerts[1]: LARVAHATCHED -> MERGECOMPLETE.\nChanged observation.gameLoop: 1 -> 2.')
+    })
+
+    test('testTruncation', () => {
+      var a = sc_pb.ResponseObservation()
+      var observation1 = sc_pb.Observation()
+      var b = sc_pb.ResponseObservation()
+      var observation2 = sc_pb.Observation()
+      observation1.setGameLoop(1)
+      observation1.setAlertsList([sc_pb.Alert.ALERTERROR, sc_pb.Alert.LARVAHATCHED])
+      a.setObservation(observation1)
+      observation2.setObservation(2)
+      observation2.setAlertsList([sc_pb.Alert.ALERTERROR, sc_pb.Alert.MERGECOMPLETE])
+      a.setObservation(observation2)
+      const diff = proto_diff.compute_diff(a, b)
+      expect(diff).not.toBeNull()
+      expect(diff.report([_alert_formatter], 9)).toBe('Changed observation.alertsList[1]: LARVAH....\nChanged observation.gameLoop: 1 -> 2.')
+      expect(diff.report([_alert_formatter], 1)).toBe('Changed observation.alertsList[1]: ....\nChanged observation.gameLoop: ... -> ....')
     })
   })
 })

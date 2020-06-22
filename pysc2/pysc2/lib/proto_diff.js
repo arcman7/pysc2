@@ -163,7 +163,9 @@ class ProtoDiffs {
       // }
       let result = null
       if (differencers) {
+        console.log(differencers)
         for (const key_d in differencers) { // eslint-disable-line
+          console.log('key: ', key_d, 'd: ', differencers[key_d])
           const d = differencers[key_d]
           result = d(c, this._proto_a, this._proto_b)
           if (result) {
