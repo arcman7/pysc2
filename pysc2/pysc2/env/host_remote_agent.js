@@ -1,16 +1,16 @@
-const s2clientprotocol = require('s2clientprotocol')
-const path = require('path')
+const s2clientprotocol = require('s2clientprotocol') //eslint-disable-line
+const path = require('path') //eslint-disable-line
 const maps = require(path.resolve(__dirname, '..', 'maps'))
 const run_configs = require(path.resolve(__dirname, '..', 'run_configs'))
-const protspicker = require(path.resolve(__dirname, '..', 'lib', 'protspicker.js'))
-const protocol = require(path.resolve(__dirname, '..', 'lib', 'protocol.js'))
+const portspicker = require(path.resolve(__dirname, '..', 'lib', 'portspicker.js'))
+// const protocol = require(path.resolve(__dirname, '..', 'lib', 'protocol.js'))
 const remote_controller = require(path.resolve(__dirname, '..', 'lib', 'remote_controller.js'))
-const sc_common = s2clientprotocol.common_pb2
-const sc_pb = s2clientprotocol.sc2api_pb2
+const sc_common = s2clientprotocol.common_pb
+const sc_pb = s2clientprotocol.sc2api_pb
 
 //Creates SC2 processes and games for remote agents to connect into.//
 
-class VsAgent extends object {
+class VsAgent {
   /*
   Host a remote agent vs remote agent game.
 
@@ -28,7 +28,9 @@ class VsAgent extends object {
   If you experience difficulties the workaround is to only create one game
   per instantiation of VsAgent.
   */
-  constructor(lan_ports) {
+  static get _num_agents() { return 2 }
+
+  constructor({ lan_ports, sc_procs }) {
     this._num_agents = 2
     this._run_config = run_configs.get()
     this._processes = []
@@ -36,16 +38,23 @@ class VsAgent extends object {
     this._saved_maps = new Set()
     // Reserve LAN ports.
     if (!lan_ports) {
-      throw new Error('Must provide lan_ports to VsAgent constructor')
+      throw new Error('Must provide lan_ports, none were provided')
     }
-    if (lan_ports.length)
+    if (lan_ports.length < this._num_agents * 2) {
+      throw new Error(`Must provide the correct number of lan ports, expected ${this._num_agents * 2}, got: ${lan_ports.length}`)
+    }
+    if (this._num_agents !== sc_procs.length) {
+      throw new Error(`Must provide correct number of sc_procs, expected ${this._num_agents}, got: ${sc_procs.length} `)
+    }
     this.lan_ports = lan_ports
+    this._processes = sc_procs
     // this._lan_ports = portspicker.pick_unused_ports(this._num_agents * 2)
     // Start SC2 processes.
-    for (var i = 1; i < this._num_agents.length; i++) {
-      const process = this._run_config.start(extra_ports = this._lan_ports)
-      this._processes.push(process)
-      this._controllers.push(process.controller)
+    for (let i = 1; i < this._num_agents.length; i++) {
+      // const process = this._run_config.start(extra_ports = this._lan_ports)
+      // this._processes.push(process)
+      const proc = this._processes[i]
+      this._controllers.push(proc._controller)
     }
   }
 
@@ -53,86 +62,78 @@ class VsAgent extends object {
     return this
   }
 
-  __exit__(exception_type, exception_value, traceback) {
-    this.close()
+  __exit__() {
+    return this.close()
   }
 
-  __del__() {
-    this.close()
-  }
+  // __del__() {
+  //   this.close()
+  // }
 
-  create_game(map_name) {
+  async create_game(map_name) {
     /*
     Create a game for the agents to join.
 
     Args:
       map_name: The map to use.
     */
-    this._reconnect()
+    await this._reconnect()
 
     const map_inst = maps.get(map_name)
     const map_data = map_inst.data(this._run_config)
-    if (!(this._saved_maps.has(map_name))) {
-      Object.keys(this._controllers).forEach((key) => {
-        const controller = this._controllers[key]
-        controller.save_map(map_inst.path, map_data)
-      })
+    if (!this._saved_maps.has(map_name)) {
+      await Promise.all(this._controllers.map((controller) => controller.save_map(map_inst.path, map_data)))
       this._saved_maps.add(map_name)
     }
 
     // Form the create game message.
-    const create = sc_pb.RequestCreateGame(
-      local_map = sc_pb.LocalMap(map_path = map_inst.path),
-      disable_fog = false)
-
+    const create = new sc_pb.RequestCreateGame()
+    const localMap = new sc_pb.LocalMap()
+    localMap.setMapPath(map_inst.path)
+    create.setLocalMap(localMap)
+    create.setDisableFog(false)
     // Set up for two agents.
-    for (var i = 1; i < this._num_agents.length; i ++) {
-      create.player_setup.add(type = sc_pb.Participant)
+    for (let i = 1; i < this._num_agents.length; i++) {
+      const playerSetup = new sc_pb.PlayerSetup()
+      playerSetup.setType(sc_pb.PlayerType.PARTICIPANT)
+      create.addPlayerSetup(playerSetup)
     }
 
     // Create the game.
-    this._controllers[0].create_game(create)
-    this._disconnect()
+    await this._controllers[0].create_game(create)
+    await this._disconnect()
+    return true
   }
 
-  _disconnect() {
-    Object.keys(this._controllers).forEach((key) => {
-      const c = this._controllers[key]
-      c.close()
-    })
+  async _disconnect() {
+    await Promise.all(this._controllers.map((c) => c.close()))
     this._controllers = []
+    return true
   }
 
-  _reconnect() {
-    if (!(this._controllers)) {
-      this._controllers = [
-        Object.keys(this._processes).forEach((key) => {
-          const p = this._processes[key]
-          remote_controller.RemoteController(p.host, p.port, p, ...arguments)
-        })]
+  async _reconnect() {
+    if (!this._controllers.length) {
+      this._controllers = await Promise.all(this._processes.map((p) => remote_controller
+        .RemoteControllerFactory(p.host, p.port, p, ...arguments))) //eslint-disable-line
     }
+    return true
   }
 
-  save_replay(replay_dir, replay_name) {
-    this._reconnect()
+  async save_replay(replay_dir, replay_name) {
+    await this._reconnect()
     return this._run_config.save_replay(
-      this._controllers[0].save_replay(), replay_dir, replay_name)
+      this._controllers[0].save_replay(), replay_dir, replay_name
+    )
   }
 
   get hosts() {
     // The hosts that the remote agents should connect to.
-    Object.keys(this._processes).forEach((key) => {
-      const process = this._processes[key]
-      return [process.host]
-    })
+    return this._processes.map((proc) => proc._port)
   }
 
   get host_ports() {
     // The WebSocket ports that the remote agents should connect to.
-    Object.keys(this._processes).forEach((key) => {
-      const process = this._processes[key]
-      return [process.port]
-    })
+    return this._processes.map((proc) => proc._port)
   }
 
   get lan_prots() {
@@ -140,35 +141,25 @@ class VsAgent extends object {
     return this._lan_ports
   }
 
-  close() {
+  async close() {
     // Shutdown and free all resources.
     try {
-      this._reconnect(timeout_seconds = 1)
-      Object.keys(this._controllers).forEach((key) => {
-        const controller = this._controllers[key]
-        controller.quit()
-      })
-    }
-
-    catch (remote_controller.ConnectError, protocol.ConnectionError) {
-      {}
+      const timeout_seconds = 7
+      await this._reconnect(timeout_seconds)
+      await Promise.all(this._controllers.map((controller) => controller.quit()))
+    } catch (err) {
+      console.error(err)
     }
 
     this._controllers = []
-
-    Object.keys(this._processes).forEach((key) => {
-      const process = this._processes[key]
-      process.close()
-    })
-
+    await Promise.all(this._processes.map((proc) => proc.close()))
     this._processes = []
-
-    portspicker.return_ports(this._lan_ports)
+    // portspicker.return_ports(this._lan_ports) // can't do this yet
     this._lan_ports = []
   }
 }
 
-class VsBot extends object {
+class VsBot {
   /*
   Host a remote agent vs bot game.
 
@@ -185,30 +176,36 @@ class VsBot extends object {
   If you experience difficulties the workaround is to only create one game
   per instantiation of VsBot.
   */
-  constructor() {
+  constructor(sc_proc) {
     // Start the SC2 process.
     this._run_config = run_configs.get()
-    this._processes = this._run_config.start()
+    if (!sc_proc) {
+      throw new Error('sc_proc required, none was provided.')
+    }
+    this._process = sc_proc
+    // this._process = this._run_config.start()
     this._controller = this._process.controller
-    this._saved_maps = set()
+    this._saved_maps = new Set()
   }
+
   __enter__() {
     return this
   }
 
-  __exit__(exception_type, exception_value, traceback) {
-    this.close()
+  __exit__() {
+    return this.close()
   }
 
-  __del__() {
-    this.close()
-  }
+  // __del__() {
+  //   this.close()
+  // }
 
-  create_game(
+  async create_game(
     map_name,
-    bot_difficulty = sc_pb.VeryEasy,
-    bot_race = sc_common.Random,
-    bot_first = false) {
+    bot_difficulty = sc_pb.Difficulty.VERYEASY,
+    bot_race = sc_common.Race.RANDOM,
+    bot_first = false
+  ) {
     /*
     Create a game, one remote agent vs the specified bot.
 
@@ -218,58 +215,75 @@ class VsBot extends object {
       bot_race: The race for the bot.
       bot_first: Whether the bot should be player 1 (else is player 2).
     */
-    this._reconnect()
-    this._controller.ping()
+    await this._reconnect()
+    await this._controller.ping()
 
     // Form the create game message.
     const map_inst = maps.get(map_name)
     const map_data = map_inst.data(this._run_config)
-    if (!(this._saved_maps.has(map_name))) {
-      this._controller.save_map(map_inst.path, map_data)
+    if (!this._saved_maps.has(map_name)) {
+      await this._controller.save_map(map_inst.path, map_data)
       this._saved_maps.add(map_name)
     }
 
-    const create = sc_pb.RequestCreateGame(
-      local_map = sc_pb.LocalMap(map_path = map_inst.path, map_data = map_data), disable_fog = false)
-    
+    const create = new sc_pb.RequestCreateGame()
+    const localMap = new sc_pb.LocalMap()
+    localMap.setMapData(map_data)
+    localMap.setMapPath(map_inst.path)
+    create.setLocalMap(localMap)
+    create.setDisableFog(false)
+
+    let playerSetup
     // Set up for one bot, one agent.
-    if(!(bot_first)) {
-      create.player_setup.add(type = sc_pb.Participant)
+    if (!bot_first) {
+      playerSetup = new sc_pb.PlayerSetup()
+      playerSetup.setType(sc_pb.PlayerType.PARTICIPANT)
+      create.addPlayerSetup(playerSetup)
     }
 
-    create.player_setup.add(
-      type = sc_pb.Computer, race = bot_race, difficulty = bot_difficulty)
+    playerSetup = new sc_pb.PlayerSetup()
+    playerSetup.setType(sc_pb.PlayerType.COMPUTER)
+    playerSetup.setRace(bot_race)
+    playerSetup.setDifficulty(bot_difficulty)
+    create.addPlayerSetup(playerSetup)
 
     if (bot_first) {
-      create.player_setup.add(type = sc_pb.Participant)
+      playerSetup = new sc_pb.PlayerSetup()
+      playerSetup.setType(sc_pb.PlayerType.PARTICIPANT)
+      create.addPlayerSetup(playerSetup)
     }
 
     // Create the game.
-    this._controller.create_game(create)
-    this._disconnect()
+    await this._controller.create_game(create)
+    await this._disconnect()
+    return true
   }
 
-  _disconnect() {
-    this._controller.close()
+  async _disconnect() {
+    await this._controller.close()
     this._controller = null
   }
 
-  _reconnect() {
-    if(!(this._controller)) {
-      this._controller = remote_controller.RemoteController(
-        this._process.host, this._process.port, this._process, ...arguments)
+  async _reconnect() {
+    if (!this._controller) {
+      this._controller = await remote_controller.RemoteControllerFactory(
+        this._process.host, this._process.port, this._process, ...arguments) //eslint-disable-line
     }
+    return true
   }
 
-  save_replay(replay_dir, replay_name) {
-    this._reconnect()
+  async save_replay(replay_dir, replay_name) {
+    await this._reconnect()
     return this._run_config.save_replay(
-      this._controller.save_replay(), replay_dir, replay_name)
+      (await this._controller.save_replay()),
+      replay_dir,
+      replay_name
+    )
   }
 
   get host() {
     // The host that the remote agent should connect to.
-    return this._process.port
+    return String(this._process.host)
   }
 
   get host_port() {
@@ -277,24 +291,45 @@ class VsBot extends object {
     return this._process.port
   }
 
-  close() {
+  async close() {
     // Shutdown and free all resources.
-    if (hasattr("_process") && this._process !== null) {
+    if (this._process !== null) {
       try {
-        this._reconnect(timeout_seconds = 1)
-        this._controller.quit()
-      }
-      catch (remote_controller.ConnectionError, protocol.ConnectionError) {
-        {}
+        const timeout_seconds = 7
+        await this._reconnect(timeout_seconds)
+        await this._controller.quit()
+      } catch (err) {
+        console.error(err)
       }
       this._controller = null
-      this._process.close()
+      await this._process.close()
       this._process = null
     }
   }
 }
 
+async function VsAgentFactory() {
+  const lan_ports = await portspicker.pick_unused_ports((VsAgent._num_agents * 2) + 1)
+  const port = lan_ports.pop()
+  let sc_procs = []
+  const run_config = run_configs.get()
+  for (let i = 0; i < VsAgent._num_agents; i++) {
+    sc_procs.push(run_config.start({ extra_ports: lan_ports, port }))
+  }
+  sc_procs = await Promise.all(sc_procs)
+  return new VsAgent({ lan_ports, sc_procs })
+}
+
+async function VsBotFactory() {
+  const port = (await portspicker.pick_unused_ports(1))[0]
+  const run_config = run_configs.get()
+  const sc_proc = await run_config.start({ port })
+  return new VsBot(sc_proc)
+}
+
 module.exports = {
   VsAgent,
-  VsBot
+  VsAgentFactory,
+  VsBot,
+  VsBotFactory,
 }
