@@ -69,6 +69,12 @@ Array.prototype.extend = function(array) {
     this.push(array[i])
   }
 }
+//eslint-disable-next-line
+Object.defineProperty(Array.prototype, 'extend', {
+  value: Array.prototype.extend,
+  iterable: false,
+  enumerable: false,
+})
 
 class DefaultDict {
   constructor(DefaultInit) {
@@ -88,6 +94,8 @@ class DefaultDict {
     })
   }
 }
+
+
 
 function eq(a, b) {
   if (a.__eq__) {

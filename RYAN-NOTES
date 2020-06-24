@@ -7,7 +7,7 @@ ALPHA STAR PAPER Notes
 The policy of AlphaStar is a function πθ(at | st,z) that maps all previous
 observations and actions st = o1:t, a1:t − 1 (defined in Extended Data Tables 1, 2) 
 
-observation 1 - t AND action 1 - (t - 1)
+observation 1 - t AND acton 1 - (t - 1)
 
 and z (representing strategy statistics) to a probability distribution
 over actions at for the current step. πθ is implemented as a deep neural

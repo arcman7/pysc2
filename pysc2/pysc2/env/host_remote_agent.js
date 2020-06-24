@@ -309,11 +309,11 @@ class VsBot {
 }
 
 async function VsAgentFactory() {
-  const lan_ports = await portspicker.pick_unused_ports((VsAgent._num_agents * 2) + 1)
-  const port = lan_ports.pop()
+  const lan_ports = await portspicker.pick_unused_ports((VsAgent._num_agents * 2) + VsAgent._num_agents)
   let sc_procs = []
   const run_config = run_configs.get()
   for (let i = 0; i < VsAgent._num_agents; i++) {
+    const port = lan_ports.pop()
     sc_procs.push(run_config.start({ extra_ports: lan_ports, port }))
   }
   sc_procs = await Promise.all(sc_procs)
