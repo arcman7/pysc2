@@ -57,6 +57,25 @@ function arrayCompare(a, b, sameOrder = false) {
   return true
 }
 
+function arraySub(a, b) {
+  // This function operates subtraction with 1D or 2d array
+  const result = []
+  const c = []
+  if (a[0].length == null) {
+    for (let i = 0; i < a.length; i++) {
+      result.push(a[i] - b[i])
+    }
+  } else {
+    for (let row = 0; row < a.length; row++) {
+      for (let col = 0; col < a[0].length; col++) {
+        c.push(a[row][col] - b[row][col])
+      }
+    }
+    while (c.length) { result.push(c.splice(0, a[0].length)) }
+  }
+  return result
+}
+
 function assert(cond, errMsg) {
   if (cond === false) {
     throw new Error(errMsg)
@@ -284,19 +303,24 @@ function NotImplementedError(message) {
 
 function nonZero(arr) {
   // This function outputs a array of indices of nonzero elements
-  const rows = []
-  const cols = []
-  const shape = arr.shape
-  arr = arr.arraySync()
-  for (let row = 0; row < shape[0]; row++) {
-    for (let col = 0; col < shape[1]; col++) {
-      if (arr[row][col] !== 0) {
-        rows.push(row)
-        cols.push(col)
+  const indices = []
+  if (arr[0].length == null) {
+    for (let i = 0; i < arr.length; i++) {
+      if (arr[i] !== 0) {
+        indices.push(i)
+      }
+    }
+  } else {
+    const shape = [arr.length, arr[0].length]
+    for (let row = 0; row < shape[0]; row++) {
+      for (let col = 0; col < shape[1]; col++) {
+        if (arr[row][col] !== 0) {
+          indices.push([row, col])
+        }
       }
     }
   }
-  return [rows, cols]
+  return indices
 }
 
 function randomChoice(arr) {
@@ -665,6 +689,7 @@ module.exports = {
   ABCMeta,
   any,
   arrayCompare,
+  arraySub,
   assert,
   Array,
   DefaultDict,

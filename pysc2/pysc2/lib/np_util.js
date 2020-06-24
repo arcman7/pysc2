@@ -1,8 +1,27 @@
 const path = require('path') //eslint-disable-line
 const np = require(path.resolve(__dirname, './numpy.js'))
+const pythonUtils = require(path.resolve(__dirname, './pythonUtils.js'))
+const { arraySub, nonZero } = pythonUtils
 
-async function summarize_array_diffs(lhs, rhs) {
-  //Output value differences, with index for each, between two arrays.//
+function summarize_array_diffs(lhs, rhs) {
+  // Output value differences, with index for each, between two arrays.
+  const indices = nonZero(arraySub(lhs, rhs))
+  if (indices.length == 0) {
+    return ""
+  }
+  const str = indices.map((coord) => {
+    console.log('length: ', coord.length)
+    if (coord.length == null) {
+      return `[${coord}]: ${lhs[coord]} -> ${rhs[coord]}`
+    }
+    const tempstr = coord.join('][')
+    return `[${tempstr}]: ${lhs[coord[0]][coord[1]]} -> ${rhs[coord[0]][coord[1]]}`
+  }).join('; ')
+  return `${indices.length} element(s) changed - ${str}`
+}
+
+async function summarize_array_diffs_tf(lhs, rhs) {
+  // The same fucntion using tensorflow
   if (Array.isArray(lhs)) {
     lhs = np.tensor(lhs)
   }
@@ -24,4 +43,5 @@ async function summarize_array_diffs(lhs, rhs) {
 
 module.exports = {
   summarize_array_diffs,
+  summarize_array_diffs_tf,
 }
