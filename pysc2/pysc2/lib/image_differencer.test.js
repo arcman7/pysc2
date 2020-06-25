@@ -11,7 +11,7 @@ describe('image_differencer.js', () => {
     test('testFilteredOut', () => {
       const path = new proto_diff.ProtoPath(['observation', 'actions', 1])
       const result = image_differencer.image_differencer(path, null, null)
-      expect(result).not.toBeNull()
+      expect(result).toBeNull()
     })
 
     test('testFilteredIn', () => {

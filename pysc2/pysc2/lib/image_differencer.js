@@ -9,8 +9,8 @@ const { common_pb } = s2clientprotocol
 
 function image_differencer(path, proto_a, proto_b) {
   // proto_diff differencer for PySC2 image data.
-  if (path[path.length-1] == 'data' && path.length >= 2) {
-    const image_data_path = proto_diff.ProtoPath(path.slice(0, path.length-1))
+  if (path[path.length - 1] == 'data' && path.length >= 2) {
+    const image_data_path = proto_diff.ProtoPath(path.slice(0, path.length - 1))
     const image_data_a = image_data_path.get_field(proto_a)
     if (image_data_a instanceof common_pb.ImageData) {
       const image_data_b = image_data_path.get_field(proto_b)
