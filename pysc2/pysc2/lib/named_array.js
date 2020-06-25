@@ -52,16 +52,21 @@ Array.prototype.where = function where(conditionFunc, start = this._named_array_
 function assign(values, name, keyPathArray) {
   let value = values
   let parent
-  let index
   let lookUpIndex
   if (name === null || name === undefined) {
     return
   }
-  while (keyPathArray.length) {
-    if (keyPathArray.length === 1) {
+  let i = 0
+  let index
+  while (i < keyPathArray.length) {
+    if (i === (keyPathArray.length - 1)) {
       parent = value
     }
-    index = keyPathArray.shift()
+    index = keyPathArray[i]
+    i++
+    if (value === undefined) {
+      console.log('values:\n  ', values, '\nname:\n  ', name, '\nkeyPathArray:\n  ', keyPathArray)
+    }
     lookUpIndex = index
     value = value[index]
   }
@@ -95,14 +100,14 @@ function unpack(values, names, nameIndex = 0, keyPathArray = []) {
   } else if (isinstance(nameList, Enum.EnumMeta)) {
     nameList = nameList.member_names_
   }
-  try {
-    nameList.forEach((name, index) => {
-      assign(values, name, keyPathArray.concat(index))
-      unpack(values, names, nameIndex + 1, keyPathArray.concat(index))
-    })
-  } catch (err) {
-    console.log('nameList: ', nameList, ' nameIndex: ', nameIndex, '\nerr: ', err)
-  }
+
+  nameList.forEach((name, index) => {
+    assign(values, name, keyPathArray.concat(index))
+    if (values.length <= index) {
+      return
+    }
+    unpack(values, names, nameIndex + 1, keyPathArray.concat(index))
+  })
 }
 
 class NamedDict {
@@ -277,7 +282,7 @@ class NamedNumpyArray extends Array {// extends np.ndarray:
       if (Array.isArray(ele)) {
         const temp = this.where(conditionFunc, ele, results, false)
         results.concat(temp)
-        // NOTE: below will NOT work
+        // NOTE: below will NOT wor
         // results = results.concat(this.where(conditionFunc, ele, results, false))
         return
       }

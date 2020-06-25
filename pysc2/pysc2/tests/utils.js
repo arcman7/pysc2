@@ -352,7 +352,7 @@ class GameReplayTestCase extends TestCase {
     const resultList = response.getResultList()
     for (let i = 0; i < resultList.length; i++) {
       const result = resultList[i]
-      assert(result == sc_error.ActionResult.SUCCESS, 'result == sc_error.ActionResult.SUCCESS')
+      assert(result == sc_error.ActionResult.SUCCESS, `result == sc_error.ActionResult.SUCCESS, got: ${result}`)
     }
     return true
   }
@@ -442,7 +442,7 @@ class GameReplayTestCase extends TestCase {
 
   assert_unit(unit, kwargs) {
     assert(unit, 'unit')
-    assert(unit instanceof sc_raw.Unit, 'unit instanceof sc_raw.Unit')
+    assert(unit instanceof sc_raw.Unit, `unit instanceof sc_raw.Unit, got: ${unit && unit.toObject ? unit.toObject() : unit}`)
     const keys = Object.keys(kwargs)
     for (let i = 0; i < keys.length; i++) {
       const k = keys[i]

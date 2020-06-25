@@ -44,9 +44,13 @@ function check_error(res, error_enum) {
   if (res && res.hasError()) {
     const enum_name = error_enum.name
     const error_name = error_enum(res.getError()).key
-    const details = res.getErrorDetails() || '<none>'
-    throw new RequestError(`${enum_name}.${error_name}, ${details}`,
-      { error: res.getError(), error_details: res.getErrorDetails() })
+    // console.log('\n\n')
+    // console.log(res.toObject())
+    // console.log('\n\n')
+
+    const details = res.getErrorDetails ? res.getErrorDetails() : '<none>'
+    throw new RequestError(`${enum_name}.${error_name},\n\`,
+      { error: ${res.getError ? res.getError() : undefined}, error_details: ${details}`)
   }
   if (!res) {
     throw new RequestError('No response.')
@@ -107,7 +111,8 @@ function valid_status() {
 
 function catch_game_end(func) {
   //Decorator to handle 'Game has already ended' exceptions.//
-  function _catch_game_end(self) {
+  const self = this
+  function _catch_game_end() {
     //Decorator to handle 'Game has already ended' exceptions.//
     const prev_status = self.status
     try {

@@ -1,6 +1,6 @@
-const path = require('path')
+const path = require('path') //eslint-disable-line
 // import pickle
-const Enum = require('python-enum')
+const Enum = require('python-enum') //eslint-disable-line
 const named_array = require(path.resolve(__dirname, './named_array.js'))
 
 function arrayEqual(a, b) {
@@ -74,7 +74,6 @@ describe('named_array:', () => {
       ['int_enum2', [TestEnum]],
     ]
     singleNames.forEach((pair, i) => { //eslint-disable-line
-      // console.log('here', i)
       const [_, names] = pair //eslint-disable-line
       const a = named_array.NamedNumpyArray(values, names)
       const rawVals = [1, 3, 6]

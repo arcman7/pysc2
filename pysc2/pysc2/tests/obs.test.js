@@ -3,8 +3,6 @@ const { performance } = require('perf_hooks') //eslint-disable-line
 const s2clientprotocol = require('s2clientprotocol') //eslint-disable-line
 const actions = require(path.resolve(__dirname, '..', 'lib', 'actions.js'))
 const features = require(path.resolve(__dirname, '..', 'lib', 'features.js'))
-const portspicker = require(path.resolve(__dirname, '..', 'lib', 'portspicker.js'))
-const stopwatch = require(path.resolve(__dirname, '..', 'lib', 'stopwatch.js'))
 const units = require(path.resolve(__dirname, '..', 'lib', 'units.js'))
 const buffs = require(path.resolve(__dirname, '..', 'lib', 'buffs.js'))
 const utils = require(path.resolve(__dirname, './utils.js'))
@@ -17,9 +15,11 @@ const sc_raw = s2clientprotocol.raw_pb
 const msToS = 1 / 1000
 const EXPECTED_ACTION_DELAY = 2
 
+let count = 0
 let testState
-
 async function obsTest() {
+  count += 1
+  const start_timer = performance.now() * msToS
   testState = await new utils.GameReplayTestCase()
   async function test_hallucination() {
     await testState.god()
@@ -70,9 +70,10 @@ async function obsTest() {
   // no bounded args
   let boundedArgsDecorator = utils.GameReplayTestCase.setup()
   let decoratedFunc = boundedArgsDecorator(test_hallucination)
-  // await decoratedFunc(testState)
+  await decoratedFunc(testState)
 
   async function test_hide_cloaked() {
+    count += 1
     assert(
       testState._info.getOptions().getShowCloaked() === false,
       'testState._info.getOptions().getShowCloaked() === false'
@@ -153,9 +154,10 @@ async function obsTest() {
   }
   boundedArgsDecorator = utils.GameReplayTestCase.setup({ show_cloaked: false })
   decoratedFunc = boundedArgsDecorator(test_hide_cloaked)
-  // await decoratedFunc(testState)
+  await decoratedFunc(testState)
 
   async function test_show_cloaked() {
+    count += 1
     assert(
       testState._info.getOptions().getShowCloaked() === true,
       'testState._info.getOptions().getShowCloaked() === true'
@@ -180,7 +182,6 @@ async function obsTest() {
       health: 40,
       shield: 80,
     })
-    // console.log(p2.toObject())
     testState.assert_unit(p2, {
       display_type: sc_raw.DisplayType.HIDDEN,
       cloak: sc_raw.CloakState.CLOAKED,
@@ -243,9 +244,10 @@ async function obsTest() {
   }
   boundedArgsDecorator = utils.GameReplayTestCase.setup({ show_cloaked: true })
   decoratedFunc = boundedArgsDecorator(test_show_cloaked)
-  // await decoratedFunc(testState)
+  await decoratedFunc(testState)
 
   async function test_pos() {
+    count += 1
     await testState.create_unit(units.Protoss.Archon, 1, [20, 30])
     await testState.create_unit(units.Protoss.Observer, 1, [40, 30])
 
@@ -274,9 +276,10 @@ async function obsTest() {
   }
   boundedArgsDecorator = utils.GameReplayTestCase.setup({})
   decoratedFunc = boundedArgsDecorator(test_pos)
-  // await decoratedFunc(testState)
+  await decoratedFunc(testState)
 
   async function test_fog() {
+    count += 1
     await testState.observe()
 
     function assert_visible(unit, display_type, alliance, cloak) {
@@ -345,9 +348,10 @@ async function obsTest() {
   }
   boundedArgsDecorator = utils.GameReplayTestCase.setup({})
   decoratedFunc = boundedArgsDecorator(test_fog)
-  // await decoratedFunc(testState)
+  await decoratedFunc(testState)
 
   async function test_effects() {
+    count += 1
     function get_effect_proto(obs, effect_id) {
       const effects = obs.getObservation().getRawData().getEffectsList()
       for (let i = 0; i < effects.length; i++) {
@@ -362,7 +366,7 @@ async function obsTest() {
     function get_effect_obs(obs, effect_id) {
       for (let i = 0; i < obs.length; i++) {
         const ob = obs[i]
-        if (ob.getEffect() == effect_id) {
+        if (ob.effect == effect_id) {
           return ob
         }
       }
@@ -482,10 +486,308 @@ async function obsTest() {
     })
 
     // Also in the raw effects
+    const raw1 = transform_obs1['raw_effects']
+    e = get_effect_obs(raw1, features.Effects.GuardianShield)
+    assert(e, 'e is not null')
+    // Not located at [30, 30] due to map shape and minimap coords
+    assert(e.x > 20, 'e.getX() > 20')
+    assert(e.y > 20, 'e.getY() > 20')
+    assert(e.alliance === sc_raw.Alliance.SELF, 'e.getAlliance() === sc_raw.Alliance.SELF')
+    assert(e.owner === 1, 'e.getOwner() === 1')
+    assert(e.radius > 3, 'e.radius > 3')
+
+    await testState.raw_unit_command(1, 'Effect_GravitonBeam_screen', phoenix.getTag(), null, stalker.getTag())
+
+    await testState.step(32)
+    obs = await testState.observe()
+
+    assert(
+      utils.get_unit({ obs: obs[0], unit_type: units.Protoss.Stalker })
+        .getBuffIdsList().includes(buffs.Buffs.GravitonBeam.val),
+      `utils.get_unit({ obs: obs[0], unit_type: units.Protoss.Stalker })
+        .getBuffIdsList().includes(buffs.Buffs.GravitonBeam.val)`
+    )
+    assert(
+      utils.get_unit({ obs: obs[1], unit_type: units.Protoss.Stalker })
+        .getBuffIdsList().includes(buffs.Buffs.GravitonBeam.val),
+      `utils.get_unit({ obs: obs[1], unit_type: units.Protoss.Stalker })
+        .getBuffIdsList().includes(buffs.Buffs.GravitonBeam.val)`
+    )
+    assert(
+      !utils.get_unit({ obs: obs[0], unit_type: units.Protoss.Sentry })
+        .getBuffIdsList().includes(buffs.Buffs.GravitonBeam.val),
+      `!utils.get_unit({ obs: obs[0], unit_type: units.Protoss.Sentry })
+        .getBuffIdsList().includes(buffs.Buffs.GravitonBeam.val)`
+    )
+    assert(
+      !utils.get_unit({ obs: obs[1], unit_type: units.Protoss.Sentry })
+        .getBuffIdsList().includes(buffs.Buffs.GravitonBeam.val),
+      `!utils.get_unit({ obs: obs[1], unit_type: units.Protoss.Sentry })
+        .getBuffIdsList().includes(buffs.Buffs.GravitonBeam.val)`
+    )
+    assert(
+      !utils.get_unit({ obs: obs[0], unit_type: units.Protoss.Phoenix })
+        .getBuffIdsList().includes(buffs.Buffs.GravitonBeam.val),
+      `!utils.get_unit({ obs: obs[0], unit_type: units.Protoss.Phoenix })
+        .getBuffIdsList().includes(buffs.Buffs.GravitonBeam.val)`
+    )
+    assert(
+      !utils.get_unit({ obs: obs[1], unit_type: units.Protoss.Phoenix })
+        .getBuffIdsList().includes(buffs.Buffs.GravitonBeam.val),
+      `!utils.get_unit({ obs: obs[1], unit_type: units.Protoss.Phoenix })
+        .getBuffIdsList().includes(buffs.Buffs.GravitonBeam.val)`
+    )
   }
   boundedArgsDecorator = utils.GameReplayTestCase.setup({})
   decoratedFunc = boundedArgsDecorator(test_effects)
   await decoratedFunc(testState)
+
+  async function test_active() {
+    count += 1
+    let obs = await testState.observe()
+
+    // P1 can see p2.
+    const pos = utils.get_unit({ obs: obs[1], unit_type: units.Protoss.Nexus }).getPos()
+    await testState.create_unit(units.Protoss.Observer, 1, pos)
+
+    await testState.step(32) // Make sure visibility updates
+    obs = await testState.observe()
+
+    const tasks = []
+    obs.forEach((o, i) => {
+      const probes = utils.get_units({ obs: o, unit_type: units.Protoss.Probe })
+      // Probes are active gathering
+      Object.keys(probes).forEach((key) => {
+        const u = probes[key]
+        testState.assert_unit(u, {
+          display_type: sc_raw.DisplayType.VISIBLE,
+          is_active: true,
+        })
+      })
+
+      // Own Nexus is idle
+      const nexus = utils.get_unit({ obs: o, unit_type: units.Protoss.Nexus, owner: i + 1 })
+      testState.assert_unit(nexus, {
+        display_type: sc_raw.DisplayType.VISIBLE,
+        is_active: false
+      })
+      assert(nexus.getOrdersList().length === 0, 'nexus.getOrdersList().length === 0')
+
+      // Give it an action.
+      tasks.push(/*async() => */testState.raw_unit_command(i, 'Train_Probe_quick', nexus.getTag()))
+    })
+
+    await Promise.all(tasks)
+    await testState.step(32)
+    obs = await testState.observe()
+
+    // All Nexus are now active
+    let nexus0 = utils.get_unit({ obs: obs[0], unit_type: units.Protoss.Nexus, owner: 1 })
+    let nexus1 = utils.get_unit({ obs: obs[0], unit_type: units.Protoss.Nexus, owner: 2 })
+    let nexus2 = utils.get_unit({ obs: obs[1], unit_type: units.Protoss.Nexus })
+    testState.assert_unit(nexus0, {
+      display_type: sc_raw.DisplayType.VISIBLE,
+      is_active: true
+    })
+    testState.assert_unit(nexus1, {
+      display_type: sc_raw.DisplayType.VISIBLE,
+      is_active: true
+    })
+    testState.assert_unit(nexus2, {
+      display_type: sc_raw.DisplayType.VISIBLE,
+      is_active: true
+    })
+    assert(nexus0.getOrdersList().length === 1, 'nexus0.getOrdersList().length === 1')
+    assert(nexus2.getOrdersList().length === 1, 'nexus2.getOrdersList().length === 1')
+    assert(nexus1.getOrdersList().length === 0, 'nexus1.getOrdersList().length === 0') // Can't see opponent's orders
+
+    // Go back to a snapshot
+    await testState.kill_unit(utils.get_unit({ obs: obs[0], unit_type: units.Protoss.Observer }).getTag())
+
+    await testState.step(100) // Make sure visibility updates.
+    obs = await testState.observe()
+
+    assert(utils.get_unit({ obs: obs[0], unit_type: units.Protoss.Observer }) === null, 'utils.get_unit({ obs: obs[0], unit_type: units.Protoss.Observer }) === null')
+
+    // Own Nexus is now active, snapshot isn't.
+    nexus0 = utils.get_unit({ obs: obs[0], unit_type: units.Protoss.Nexus, owner: 1 })
+    nexus1 = utils.get_unit({ obs: obs[0], unit_type: units.Protoss.Nexus, owner: 2 })
+    nexus2 = utils.get_unit({ obs: obs[1], unit_type: units.Protoss.Nexus })
+    assert(nexus0.getOrdersList().length === 1, 'nexus0.getOrdersList().length === 1')
+    assert(nexus2.getOrdersList().length === 1, 'nexus2.getOrdersList().length === 1')
+    assert(nexus1.getOrdersList().length === 0, 'nexus1.getOrdersList().length === 0') // Can't see opponent's orders
+  }
+  boundedArgsDecorator = utils.GameReplayTestCase.setup({})
+  decoratedFunc = boundedArgsDecorator(test_active)
+  await decoratedFunc(testState)
+
+  async function test_disable_fog() {
+    count += 1
+    let obs = await testState.observe()
+
+    const tasks = []
+    obs.forEach((o, i) => {
+      const probes = utils.get_units({ obs: o, unit_type: units.Protoss.Probe })
+      // Probes are active gathering
+      Object.keys(probes).forEach((key) => {
+        const u = probes[key]
+        testState.assert_unit(u, {
+          display_type: sc_raw.DisplayType.VISIBLE,
+          is_active: true,
+        })
+      })
+
+      // All Nexus is idle
+      const own = utils.get_unit({ obs: o, unit_type: units.Protoss.Nexus, owner: i + 1 })
+      const other = utils.get_unit({ obs: o, unit_type: units.Protoss.Nexus, owner: 2 - i })
+      testState.assert_unit(own, {
+        display_type: sc_raw.DisplayType.VISIBLE,
+        is_active: false,
+      })
+      testState.assert_unit(own, {
+        display_type: sc_raw.DisplayType.VISIBLE,
+        is_active: false,
+      })
+      assert(own.getOrdersList().length === 0, 'own.getOrdersList().length === 0')
+      assert(other.getOrdersList().length === 0, 'other.getOrdersList().length === 0')
+
+      // Give it an action.
+      tasks.push(/*async() => */testState.raw_unit_command(i, 'Train_Probe_quick', own.getTag()))
+    })
+
+    await Promise.all(tasks)
+
+    await testState.step(32)
+    obs = await testState.observe()
+
+    // All Nexus are active
+    obs.forEach((o, i) => {
+      const own = utils.get_unit({
+        obs: o,
+        unit_type: units.Protoss.Nexus,
+        owner: i + 1,
+      })
+      const other = utils.get_unit({
+        obs: o,
+        unit_type: units.Protoss.Nexus,
+        owner: 2 - i,
+      })
+      testState.assert_unit(own, {
+        display_type: sc_raw.DisplayType.VISIBLE,
+        is_active: true,
+      })
+      testState.assert_unit(other, {
+        display_type: sc_raw.DisplayType.VISIBLE,
+        is_active: true,
+      })
+      assert(own.getOrdersList().length === 1, 'own.getOrdersList().length === 1')
+      assert(other.getOrdersList().length === 0, 'other.getOrdersList().length === 0')
+    })
+  }
+  boundedArgsDecorator = utils.GameReplayTestCase.setup({ disable_fog: true })
+  decoratedFunc = boundedArgsDecorator(test_disable_fog)
+  await decoratedFunc(testState)
+
+  async function test_action_delay() {
+    count += 1
+    await testState.observe()
+    await testState.create_unit(units.Protoss.Zealot, 1, [32, 32])
+
+    await testState.step(16)
+    const obs1 = await testState.observe()
+    assert(obs1[0].getActionsList().length === 0, 'obs1[0].getActionsList().length === 0')
+
+    const zealot1 = utils.get_unit({ obs: obs1[0], unit_type: units.Protoss.Zealot, owner: 1 })
+    assert(zealot1.getOrdersList().length === 0, 'zealot1.getOrdersList().length === 0')
+
+    await testState.raw_unit_command(0, 'Move_screen', zealot1.getTag(), [30, 30])
+
+    // If the delay is take down to 1, remove this step of verifying the
+    // actions length is 0.
+
+    assert(EXPECTED_ACTION_DELAY === 2, 'EXPECTED_ACTION_DELAY === 2')
+
+    await testState.step(1)
+    let obs2 = await testState.observe()
+    assert(obs2[0].getActionErrorsList().length === 0, 'obs2[0].getActionErrorsList().length === 0')
+    assert(obs2[0].getActionsList().length === 0, 'obs2[0].getActionsList().length === 0')
+
+    await testState.step(1)
+    obs2 = await testState.observe()
+    assert(obs2[0].getActionErrorsList().length === 0, 'obs2[0].getActionErrorsList().length === 0')
+    assert(obs2[0].getActionsList().length > 1, 'obs2[0].getActionsList().length > 1')
+    let action
+    obs2[0].getActionsList().forEach((a) => {
+      if (a.hasActionRaw()) {
+        action = a
+      }
+    })
+    if (!action) {
+      assert(false, 'No raw action found')
+    }
+
+    assert(
+      action.getGameLoop() === obs1[0].getObservation().getGameLoop() + 1,
+      'action.getGameLoop() === obs1[0].getObservation().getGameLoop() + 1'
+    )
+    const unit_command = action.getActionRaw().getUnitCommand()
+    assert(
+      unit_command.getAbilityId() == actions.FUNCTIONS.Move_Move_screen.ability_id,
+      'unit_command.getAbilityId() == actions.FUNCTIONS.Move_Move_screen.ability_id'
+    )
+    testState.assert_point(unit_command.getTargetWorldSpacePos(), [30, 30])
+    assert(unit_command.getUnitTagsList()[0], zealot1.getTag())
+
+    const zealot2 = utils.get_unit({ obs: obs2[0], unit_type: units.Protoss.Zealot, owner: 1 })
+    assert(zealot2.getOrdersList().length === 1, 'zealot1.getOrdersList().length === 1')
+    assert(
+      zealot2.getOrdersList()[0].getAbilityId() == actions.FUNCTIONS.Move_Move_screen.ability_id,
+      'zealot2.getOrdersList()[0].getAbilityId() == actions.FUNCTIONS.Move_Move_screen.ability_id'
+    )
+    testState.assert_point(zealot2.getOrdersList()[0].getTargetWorldSpacePos(), [30, 30])
+  }
+  boundedArgsDecorator = utils.GameReplayTestCase.setup({})
+  decoratedFunc = boundedArgsDecorator(test_action_delay)
+  await decoratedFunc(testState)
+
+  async function test_camera_movement_delay() {
+    count += 1
+    function compareCoords(coordList1, coordList2) {
+      const len = Math.min(coordList1.length, coordList2.length) // for some reason two observations from the same player and same camera location differ by one pixel coord pair
+      for (let i = 0; i < len; i++) {
+        assert(coordList1[i][0] == coordList2[i][0], `coordList1[${i}] x: ${coordList1[i][0]}, coordList2[${i}] x: ${coordList2[i][0]}`)
+        assert(coordList1[i][1] == coordList2[i][1], `coordList1[${i}] y: ${coordList1[i][1]}, coordList2[${i}] y: ${coordList2[i][1]}`)
+      }
+    }
+    const obs1 = await testState.observe()
+    const screen1 = testState._features.transform_obs(obs1[0])['feature_screen']
+    const nexus1 = utils.xy_locs(screen1.unit_type, units.Protoss.Nexus).slice(0, 173).sort((a, b) => a[0] - b[0])
+
+    await testState.step(1)
+    const obs2 = await testState.observe()
+    const screen2 = testState._features.transform_obs(obs2[0])['feature_screen']
+    const nexus2 = utils.xy_locs(screen2.unit_type, units.Protoss.Nexus).slice(0, 173).sort((a, b) => a[0] - b[0])
+
+    compareCoords(nexus1, nexus2) // Same place.
+    const loc = obs1[0].getObservation().getRawData().getPlayer().getCamera()
+    await testState.move_camera(loc.getX() + 3, loc.getY() + 3)
+    await testState.step(EXPECTED_ACTION_DELAY)
+
+    const obs3 = await testState.observe()
+    const screen3 = testState._features.transform_obs(obs3[0])['feature_screen']
+    const nexus3 = utils.xy_locs(screen3.unit_type, units.Protoss.Nexus).slice(0, 173).sort((a, b) => a[0] - b[0])
+
+    try {
+      compareCoords(nexus1, nexus3) // Different location due to camera.
+      throw new Error('nexus1 should not be at the same location as nexus3')
+    } catch (err) {
+      // should throw
+    }
+  }
+  boundedArgsDecorator = utils.GameReplayTestCase.setup({})
+  decoratedFunc = boundedArgsDecorator(test_camera_movement_delay)
+  await decoratedFunc(testState)
+  console.log(`\n----------------------------------------------------------------------\nRan ${count} test(s) in ${(performance.now() * msToS) - start_timer}s\n\n`)
 }
 
 obsTest()

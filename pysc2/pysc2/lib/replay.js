@@ -3,7 +3,6 @@ const mpyq = require('empeeku') //eslint-disable-line
 const run_configs_lib = require(path.resolve(__dirname, '..', 'run_configs', 'lib.js'))
 
 function get_replay_version(replay_data) {
-  // const replay_io
   const archive = mpyq.MPQArchive(replay_data)
   // const metadata = archive(new Buffer('replay.gamemetadata.json', 'utf8'))
   // buffer.toString('utf8')

@@ -81,6 +81,12 @@ function arraySub(a, b) {
   }
   return result
 }
+//eslint-disable-next-line
+Object.defineProperty(Array.prototype, 'extend', {
+  value: Array.prototype.extend,
+  iterable: false,
+  enumerable: false,
+})
 
 function assert(cond, errMsg) {
   if (cond === false) {
@@ -157,7 +163,7 @@ function getattr(proto, key) {
 
 //eslint-disable-next-line
 String.prototype.ljust = function(length, char = ' ') {
-  const fill = [];
+  const fill = []
   while (fill.length + this.length < length) {
     fill[fill.length] = char;
   }
@@ -165,7 +171,7 @@ String.prototype.ljust = function(length, char = ' ') {
 }
 //eslint-disable-next-line
 String.prototype.rjust = function(length, char = ' ') {
-  const fill = [];
+  const fill = []
   while (fill.length + this.length < length) {
     fill[fill.length] = char;
   }
@@ -174,6 +180,23 @@ String.prototype.rjust = function(length, char = ' ') {
 
 function int(numOrStr) {
   return Math.floor(numOrStr)
+}
+
+//eslint-disable-next-line
+String.prototype.lpad = function(length, char = ' ') {
+  const fill = Array(length);
+  for (let i = 0; i < length; i++) {
+    fill[i] = char;
+  }
+  return this + fill.join('');
+}
+//eslint-disable-next-line
+String.prototype.rpad = function(length, char = ' ') {
+  const fill = Array(length);
+  for (let i = 0; i < length; i++) {
+    fill[i] = char;
+  }
+  return fill.join('') + this;
 }
 
 function isinstance(a, compare) {
@@ -310,7 +333,7 @@ function NotImplementedError(message) {
 function nonZero(arr) {
   // This function outputs a array of indices of nonzero elements
   const indices = []
-  if (arr[0].length == null) {
+  if (arr[0].length == undefined) {
     for (let i = 0; i < arr.length; i++) {
       if (arr[i] !== 0) {
         indices.push(i)
