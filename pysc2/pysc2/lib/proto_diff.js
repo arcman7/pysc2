@@ -15,12 +15,7 @@ class ProtoPath extends Array {
     Args:
       path: Tuple of attribute names / array indices on the path to a field.
     */
-    try {
-      super(...path)
-    } catch (err) {
-      console.log('path: ', path, ' typeof: ', typeof path)
-      throw err
-    }
+    super(...path)
     this._path = path
   }
 
@@ -32,13 +27,9 @@ class ProtoPath extends Array {
     // Returns field at this protoArg path, in the specified protoArg.//
     let value = protoArg
     this._path.forEach((k) => {
-      // console.log('k: ', k, '  value: ', value && value.toObject ? value.toObject() : value, ' k: ', k)
       if (Number.isInteger(k)) {
         value = value[k]
       } else {
-        // if (getattr(value, k) === null) {
-        //   console.log('used key: ', k, ' on ', value.toObject(), ' got : ', null)
-        // }
         value = getattr(value, k)
       }
     })
@@ -169,11 +160,8 @@ class ProtoDiffs {
       results.push(`Removed ${r}.`)
     })
 
-    for (let i = 0; i < this._changed.length; i++) { // eslint-disable-line
+    for (let i = 0; i < this._changed.length; i++) {
       const c = this._changed[i]
-      // if (c == undefined) {
-      //   console.log(this._changed, key_c)
-      // }
       let result = null
       if (differencers) {
         for (let j = 0; j < differencers.length; j++) {
@@ -186,9 +174,6 @@ class ProtoDiffs {
       }
 
       if (!result) {
-        // if (c.get_field == undefined) {
-        //   console.log(this._changed, key_c, c)
-        // }
         result = `${_truncate(c.get_field(this._proto_a), truncate_to)} -> ${_truncate(c.get_field(this._proto_b), truncate_to)}`
       } else {
         result = _truncate(result, truncate_to)
