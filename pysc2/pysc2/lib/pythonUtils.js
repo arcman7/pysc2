@@ -61,7 +61,13 @@ function arraySub(a, b) {
   // This function operates subtraction with 1D or 2d array
   const result = []
   const c = []
-  if (a[0].length == null) {
+  if (a.length === 0) {
+    if (b.length === 0) {
+      return []
+    }
+    return b
+  }
+  if (a[0].length === undefined) {
     for (let i = 0; i < a.length; i++) {
       result.push(a[i] - b[i])
     }

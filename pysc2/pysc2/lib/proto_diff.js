@@ -32,15 +32,14 @@ class ProtoPath extends Array {
     // Returns field at this protoArg path, in the specified protoArg.//
     let value = protoArg
     this._path.forEach((k) => {
-      console.log('k: ', k, '  value: ', value && value.toObject ? value.toObject() : value, ' k: ', k)
+      // console.log('k: ', k, '  value: ', value && value.toObject ? value.toObject() : value, ' k: ', k)
       if (Number.isInteger(k)) {
         value = value[k]
       } else {
-        if (getattr(value, k) === null) {
-          console.log('used key: ', k, ' on ', value.toObject(), ' got : ', null)
-        }
+        // if (getattr(value, k) === null) {
+        //   console.log('used key: ', k, ' on ', value.toObject(), ' got : ', null)
+        // }
         value = getattr(value, k)
-
       }
     })
     return value
