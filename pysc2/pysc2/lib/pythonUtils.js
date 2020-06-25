@@ -663,6 +663,7 @@ module.exports = {
   ABCMeta,
   any,
   arrayCompare,
+  arraySub,
   assert,
   Array,
   DefaultDict,
