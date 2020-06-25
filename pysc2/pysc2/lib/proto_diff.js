@@ -1,5 +1,5 @@
-const deepdiff = require('deep-diff')
-const dir = require('path')
+const deepdiff = require('deep-diff') //eslint-disable-line
+const dir = require('path') //eslint-disable-line
 const pythonUtils = require(dir.resolve(__dirname, './pythonUtils.js'))
 const { getattr, hashCode, len, ValueError, zip } = pythonUtils
 
@@ -15,18 +15,32 @@ class ProtoPath extends Array {
     Args:
       path: Tuple of attribute names / array indices on the path to a field.
     */
-    super(...path)
+    try {
+      super(...path)
+    } catch (err) {
+      console.log('path: ', path, ' typeof: ', typeof path)
+      throw err
+    }
     this._path = path
   }
 
-  get_field(proto) {
-    // Returns field at this proto path, in the specified proto.//
-    let value = proto
+  slice() {
+    return this._path.slice(...arguments) //eslint-disable-line
+  }
+
+  get_field(protoArg) {
+    // Returns field at this protoArg path, in the specified protoArg.//
+    let value = protoArg
     this._path.forEach((k) => {
+      console.log('k: ', k, '  value: ', value && value.toObject ? value.toObject() : value, ' k: ', k)
       if (Number.isInteger(k)) {
         value = value[k]
       } else {
+        if (getattr(value, k) === null) {
+          console.log('used key: ', k, ' on ', value.toObject(), ' got : ', null)
+        }
         value = getattr(value, k)
+
       }
     })
     return value
