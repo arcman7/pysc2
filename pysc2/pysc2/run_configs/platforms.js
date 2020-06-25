@@ -5,15 +5,14 @@ const { exec, execSync } = require('child_process') //eslint-disable-line
 const flags = require('flags') //eslint-disable-line
 const sc_process = require(path.resolve(__dirname, '..', 'lib', 'sc_process.js'))
 const pythonUtils = require(path.resolve(__dirname, '..', 'lib', 'pythonUtils.js'))
-const lib = require(path.resolve(__dirname), './lib.js')
+const lib = require(path.resolve(__dirname, './lib.js'))
 const gfile = require(path.resolve(__dirname, '..', 'lib', 'gfile.js'))
 
 const { expanduser, ValueError } = pythonUtils
 // if not flags.sc2_version:
-flags.DEFINE_enum("sc2_version", null, Object.keys(lib.VERSIONS).sort(), "Which version of the game to use.")
-flags.DEFINE_bool("sc2_dev_build", false, "Use a dev build. Mostly useful for testing by Blizzard.")
+flags.defineInteger("sc2_version", null, `Which version of the game to use.\nchoices:\n ${Object.keys(lib.VERSIONS).map((game_version, index) => `${game_version} -> ${index}`).sort().join('\n')}`)
+flags.defineBoolean("sc2_dev_build", false, "Use a dev build. Mostly useful for testing by Blizzard.")
 
-const FLAGS = flags.FLAGS
 
 function _read_execute_info(path_arg, parents) {
   //Read the ExecuteInfo.txt file and return the base directory.//
@@ -39,14 +38,15 @@ class LocalBase extends lib.RunConfig {
   //Base run config for public installs.//
 
   constructor(base_dir, exec_name, version, cwd = null, env = null) {
+    flags.parse()
     base_dir = expanduser(base_dir)
-    version = version || FLAGS.sc2_version || 'latest'
+    version = version || flags.get('sc2_version') || 'latest'
     cwd = cwd && path.join(base_dir, cwd)
     const replay_dir = path.join(base_dir, 'Replays')
     const data_dir = base_dir
     const tmp_dir = null
     super(replay_dir, data_dir, tmp_dir, version, cwd, env)
-    if (FLAGS.sc2_dev_build) {
+    if (flags.get('sc2_dev_build')) {
       const build_version = 0
       this.version = this.version._replace(build_version)
     } else if (this.version.build_version < lib.VERSIONS['3.16.1'].build_version) {
@@ -76,6 +76,7 @@ class LocalBase extends lib.RunConfig {
     // returns promise
     kwargs.exec_path = exec_path
     kwargs.version = this.version
+    kwargs.run_config = this
     return sc_process.StarcraftProcessFactory(kwargs)
   }
 
@@ -91,7 +92,7 @@ class LocalBase extends lib.RunConfig {
     })
 
     const versions_found = temp.sort()
-    if (!versions_found.legth) {
+    if (!versions_found.length) {
       throw new sc_process.SC2LaunchError(`No SC2 Versions found in ${versions_dir}`)
     }
     const known_versions = []
@@ -114,7 +115,7 @@ class LocalBase extends lib.RunConfig {
     return ret
   }
 }
-lib.RunConfig.subclasses.push(LocalBase)
+lib.RunConfig._subclasses.push(LocalBase)
 
 class Windows extends LocalBase {
   //Run on Windows.//
@@ -130,7 +131,7 @@ class Windows extends LocalBase {
     }
   }
 }
-lib.RunConfig.subclasses.push(Windows)
+lib.RunConfig._subclasses.push(Windows)
 
 class Cygwin extends LocalBase {
   //Run on Cygwin. This runs the windows binary within a cygwin terminal.//
@@ -146,7 +147,7 @@ class Cygwin extends LocalBase {
     }
   }
 }
-lib.RunConfig.subclasses.push(Cygwin)
+lib.RunConfig._subclasses.push(Cygwin)
 
 class MacOS extends LocalBase {
   //Run on MacOS.//
@@ -162,7 +163,7 @@ class MacOS extends LocalBase {
     }
   }
 }
-lib.RunConfig.subclasses.push(MacOS)
+lib.RunConfig._subclasses.push(MacOS)
 
 class Linux extends LocalBase {
   //Config to run on Linux.//
@@ -227,7 +228,7 @@ class Linux extends LocalBase {
     return super.start(kwargs)
   }
 }
-lib.RunConfig.subclasses.push(Linux)
+lib.RunConfig._subclasses.push(Linux)
 
 module.exports = {
   Cygwin,

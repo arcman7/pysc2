@@ -1,13 +1,14 @@
-const path = require('path');
+const path = require('path') //eslint-disable-line
 
 /*A stopwatch to check how much time is used by bits of code.*/
 
-const { performance } = require('perf_hooks')
+const { performance } = require('perf_hooks') //eslint-disable-line
 const pythonUtils = require(path.resolve(__dirname, './pythonUtils.js'))
 
 const { DefaultDict, withPython, zip } = pythonUtils
 String = pythonUtils.String //eslint-disable-line
 Array = pythonUtils.Array //eslint-disable-line
+const msToS = 1 / 1000
 
 class Stat {
   static get _fields() { return ["num", "min", "max", "sum", "sum_sq"] }
@@ -96,20 +97,27 @@ class StopWatchContext {
   constructor(stopwatch, name) {
     this._sw = stopwatch
     this._sw.push(name)
+    this.__enter__ = this.__enter__.bind(this)
+    this.__exit__ = this.__exit__.bind(this)
   }
 
   // performance.now() => measured in milliseconds.
   __enter__() {
-    this._start = performance.now() * 1000
+    this._start = performance.now() * msToS
   }
 
   __exit__() {
-    this._sw.add(this._sw.pop(), (performance.now() * 1000) - this._start)
+    this._sw.add(this._sw.pop(), (performance.now() * msToS) - this._start)
   }
 }
 
 class TracingStopWatchContext extends StopWatchContext {
   //Time an individual call, but also output all the enter/exit calls.//
+  constructor(stopwatch, name) {
+    super(stopwatch, name)
+    this.__enter__ = this.__enter__.bind(this)
+    this.__exit__ = this.__exit__.bind(this)
+  }
 
   __enter__() {
     super.__enter__()
@@ -180,10 +188,15 @@ class StopWatch {
     ['disable', 'enable', 'trace', 'custom', 'decorate', 'push', 'pop', 'cur_stack', 'clear', 'add', 'merge', 'str', 'toString'].forEach((methodName) => {
       stopwatchProxy[methodName] = this[methodName].bind(this)
     })
-    stopwatchProxy.times = this.times
+    Object.defineProperty(stopwatchProxy, 'times', {
+      get() {
+        return self._times
+      }
+    })
     stopwatchProxy._times = this._times
     stopwatchProxy.parse = this.constructor.parse
     stopwatchProxy.instanceRef = this
+    this._funcProxy = stopwatchProxy
     return stopwatchProxy
   }
 
@@ -192,11 +205,11 @@ class StopWatch {
   }
 
   enable() {
-    this._factory = name => new StopWatchContext(this, name)
+    this._factory = (name) => new StopWatchContext(this, name)
   }
 
   trace() {
-    this._factory = name => new TracingStopWatchContext(this, name)
+    this._factory = (name) => new TracingStopWatchContext(this, name)
   }
 
   custom(factory) {
@@ -240,7 +253,7 @@ class StopWatch {
       return _stopwatch
     }
     if (typeof (name_or_func) === 'function') {
-      return decorator(name_or_func.name, name_or_func)
+      return decorator(name_or_func.name.replace('bound ', ''), name_or_func)
     }
     return (func) => decorator(name_or_func, func)
   }
@@ -266,6 +279,7 @@ class StopWatch {
 
   clear() {
     this._times = new DefaultDict(Stat)// this._times.clear()
+    this._funcProxy._times = this._times
   }
 
   add(name, duration) {
@@ -280,6 +294,9 @@ class StopWatch {
     let value
     Object.keys(other.times).forEach((key) => {
       value = other[key]
+      if (!value) {
+        return
+      }
       this._times[key].merge(value)
     })
   }
@@ -292,7 +309,7 @@ class StopWatch {
         const parts = line.match(/\S+/g)
         const name = parts[0]
         if (name !== '%') { // ie not the header line
-          const rest = parts.slice(2, parts.length).map(v => Number(v))
+          const rest = parts.slice(2, parts.length).map((v) => Number(v))
           stopwatch.times[parts[0]].merge(Stat.build(...rest))
         }
       }
@@ -310,7 +327,7 @@ class StopWatch {
       cur = this._times[key]
       return !(key.includes('.')) ? cur.sum + acc : acc
     }, 0)
-    const table = [["", "% total", "sum", "avg", "dev", "min", "max", "num"]]
+    const table = [['', '% total', 'sum', 'avg', 'dev', 'min', 'max', 'num']]
     let percent
     let v
     Object.keys(this._times).sort().forEach((key) => {
@@ -344,13 +361,13 @@ class StopWatch {
     let width
     table.forEach((row) => {
       //eslint-disable-next-line
-      out += ' ' + row[0].ljust(col_widths[0]) + ' '
-      out += zip(row.slice(1, row.length), col_widths.slice(1, col_widths.length))
+      out += '  ' + row[0].ljust(col_widths[0]) + '  '
+      out += zip(row.slice(1), col_widths.slice(1))
         .map((zipPair) => {
           val = zipPair[0]
           width = zipPair[1]
           return val.rjust(width)
-        }).join(' ')
+        }).join('  ')
       out += '\n'
     })
     return out

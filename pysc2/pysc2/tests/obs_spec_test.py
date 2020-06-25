@@ -24,7 +24,6 @@ from pysc2.agents import random_agent
 from pysc2.env import sc2_env
 from pysc2.tests import utils
 
-# necessary shim(s) for eventual javascript transpiling:
 def iteritems(d, **kw):
     return iter(d.items(**kw))
 

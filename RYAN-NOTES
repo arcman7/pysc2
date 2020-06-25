@@ -1,31 +1,3 @@
-RYAN-NOTES 
-========================================================================
-Node / NPM package equivalents required:
-1. numpy
-2. collections.dequeue
-3. queue
-4. WeakSet and or _weakrefset
-5. threading
-6. importlib
-7. getpass
-
-Y = np.arange(12).reshape(3,4)
-
-
- 
-Y.shape
-
-row = Y[0]
-
-row.shape
-
-
-Y.shape[-1:] == row.shape
-
-
-tup = (1,2,3,4)
-tup[:-1]
-
 
 
 ALPHA STAR PAPER Notes
@@ -35,7 +7,7 @@ ALPHA STAR PAPER Notes
 The policy of AlphaStar is a function πθ(at | st,z) that maps all previous
 observations and actions st = o1:t, a1:t − 1 (defined in Extended Data Tables 1, 2) 
 
-observation 1 - t AND action 1 - (t - 1)
+observation 1 - t AND acton 1 - (t - 1)
 
 and z (representing strategy statistics) to a probability distribution
 over actions at for the current step. πθ is implemented as a deep neural

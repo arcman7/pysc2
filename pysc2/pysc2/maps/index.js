@@ -1,8 +1,8 @@
 const path = require('path') //eslint-disable-line
-const ladder = require(path.resolve(__dirname), './ladder.js')
-const lib = require(path.resolve(__dirname), './lib.js')
-const melee = require(path.resolve(__dirname), './melee.js')
-const mini_games = require(path.resolve(__dirname), './mini_games.js')
+const ladder = require(path.resolve(__dirname, './ladder.js'))
+const lib = require(path.resolve(__dirname, './lib.js'))
+const melee = require(path.resolve(__dirname, './melee.js'))
+const mini_games = require(path.resolve(__dirname, './mini_games.js'))
 
 /*
   Register/import the maps, and offer a way to create one by name.

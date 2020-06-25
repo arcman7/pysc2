@@ -1,4 +1,4 @@
-const path = require('path')
+const path = require('path') //eslint-disable-line
 const base_agent = require(path.resolve(__dirname, './base_agent.js'))
 const actions = require(path.resolve(__dirname, '..', 'lib', './actions.js'))
 const features = require(path.resolve(__dirname, '..', 'lib', './features.js'))
@@ -145,8 +145,8 @@ class CollectMineralShardsRaw extends base_agent.BaseAgent {
   */
   setup(obs_spec, action_spec) {
     super.setup(obs_spec, action_spec)
-    if (!(obs_spec.includes("raw_units"))) {
-      throw new Error("This agent requires the raw_units observation.")
+    if (!(obs_spec.includes('raw_units'))) {
+      throw new Error('This agent requires the raw_units observation.')
     }
   }
 
@@ -159,9 +159,8 @@ class CollectMineralShardsRaw extends base_agent.BaseAgent {
   step(obs) {
     super.setup(obs)
     const marines = []
-    Object.keys(obs.observation.raw_units).forEach((key) => {
-      const unit = obs.observation.raw_units[key]
-      if (unit.alliance === _PLAYER_SELF) {
+    obs.getObservation().getRawUnitsList().forEach((unit) => {
+      if (unit.getAlliance() == _PLAYER_SELF) {
         marines.push(unit)
       }
     })
@@ -170,22 +169,28 @@ class CollectMineralShardsRaw extends base_agent.BaseAgent {
     }
     let marine_unit = marines[0]
     marines.forEach((m) => {
-      if (m.tag !== this._last_marine) {
+      if (m.getTag() !== this._last_marine) {
         marine_unit = m
       }
     })
-    const marine_xy = [marine_unit.x, marine_unit.y]
-    let minerals = []
-    Object.keys(obs.observation.raw_units).forEach((key) => {
-      const unit = obs.observation.raw_units[key]
-      if (unit.alliance === _PLAYER_NEUTRAL) {
-        minerals.push([unit.x, unit.y])
+    const marine_xy = [marine_unit.getX(), marine_unit.getY()]
+    const minerals = []
+    obs.getObservation().getRawUnitsList().forEach((unit) => {
+      if (unit.getAlliance() == _PLAYER_NEUTRAL) {
+        if (this._previous_mineral_xy) {
+          // Don't go for the same mineral shard as other marine
+          if (unit.getX() === this._previous_mineral_xy[0] && unit.getY() === this._previous_mineral_xy[1]) {
+            return
+          }
+        }
+        minerals.push([unit.getX(), unit.getY()])
       }
     })
     //Don't go for the same mineral shard as other marine.
-    if (minerals.includes(this._previous_mineral_xy)) {
-      minerals = minerals.filter((mineral) => mineral !== this._previous_mineral_xy)
-    }
+    // if (minerals.includes(this._previous_mineral_xy)) {
+    //   minerals = minerals.filter((mineral) => {
+    //     mineral !== this._previous_mineral_xy)
+    // }
     if (minerals) {
       //Find the closest.
       const axis = 1

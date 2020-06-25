@@ -317,7 +317,7 @@ class Feature(all_collections_generated_classes.Feature):
     data = np.frombuffer(plane.data, dtype=Feature.dtypes[plane.bits_per_pixel])
     if plane.bits_per_pixel == 1:
       data = np.unpackbits(data)
-      if data.shape[0] != size.x * size.y:
+      if data.shape[0] != size.x *  size.y:
         # This could happen if the correct length isn't a multiple of 8, leading
         # to some padding bits at the end of the string which are incorrectly
         # interpreted as data.
@@ -364,7 +364,10 @@ class ScreenFeatures(all_collections_generated_classes.ScreenFeatures):
           clip=clip)
     return super(ScreenFeatures, cls).__new__(cls, **feats)  # pytype: disable=missing-parameter
 
-
+# class MinimapFeatures(collections.namedtuple("MinimapFeatures", [
+#     "height_map", "visibility_map", "creep", "camera", "player_id",
+#     "player_relative", "selected", "unit_type", "alerts", "pathable",
+#     "buildable"])):
 class MinimapFeatures(all_collections_generated_classes.MinimapFeatures):
   """The set of minimap feature layers."""
   __slots__ = ()
@@ -1187,10 +1190,10 @@ class Features(object):
 
     if aif.feature_dimensions:
       with sw("feature_screen"):
-        out["feature_screen"] = named_array.NamedNumpyArray(
-            np.stack([or_zeros(f.unpack(obs.observation),
+        stacks = np.stack([or_zeros(f.unpack(obs.observation),
                                aif.feature_dimensions.screen)
-                      for f in SCREEN_FEATURES]),
+                      for f in SCREEN_FEATURES])
+        out["feature_screen"] = named_array.NamedNumpyArray(stacks,
             names=[ScreenFeatures, None, None])
       with sw("feature_minimap"):
         out["feature_minimap"] = named_array.NamedNumpyArray(
@@ -1745,9 +1748,6 @@ class Features(object):
 
       for func in actions.ABILITY_IDS[ability_id]:
         if func.function_type is cmd_type:
-          # print('func.name: ', func.name, ' cmd_type.name: ', cmd_type.name)
-          # print('func: ', func, ' cmd_type: ', cmd_type)
-          # print('args: ', args)
           return FUNCTIONS[func.id](*args)
       raise ValueError("Unknown ability_id: %s, type: %s. Likely a bug." % (
           ability_id, cmd_type.__name__))
