@@ -10,7 +10,6 @@ function summarize_array_diffs(lhs, rhs) {
     return ""
   }
   const str = indices.map((coord) => {
-    console.log('length: ', coord.length)
     if (coord.length == null) {
       return `[${coord}]: ${lhs[coord]} -> ${rhs[coord]}`
     }

@@ -1,7 +1,8 @@
-const os = require('os') //eslint-disable-line
 const s2clientprotocol = require('s2clientprotocol') //eslint-disable-line
 
 const { common_pb, raw_pb, spatial_pb, ui_pb } = s2clientprotocol
+
+/*eslint-disable no-use-before-define*/
 
 class ABCMeta {
   static get abstractMethods() { return [] }
@@ -56,18 +57,29 @@ function arrayCompare(a, b, sameOrder = false) {
   return true
 }
 
-function assert(cond, errMsg) {
-  if (cond === false) {
-    throw new Error(errMsg)
+function arraySub(a, b) {
+  // This function operates subtraction with 1D or 2d array
+  const result = []
+  const c = []
+  if (a.length === 0) {
+    if (b.length === 0) {
+      return []
+    }
+    return b
   }
-}
-
-
-//eslint-disable-next-line
-Array.prototype.extend = function(array) {
-  for (let i = 0; i < array.length; i++) {
-    this.push(array[i])
+  if (a[0].length === undefined) {
+    for (let i = 0; i < a.length; i++) {
+      result.push(a[i] - b[i])
+    }
+  } else {
+    for (let row = 0; row < a.length; row++) {
+      for (let col = 0; col < a[0].length; col++) {
+        c.push(a[row][col] - b[row][col])
+      }
+    }
+    while (c.length) { result.push(c.splice(0, a[0].length)) }
   }
+  return result
 }
 //eslint-disable-next-line
 Object.defineProperty(Array.prototype, 'extend', {
@@ -76,26 +88,11 @@ Object.defineProperty(Array.prototype, 'extend', {
   enumerable: false,
 })
 
-class DefaultDict {
-  constructor(DefaultInit) {
-    return new Proxy({}, {
-      //eslint-disable-next-line
-      get: (target, name) => {
-        if (name in target) {
-          return target[name]
-        }
-        if (typeof DefaultInit === 'function') {
-          target[name] = new DefaultInit().valueOf()
-        } else {
-          target[name] = DefaultInit
-        }
-        return target[name]
-      },
-    })
+function assert(cond, errMsg) {
+  if (cond === false) {
+    throw new Error(errMsg)
   }
 }
-
-
 
 function eq(a, b) {
   if (a.__eq__) {
@@ -107,14 +104,12 @@ function eq(a, b) {
   return a === b
 }
 
-function expanduser(path) {
-  const homedir = os.homedir()
-  path = path.replace(/~user/g, homedir)
-  path = path.replace(/~/g, homedir)
-  path = path.replace(/\\/g, '/')
-  return path
+//eslint-disable-next-line
+Array.prototype.extend = function(array) {
+  for (let i = 0; i < array.length; i++) {
+    this.push(array[i])
+  }
 }
-
 function getArgNames(func) {
   // First match everything inside the function argument parens.
   const args = func.toString().match(/function\s.*?\(([^)]*)\)/)[1]
@@ -137,26 +132,35 @@ function getArgsArray(func, kwargs) {
 }
 getArgsArray.argSignatures = {}
 getArgsArray.getArgNames = getArgNames
-function getattr(proto, key) {
-  if (!proto[`get${snakeToPascal(key)}`]) {
-    return
-  }
-  return proto[`get${snakeToPascal(key)}`]()
-}
-function iter(container) {
-  if (container.__iter__) {
-    return container.__iter__()
-  }
-  if (len(container)) { //eslint-disable-line
-    return Object.keys(container).map((key) => container[key])
-  }
-  throw new Error('ValueError: Cannont iterate over non-iterable')
-}
-
 //eslint-disable-next-line
 String.prototype.splitlines = function() {
   return this.split(/\r?\n/)
 }
+
+function hashCode(str) {
+// https://werxltd.com/wp/2010/05/13/javascript-implementation-of-javas-string-hashcode-method/
+  var hash = 0;
+  if (str.length == 0) {
+    return hash
+  }
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash &= hash; // Convert to 32bit integer
+  }
+  return hash;
+}
+
+function getattr(proto, key) {
+  if (proto[`get${snakeToPascal(key)}`]) {
+    return proto[`get${snakeToPascal(key)}`]()
+  }
+  if (proto[`get${snakeToPascal(key)}List`]) {
+    return proto[`get${snakeToPascal(key)}List`]()
+  }
+  return null
+}
+
 //eslint-disable-next-line
 String.prototype.ljust = function(length, char = ' ') {
   const fill = []
@@ -173,6 +177,11 @@ String.prototype.rjust = function(length, char = ' ') {
   }
   return fill.join('') + this;
 }
+
+function int(numOrStr) {
+  return Math.floor(numOrStr)
+}
+
 //eslint-disable-next-line
 String.prototype.lpad = function(length, char = ' ') {
   const fill = Array(length);
@@ -189,6 +198,7 @@ String.prototype.rpad = function(length, char = ' ') {
   }
   return fill.join('') + this;
 }
+
 function isinstance(a, compare) {
   const keys = Object.keys(compare);
   if (Array.isArray(compare) && keys.length) {
@@ -210,18 +220,28 @@ function isinstance(a, compare) {
   }
   return a instanceof compare;
 }
+
 function isObject(a) {
   return a === Object(a)
 }
-function int(numOrStr) {
-  return Math.floor(numOrStr)
+
+function iter(container) {
+  if (container.__iter__) {
+    return container.__iter__()
+  }
+  if (len(container)) {
+    return Object.keys(container).map((key) => container[key])
+  }
+  throw new Error('ValueError: Cannont iterate over non-iterable')
 }
+
 function len(container) {
   if (container.__len__) {
     return container.__len__()
   }
   return Object.keys(container).length;
 }
+
 function map(func, collection) {
   function clone(obj) {
     if (obj === null || typeof obj !== 'object') {
@@ -240,6 +260,7 @@ function map(func, collection) {
     collection[key] = func(collection[key])
   })
 }
+
 function namedtuple(name, fields) {
   let consLogic = '';
   let consArgs = '';
@@ -285,6 +306,7 @@ ${fields.map((field, index) => { //eslint-disable-line
 }`;
   return Function(classStr)() //eslint-disable-line
 }
+
 function NotImplementedError(message) {
   ///<summary>The error thrown when the given function isn't implemented.</summary>
   const sender = (new Error) //eslint-disable-line
@@ -307,22 +329,29 @@ function NotImplementedError(message) {
 
   this.message = str;
 }
+
 function nonZero(arr) {
   // This function outputs a array of indices of nonzero elements
-  const rows = []
-  const cols = []
-  const shape = arr.shape
-  arr = arr.arraySync()
-  for (let row = 0; row < shape[0]; row++) {
-    for (let col = 0; col < shape[1]; col++) {
-      if (arr[row][col] !== 0) {
-        rows.push(row)
-        cols.push(col)
+  const indices = []
+  if (arr[0].length == undefined) {
+    for (let i = 0; i < arr.length; i++) {
+      if (arr[i] !== 0) {
+        indices.push(i)
+      }
+    }
+  } else {
+    const shape = [arr.length, arr[0].length]
+    for (let row = 0; row < shape[0]; row++) {
+      for (let col = 0; col < shape[1]; col++) {
+        if (arr[row][col] !== 0) {
+          indices.push([row, col])
+        }
       }
     }
   }
-  return [rows, cols]
+  return indices
 }
+
 function randomChoice(arr) {
   // This function does not support "size" of output shape.
   if (Array.isArray(arr)) {
@@ -330,6 +359,7 @@ function randomChoice(arr) {
   }
   return arr[Math.floor(Math.random() * arr.length)]
 }
+
 function randomSample(arr, size) {
   var shuffled = arr.slice(0)
   let i = arr.length
@@ -343,12 +373,15 @@ function randomSample(arr, size) {
   }
   return shuffled.slice(0, size)
 }
+
 function randomUniform(min, max) {
   return Math.random() * (max - min) + min
 }
+
 randomUniform.int = function (min, max) {
   return Math.round(randomUniform(min, max))
 }
+
 async function sequentialTaskQueue(tasks) {
   const results = []
   const reducer = (promiseChain, currentTask) => { //eslint-disable-line
@@ -362,6 +395,7 @@ async function sequentialTaskQueue(tasks) {
   await tasks.reduce(reducer, Promise.resolve())
   return results
 }
+
 function setattr(proto, key, value) {
   if (Array.isArray(value) && proto[`set${snakeToPascal(key)}List`]) {
     proto[`set${snakeToPascal(key)}List`](value)
@@ -372,6 +406,7 @@ function setattr(proto, key, value) {
     throw new Error(`Failed to find setter method for field "${key}" on proto.`)
   }
 }
+
 function setUpProtoAction(action, name) {
   if (name === 'no_op') {
     return action
@@ -533,6 +568,7 @@ function setUpProtoAction(action, name) {
     return action
   }
 }
+
 const snakeToCamel = (str) => {
   if (!str.match('_')) {
     return str
@@ -543,6 +579,12 @@ const snakeToCamel = (str) => {
       .replace('-', '')
       .replace('_', ''))
 }
+
+function snakeToPascal(str) {
+  const usedStr = snakeToCamel(str)
+  return usedStr[0].toUpperCase() + usedStr.slice(1, usedStr.length)
+}
+
 function sum(collection) {
   let total = 0
   Object.keys(collection).forEach((key) => {
@@ -551,9 +593,23 @@ function sum(collection) {
   return total
 }
 
-function snakeToPascal(str) {
-  const usedStr = snakeToCamel(str)
-  return usedStr[0].toUpperCase() + usedStr.slice(1, usedStr.length)
+class DefaultDict {
+  constructor(DefaultInit) {
+    return new Proxy({}, {
+      //eslint-disable-next-line
+      get: (target, name) => {
+        if (name in target) {
+          return target[name]
+        }
+        if (typeof DefaultInit === 'function') {
+          target[name] = new DefaultInit().valueOf()
+        } else {
+          target[name] = DefaultInit
+        }
+        return target[name]
+      },
+    })
+  }
 }
 
 function unpackbits(uint8data) {
@@ -640,7 +696,6 @@ async function withPythonAsync(withInterface, callback) {
   return tempResult
 }
 
-
 /**
  From:
  https://gist.github.com/tregusti/0b37804798a7634bc49c#gistcomment-2193237
@@ -668,14 +723,14 @@ module.exports = {
   Array,
   DefaultDict,
   eq,
-  expanduser,
   getArgsArray,
   getattr,
-  len,
+  hashCode,
   int,
   iter,
   isinstance,
   isObject,
+  len,
   map,
   namedtuple,
   NotImplementedError,
@@ -686,9 +741,9 @@ module.exports = {
   sequentialTaskQueue,
   setattr,
   setUpProtoAction,
-  String,
   snakeToCamel,
   snakeToPascal,
+  String,
   sum,
   unpackbits,
   unpackbitsToShape,
