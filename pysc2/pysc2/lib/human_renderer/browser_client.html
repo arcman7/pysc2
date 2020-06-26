@@ -1,0 +1,198 @@
+<html>
+<head>
+  <script id="gamejs" src="/human_renderer/gamejs.js"></script>
+  <script id="point" src="//point.js"></script>
+  <script id="transform" src="/transform.js"></script>
+  <script id="stopwatch" src="/stopwatch.js"></script>
+  <script id="main">
+
+const urlParams = new URLSearchParams(window.location.search);
+const port = urlParams.get('port');
+const host = '127.0.0.1';
+const url = `ws://${host}:${port}/`;
+
+function getWSClient(wsUrl) {
+  let resolve;
+  let reject;
+  const prom = new Promise((res, rej) => {
+    resolve = res
+    reject = rej
+  });
+  const ws = new WebSocket(wsUrl);
+  function handleError(err) {
+    reject(err)
+  }
+  ws.addEventListener('open', () => {
+    ws.removeEventListener('error', handleError)
+    resolve(ws)
+  })
+  ws.addEventListener('error', handleError)
+  return prom
+}
+
+const gamejs = window.gamejs
+const sw = window.stopwatch.sw
+const point = window.point
+
+// PYTHON UTILS
+function withPython(withInterface, callback) {
+  if (!withInterface.__enter__ || !withInterface.__exit__) {
+    throw new Error('ValueError: withInterface must define a __enter__ and __exit__ method')
+  }
+  let tempResult = withInterface.__enter__.call(withInterface)
+  tempResult = callback(tempResult)
+  if (tempResult instanceof Promise) {
+    tempResult.then(() => withInterface.__exit__.call(withInterface))
+  } else {
+    withInterface.__exit__.call(withInterface)
+  }
+  return tempResult
+}
+function int(numOrStr) {
+  return Math.floor(numOrStr)
+}
+// PYTHON UTILS END
+
+class _Surface {
+  //A surface to display on screen.//
+  constructor(surf, surf_type, surf_rect, world_to_surf, world_to_obs, draw) {
+    /*A surface to display on screen.
+
+    Args:
+      surf: The actual gamejs.Surface (or subsurface).
+      surf_type: A SurfType, used to tell how to treat clicks in that area.
+      surf_rect: Rect of the surface relative to the window.
+      world_to_surf: Convert a world point to a pixel on the surface.
+      world_to_obs: Convert a world point to a pixel in the observation.
+      draw: A function that draws onto the surface.
+    */
+    this.surf = surf
+    this.surf_type = surf_type
+    this.surf_rect = surf_rect
+    this.world_to_surf = world_to_surf
+    this.world_to_obs = world_to_obs
+    this.draw = draw
+  }
+
+  draw_line(color, start_loc, end_loc, thickness = 1) {
+    gamejs.draw.line(
+      this.surf, color,
+      this.world_to_surf.fwd_pt(start_loc).round(),
+      this.world_to_surf.fwd_pt(end_loc).round(),
+      Math.max(1, thickness)
+    )
+  }
+
+  draw_arc(color, world_loc, world_radius, start_angle, stop_angle, thickness = 1) {
+    //Draw an arc using world coordinates, radius, start and stop angles.//
+    const center = this.world_to_surf.fwd_pt(world_loc).round()
+    const radius = Math.max(1, int(this.world_to_surf.fwd_dist(world_radius)))
+    const rect = gamejs.Rect(center - radius, (radius * 2, radius * 2))
+    gamejs.draw.arc(
+      this.surf, color, rect, start_angle, stop_angle,
+      thickness < radius ? thickness : 0
+    )
+  }
+
+  draw_circle(color, world_loc, world_radius, thickness = 0) {
+    //Draw a circle using world coordinates and radius.//
+    if (world_radius > 0) {
+      const center = this.world_to_surf.fwd_pt(world_loc).round()
+      const radius = Math.max(1, int(this.world_to_surf.fwd_dist(world_radius)))
+      gamejs.draw.circle(
+        this.surf, color, center, radius,
+        thickness < radius ? thickness : 0
+      )
+    }
+  }
+
+  draw_rect(color, world_rect, thickness = 0) {
+    //Draw a rectangle using world coordinates.//
+    const tl = this.world_to_surf.fwd_pt(world_rect.tl).round()
+    const br = this.world_to_surf.fwd_pt(world_rect.br).round()
+    const rect = gamejs.Rect(tl, br - tl)
+    gamejs.draw.rect(this.surf, color, rect, thickness)
+  }
+
+  blit_np_array(array) {
+    //Fill this surface using the contents of a numpy array.//
+    let raw_surface
+    withPython(sw('make_surface'), () => {
+      raw_surface = gamejs.surfarray.make_surface(array.transpose([1, 0, 2]))
+    })
+    withPython(sw('draw'), () => {
+      gamejs.transform.scale(raw_surface, this.surf.get_size(), this.surf)
+    })
+  }
+
+  write_screen(font, color, screen_pos, text, align = 'left', valign = 'top') {
+    //Write to the screen in font.size relative coordinates.//
+    const pos = new point.Point(...screen_pos) * new point.Point(0.75, 1) * font.get_linesize()
+    const text_surf = font.render(text.toString ? text.toString() : String(text), true, color)
+    const rect = text_surf.get_rect()
+    if (pos.x >= 0) {
+      rect[align] = pos.x
+    } else {
+      rect[align] = this.surf.get_width() + pos.x
+    }
+    if (pos.y >= 0) {
+      rect[valign] = pos.y
+    } else {
+      rect[valign] = this.surf.get_height() + pos.y
+    }
+    this.surf.blit(text_surf, rect)
+  }
+
+  write_world(font, color, world_loc, text) {
+    const text_surf = font.render(text, true, color)
+    const rect = text_surf.get_rect()
+    rect.center = this.world_to_surf.fwd_pt(world_loc)
+    this.surf.blit(text_surf, rect)
+  }
+}
+
+class RendererHuman {
+  //Render starcraft obs with pygame such that it's playable by humans.//
+
+  static get camera_actions() {
+    const camera_actions = {}
+    camera_actions[gamejs.K_LEFT] = new point.Point(-3, 0)
+    camera_actions[gamejs.K_RIGHT] = new point.Point(3, 0)
+    camera_actions[gamejs.K_UP] = new point.Point(0, 3)
+    camera_actions[gamejs.K_DOWN] = new point.Point(0, -3)
+    return camera_actions
+  }
+
+  get camera_actions() { //eslint-disable-line
+    return RendererHuman.camera_actions
+  }
+
+  static get cmd_group_keys() {
+    const cmd_group_keys = {}
+    cmd_group_keys[gamejs.K_0] = 0
+    cmd_group_keys[gamejs.K_1] = 1
+    cmd_group_keys[gamejs.K_2] = 2
+    cmd_group_keys[gamejs.K_3] = 3
+    cmd_group_keys[gamejs.K_4] = 4
+    cmd_group_keys[gamejs.K_5] = 5
+    cmd_group_keys[gamejs.K_6] = 6
+    cmd_group_keys[gamejs.K_7] = 7
+    cmd_group_keys[gamejs.K_8] = 8
+    cmd_group_keys[gamejs.K_9] = 9
+    return cmd_group_keys
+  }
+
+  get cmd_group_keys() { //eslint-disable-line
+    return RendererHuman.cmd_group_keys
+  }
+}
+
+async function init() {
+  const ws = await getWSClient(url)
+  ws.send('hello!')
+}
+
+init()
+</script>
+</head>
+

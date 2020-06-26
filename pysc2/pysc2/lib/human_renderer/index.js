@@ -1,12 +1,13 @@
 const path = require('path') //eslint-disable-line
-const protobuf = require("protobufjs/minimal") //eslint-disable-line
+const protobuf = require('protobufjs') //eslint-disable-line
 const WebSocket = require('ws') //eslint-disable-line
 const portspicker = require(path.resolve(__dirname, '..', 'portspicker.js'))
 
-async function getWsServer({ port, host = '127.0.0.1', callback }) {
+async function getWsServer({ port, host = '127.0.0.1', callback = () => {} }) {
   port = port || await (portspicker.pick_unused_ports(1))[0]
   const wss = new WebSocket.Server({ port, host })
   wss.on('connection', function connection(ws) {
+    console.log('WebSocket server connection initialized.')
     ws.on('message', function incoming(message) {
       console.log('received: %s', message)
     })
