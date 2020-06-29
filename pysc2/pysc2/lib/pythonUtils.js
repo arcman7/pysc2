@@ -262,31 +262,33 @@ function map(func, collection) {
 }
 
 function namedtuple(name, fields) {
-  let consLogic = '';
   let consArgs = '';
   fields.forEach((field, i) => {
     consArgs += i < fields.length - 1 ? `${field}, ` : `${field}`;
-    consLogic += i < fields.length - 1 ? `this.${field} = ${field};\n    ` : `this.${field} = ${field};`;
   });
   const classStr = `const _fields = ${JSON.stringify(fields)}; return class ${name} extends Array {
   static get classname() { return '${name}' }
   static get _fields() { return ${JSON.stringify(fields)} }
   constructor(${consArgs}) {
+    const usedArgs = []
     if (typeof arguments[0] === 'object' && arguments.length === 1 && _fields.length > 1) {
-      const args = []
       const kwargs = arguments[0]
       _fields.forEach((field, index) => {
-        args[index] = kwargs[field]
+        usedArgs[index] = kwargs[field]
       })
-      super(...args)
+      // console.log('here! A *******************')
+      // console.log('arguments: ')
+      // console.log(usedArgs)
+      super(...usedArgs)
+    } else {
       _fields.forEach((field, index) => {
-        args[index] = kwargs[field]
-        this[field] = kwargs[field]
+        usedArgs[index] = arguments[index]
       })
-      return
+      // console.log('here! B *******************')
+      // console.log('arguments: ')
+      // console.log(usedArgs)
+      super(...usedArgs)
     }
-    super(...arguments)
-    ${consLogic}
   }
   static _make(kwargs) {
     return new this.prototype.constructor(kwargs);

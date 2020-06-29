@@ -1,0 +1,58 @@
+<html>
+<head>
+  <script id ="tensorflow" src="https://cdnjs.cloudflare.com/ajax/libs/tensorflow/2.0.1/tf.es2017.js"></script>
+  <!-- <script id="gamejs" src="/renderer_human/gamejs-2.0.3-pre-min.js"></script> -->
+  <script id="s2clientprotocol" src="/renderer_human/s2clientprotocol.js"></script>
+  <script id="bundle" src="/renderer_human/bundle.js"></script>
+<!--   <script id="point" src="/point.js"></script>
+  <script id="transform" src="/transform.js"></script>
+  <script id="stopwatch" src="/stopwatch.js"></script> -->
+  <script id="main">
+console.log('A0')
+const gamejs = require('gamejs') //eslint-disable-line
+const frontend = require('frontend') //eslint-disable-line
+const urlParams = new URLSearchParams(window.location.search) //eslint-disable-line
+const port = urlParams.get('port');
+const host = '127.0.0.1';
+const url = `ws://${host}:${port}/`;
+console.log('A1')
+
+function getWSClient(wsUrl) {
+  let resolve;
+  let reject;
+  const prom = new Promise((res, rej) => {
+    resolve = res
+    reject = rej
+  });
+  const ws = new WebSocket(wsUrl);
+  function handleError(err) {
+    reject(err)
+  }
+  ws.addEventListener('open', () => {
+    ws.removeEventListener('error', handleError)
+    resolve(ws)
+  })
+  ws.addEventListener('error', handleError)
+  return prom
+}
+console.log('A2')
+
+window.gamejs = gamejs
+// const gamejs = window['gamejs']
+// const { human_renderer } = require('frontend.js')
+window.frontend = frontend
+// const sw = window.stopwatch.sw
+
+console.log('B0')
+
+
+async function init() {
+  const ws = await getWSClient(url)
+  ws.send('hello!')
+}
+
+init()
+console.log('B1')
+</script>
+</head>
+

@@ -783,7 +783,7 @@ function parse_agent_interface_format({
   rgb_minimap = null,
   action_space = null,
   action_delays = null,
-  kwargs
+  kwargs,
 }) {
   /*Creates an AgentInterfaceFormat object from keyword args.
 

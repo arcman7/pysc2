@@ -1,34 +1,25 @@
-const { spawn } = require('child_process') //eslint-disable-line
 const path = require('path') //eslint-disable-line
-const http = require('http') //eslint-disable-line
-const url = require('url') // eslint-disable-line
 const s2clientprotocol = require('s2clientprotocol') //eslint-disable-line
 const Enum = require('python-enum') //eslint-disable-line
-const features = require(path.resolve(__dirname, './features.js'))
-const colors = require(path.resolve(__dirname, './colors.js'))
-const named_array = require(path.resolve(__dirname, './named_array.js'))
-const point = require(path.resolve(__dirname, './point.js'))
-const static_data = require(path.resolve(__dirname, './static_data.js'))
-const stopwatch = require(path.resolve(__dirname, './stopwatch.js'))
-const transform = require(path.resolve(__dirname, './transform.js'))
-const pythonUtils = require(path.resolve(__dirname, './pythonUtils.js'))
-const np = require(path.resolve(__dirname, './numpy.js'))
-const gfile = require(path.resolve(__dirname, './gfile.js'))
-const memoize = require(path.resolve(__dirname, './memoize.js'))
-const remote_controller = require(path.resolve(__dirname, './remote_controller.js'))
-const { getWsServer, initTypes } = require(path.resolve(__dirname, 'human_renderer', 'index.js'))
-const portspicker = require(path.resolve(__dirname, './portspicker.js'))
-const video_writter = require(path.resolve(__dirname, './video_writter.js'))
+const protobuf = require('protobufjs') //eslint-disable-line
+const pythonUtils = require('./pythonUtils.js') //eslint-disable-line
+const point = require('./point.js') //eslint-disable-line
+const actions = require('./actions.js') //eslint-disable-line
+const features = require('./features.js') //eslint-disable-line
+const colors = require('./colors.js') //eslint-disable-line
+const named_array = require('./named_array.js') //eslint-disable-line
+const static_data = require('./static_data.js') //eslint-disable-line
+const stopwatch = require('./stopwatch.js') //eslint-disable-line
+const transform = require('./transform.js') //eslint-disable-line
 
 const sc_error = s2clientprotocol.error_pb
 const sc_raw = s2clientprotocol.raw_pb
 const sc_pb = s2clientprotocol.sc2api_pb
 const spatial = s2clientprotocol.spatial_pb
 const sc_ui = s2clientprotocol.ui_pb
-
 const sw = stopwatch.sw
 
-const { namedtuple } = pythonUtils
+const { namedtuple, withPython } = pythonUtils
 
 function clamp(n, smallest, largest) {
   return Math.max(smallest, Math.min(n, largest))
@@ -81,7 +72,7 @@ class _Surface {
     /*A surface to display on screen.
 
     Args:
-      surf: The actual pygame.Surface (or subsurface).
+      surf: The actual gamejs.Surface (or subsurface).
       surf_type: A SurfType, used to tell how to treat clicks in that area.
       surf_rect: Rect of the surface relative to the window.
       world_to_surf: Convert a world point to a pixel on the surface.
@@ -97,61 +88,168 @@ class _Surface {
   }
 
   draw_line(color, start_loc, end_loc, thickness = 1) {
-    //
+    window.gamejs.draw.line(
+      this.surf, color,
+      this.world_to_surf.fwd_pt(start_loc).round(),
+      this.world_to_surf.fwd_pt(end_loc).round(),
+      Math.max(1, thickness)
+    )
+  }
+
+  draw_arc(color, world_loc, world_radius, start_angle, stop_angle, thickness = 1) {
+    //Draw an arc using world coordinates, radius, start and stop angles.//
+    const center = this.world_to_surf.fwd_pt(world_loc).round()
+    const radius = Math.max(1, Math.floor(this.world_to_surf.fwd_dist(world_radius)))
+    const rect = window.gamejs.Rect(center - radius, (radius * 2, radius * 2))
+    window.gamejs.draw.arc(
+      this.surf, color, rect, start_angle, stop_angle,
+      thickness < radius ? thickness : 0
+    )
+  }
+
+  draw_circle(color, world_loc, world_radius, thickness = 0) {
+    //Draw a circle using world coordinates and radius.//
+    if (world_radius > 0) {
+      const center = this.world_to_surf.fwd_pt(world_loc).round()
+      const radius = Math.max(1, Math.floor(this.world_to_surf.fwd_dist(world_radius)))
+      window.gamejs.draw.circle(
+        this.surf, color, center, radius,
+        thickness < radius ? thickness : 0
+      )
+    }
+  }
+
+  draw_rect(color, world_rect, thickness = 0) {
+    //Draw a rectangle using world coordinates.//
+    const tl = this.world_to_surf.fwd_pt(world_rect.tl).round()
+    const br = this.world_to_surf.fwd_pt(world_rect.br).round()
+    const rect = window.gamejs.Rect(tl, br - tl)
+    window.gamejs.draw.rect(this.surf, color, rect, thickness)
+  }
+
+  blit_np_array(array) {
+    //Fill this surface using the contents of a numpy array.//
+    let raw_surface
+    withPython(sw('make_surface'), () => {
+      raw_surface = window.gamejs.surfarray.make_surface(array.transpose([1, 0, 2]))
+    })
+    withPython(sw('draw'), () => {
+      window.gamejs.transform.scale(raw_surface, this.surf.get_size(), this.surf)
+    })
+  }
+
+  write_screen(font, color, screen_pos, text, align = 'left', valign = 'top') {
+    //Write to the screen in font.size relative coordinates.//
+    const pos = new point.Point(...screen_pos) * new point.Point(0.75, 1) * font.get_linesize()
+    const text_surf = font.render(text.toString ? text.toString() : String(text), true, color)
+    const rect = text_surf.get_rect()
+    if (pos.x >= 0) {
+      rect[align] = pos.x
+    } else {
+      rect[align] = this.surf.get_width() + pos.x
+    }
+    if (pos.y >= 0) {
+      rect[valign] = pos.y
+    } else {
+      rect[valign] = this.surf.get_height() + pos.y
+    }
+    this.surf.blit(text_surf, rect)
+  }
+
+  write_world(font, color, world_loc, text) {
+    const text_surf = font.render(text, true, color)
+    const rect = text_surf.get_rect()
+    rect.center = this.world_to_surf.fwd_pt(world_loc)
+    this.surf.blit(text_surf, rect)
   }
 }
 
+class RendererHuman {
+  //Render starcraft obs with pygame such that it's playable by humans.//
 
-class HumanRenderer {
-  constructor() {
-    this.chromeArgs = ['C:\\Program Files (x86)\\Google\\Chrome\\Application\\Chrome.exe', '-incognito', '--new-window', 'http://127.0.0.1:']
-    this.browserFilePath = '/human_renderer/browser_client.html'
-    this.gameJSPath = '/human_renderer/gamejs.js'
-    this.websocketServer = null
+  static get camera_actions() {
+    const camera_actions = {}
+    camera_actions[window.gamejs.K_LEFT] = new point.Point(-3, 0)
+    camera_actions[window.gamejs.K_RIGHT] = new point.Point(3, 0)
+    camera_actions[window.gamejs.K_UP] = new point.Point(0, 3)
+    camera_actions[window.gamejs.K_DOWN] = new point.Point(0, -3)
+    return camera_actions
   }
 
-  async setUp() {
-    const [p1, p2] = await portspicker.pick_unused_ports(2)
-    this.wsPort = p1
-    this.httpPort = p2
-    this.websocketServer = await getWsServer({ port: this.wsPort })
-    await this.startLocalHostServer()
-    // launch browser with websocket server port embedded as a url param
-    const fullUrl = this.chromeArgs.pop() + this.httpPort + this.browserFilePath + '?port=' + this.wsPort
-    this.fullUrl = fullUrl
-    this.chromeArgs.push(fullUrl)
-    this.launchChrome()
-    return true
+  get camera_actions() { //eslint-disable-line
+    return RendererHuman.camera_actions
   }
 
-  startLocalHostServer() {
-    this.httpServer = http.createServer((request, response) => {
-      const reqPath = url.parse(request.url, true).pathname;
-
-      if (request.method === 'GET') {
-        if (reqPath === this.browserFilePath) {
-          response.writeHead(200, { 'Content-Type': 'text/html' })
-          const data = gfile.Open(path.resolve(__dirname, 'human_renderer', 'browser_client.html'), { encoding: 'utf8' })
-          response.end(data, 'utf-8')
-        } else if (reqPath === this.gameJSPath) {
-          response.writeHead(200, { 'Content-Type': 'application/javascript' })
-          const data = gfile.Open(path.resolve(__dirname, 'human_renderer', 'gamejs.js'), { encoding: 'utf8' })
-          response.end(data, 'utf-8')
-        } else {
-          response.end('404')
-        }
-      }
-    })
-    this.httpServer.listen(this.httpPort, () => {
-      console.log('server listening at port ', this.httpPort, 'at:\n', this.fullUrl)
-    })
+  static get cmd_group_keys() {
+    const cmd_group_keys = {}
+    cmd_group_keys[window.gamejs.K_0] = 0
+    cmd_group_keys[window.gamejs.K_1] = 1
+    cmd_group_keys[window.gamejs.K_2] = 2
+    cmd_group_keys[window.gamejs.K_3] = 3
+    cmd_group_keys[window.gamejs.K_4] = 4
+    cmd_group_keys[window.gamejs.K_5] = 5
+    cmd_group_keys[window.gamejs.K_6] = 6
+    cmd_group_keys[window.gamejs.K_7] = 7
+    cmd_group_keys[window.gamejs.K_8] = 8
+    cmd_group_keys[window.gamejs.K_9] = 9
+    return cmd_group_keys
   }
 
-  launchChrome() {
-    this._proc = spawn(this.chromeArgs[0], this.chromeArgs)
+  get cmd_group_keys() { //eslint-disable-line
+    return RendererHuman.cmd_group_keys
   }
+}
+
+function getTypes() {
+  let resolve
+  let reject
+  const prom = new Promise((res, rej) => {
+    resolve = res
+    reject = rej
+  })
+  let requestTypes
+  let responseTypes
+  let dataTypes
+  protobuf.load('human_renderer.proto', (err, root) => {
+    if (err) {
+      reject(err)
+    }
+    // Data types
+    const Point = root.lookupType('human_renderer.Point')
+    const Rectangle = root.lookupType('human_renderer.Rectangle')
+    dataTypes = [Point, Rectangle]
+    // Request types
+    const DrawLineRequest = root.lookupType('human_renderer.DrawLineRequest')
+    const DrawArcRequest = root.lookupType('human_renderer.DrawArcRequest')
+    const DrawCircleRequest = root.lookupType('human_renderer.DrawCircleRequest')
+    const BlitArrayRequest = root.lookupType('human_renderer.BlitArrayRequest')
+    const WriteScreenRequest = root.lookupType('human_renderer.WriteScreenRequest')
+    const WriteWorldRequest = root.lookupType('human_renderer.WriteWorldRequest')
+    requestTypes = [
+      DrawLineRequest, DrawArcRequest,
+      DrawCircleRequest, BlitArrayRequest,
+      WriteScreenRequest, WriteWorldRequest
+    ]
+    // Response types
+    const DrawLineResponse = root.lookupType('human_renderer.DrawLineResponse')
+    const DrawArcResponse = root.lookupType('human_renderer.DrawArcResponse')
+    const DrawCircleResponse = root.lookupType('human_renderer.DrawCircleResponse')
+    const BlitArrayResponse = root.lookupType('human_renderer.BlitArrayResponse')
+    const WriteScreenResponse = root.lookupType('human_renderer.WriteScreenReponse')
+    const WriteWorldResponse = root.lookupType('human_renderer.WriteWorldResponse')
+    responseTypes = [
+      DrawLineResponse, DrawArcResponse,
+      DrawCircleResponse, BlitArrayResponse,
+      WriteScreenResponse, WriteWorldResponse
+    ]
+    resolve({ dataTypes, requestTypes, responseTypes })
+  })
+  return prom
 }
 
 module.exports = {
-  HumanRenderer,
+  getTypes,
+  RendererHuman,
+  _Surface,
+  _Ability,
 }

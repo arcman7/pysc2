@@ -5322,5 +5322,3 @@ exports.time = require('./gamejs/time');
  */
 exports.pixelcollision = require('./gamejs/pixelcollision');
 },{"./gamejs/audio":1,"./gamejs/display":2,"./gamejs/event":3,"./gamejs/font":4,"./gamejs/graphics":5,"./gamejs/http":6,"./gamejs/image":7,"./gamejs/logging":8,"./gamejs/math/angles":9,"./gamejs/math/binaryheap":10,"./gamejs/math/matrix":11,"./gamejs/math/noise":12,"./gamejs/math/random":13,"./gamejs/math/vectors":14,"./gamejs/pathfinding":15,"./gamejs/pixelcollision":16,"./gamejs/thread":17,"./gamejs/tiledmap":18,"./gamejs/time":19,"./gamejs/utils/arrays":20,"./gamejs/utils/base64":21,"./gamejs/utils/callback":22,"./gamejs/utils/objects":23,"./gamejs/utils/strings":24,"./gamejs/utils/uri":25,"./gamejs/utils/xml":26}]},{},[]);
-
-window.gamejs = require('gamejs')

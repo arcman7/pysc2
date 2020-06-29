@@ -7,12 +7,12 @@ const point = require(path.resolve(__dirname, './point.js'))
 const pythonUtils = require(path.resolve(__dirname, './pythonUtils.js'))
 const numpy = require(path.resolve(__dirname, './numpy.js'))
 
-const { isinstance, randomUniform, ValueError } = pythonUtils
-const { common_pb, sc2api_pb, spatial_pb, ui_pb } = s2clientprotocol
-const sc_pb = sc2api_pb
-const RECTANGULAR_DIMENSIONS = new features.Dimensions([84, 80], [64, 67])
-const SQUARE_DIMENSIONS = new features.Dimensions(84, 64)
-const always_expected = new Set([
+var { isinstance, randomUniform, ValueError } = pythonUtils
+var { common_pb, sc2api_pb, spatial_pb, ui_pb } = s2clientprotocol
+var sc_pb = sc2api_pb
+var RECTANGULAR_DIMENSIONS = new features.Dimensions([84, 80], [64, 67])
+var SQUARE_DIMENSIONS = new features.Dimensions(84, 64)
+var always_expected = new Set([
   "no_op", "move_camera", "select_point", "select_rect",
   "select_control_group"
 ])
@@ -442,17 +442,17 @@ describe('features.js:', () => {
       })
     })
     test('testReversingUnknownAction', () => {
-      const feats = new features.Features(new features.AgentInterfaceFormat({
+      var feats = new features.Features(new features.AgentInterfaceFormat({
         feature_dimensions: RECTANGULAR_DIMENSIONS,
         hide_specific_actions: false,
       }))
-      const sc2_action = new sc_pb.Action()
-      const actionSpatial = new spatial_pb.ActionSpatial()
-      const unitCommand = new spatial_pb.ActionSpatialUnitCommand()
+      var sc2_action = new sc_pb.Action()
+      var actionSpatial = new spatial_pb.ActionSpatial()
+      var unitCommand = new spatial_pb.ActionSpatialUnitCommand()
       unitCommand.setAbilityId(6) // Cheer
       actionSpatial.setUnitCommand(unitCommand)
       sc2_action.setActionFeatureLayer(actionSpatial)
-      const func_call = feats.reverse_action(sc2_action)
+      var func_call = feats.reverse_action(sc2_action)
       expect(func_call.function == 0).toBe(true) // No-op
     })
     test('testSpecificActionsAreReversible', () => {

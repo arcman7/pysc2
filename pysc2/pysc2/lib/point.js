@@ -1,8 +1,8 @@
 const path = require('path') //eslint-disable-line
 const s2clientprotocol = require('s2clientprotocol') //eslint-disable-line
 const { common_pb, spatial_pb } = s2clientprotocol
-const all_collections_generated_classes = require(path.resolve(__dirname, './all_collections_generated_classes.js'))
-const pythonUtils = require(path.resolve(__dirname, './pythonUtils.js'))
+// const all_collections_generated_classes = require(path.resolve(__dirname, './all_collections_generated_classes.js'))
+const pythonUtils = require(path.resolve(__dirname, 'pythonUtils.js'))
 const { isinstance, namedtuple, randomUniform } = pythonUtils
 
 Math.radians = function(degrees) {
@@ -224,7 +224,8 @@ class Point extends namedtuple('Point', ['x', 'y']) {
 
 const origin = new Point(0.0, 0.0)
 
-class Rect extends all_collections_generated_classes.Rect {
+// class Rect extends all_collections_generated_classes.Rect {
+class Rect extends namedtuple("Rect", ["t", "l", "b", "r"]) {
   //A basic Rect class. Assumes tl <= br.//
 
   constructor() {
