@@ -1383,7 +1383,6 @@ _FUNCTIONS.forEach((f) => {
 const _Functions = Enum.IntEnum('_Functions', tempDict)
 _FUNCTIONS = _FUNCTIONS.map((f) => f._replace({ id: _Functions(f.id) }))
 const FUNCTIONS = new Functions(_FUNCTIONS)
-
 // Some indexes to support features.py and action conversion.
 const ABILITY_IDS = {}
 const ABILITY_IDS_seen = new Map()
@@ -2026,8 +2025,10 @@ class FunctionCall extends namedtuple("FunctionCall", ["functionn", "argumentss"
     //eslint-disable-next-line
     if (typeof arguments[0] === 'object' && arguments.length === 1 && FunctionCall._fields.length > 1) {
       const kwargs = arguments[0]  //eslint-disable-line
-      kwargs.arguments = kwargs.argumentss
-      kwargs.function = kwargs.functionn
+      if (kwargs.arguments || kwargs.funtion) {
+        kwargs.argumentss = kwargs.arguments
+        kwargs.functionn = kwargs.function
+      }
     }
     super(...arguments) //eslint-disable-line
     const self = this
@@ -2101,7 +2102,7 @@ class FunctionCall extends namedtuple("FunctionCall", ["functionn", "argumentss"
             "their numpy equivalents. Value: ${arg}`)
       }
     })
-    return this._make({ function: func.id, arguments: args })
+    return new FunctionCall(func.id, args)
   }
 
   static all_arguments(_function, _arguments, raw = false) {
@@ -2125,7 +2126,7 @@ class FunctionCall extends namedtuple("FunctionCall", ["functionn", "argumentss"
       // both Arguments and RawArguments constructors can handle array
       _arguments = args_type(_arguments)
     }
-    return this._make({ function: _function, arguments: _arguments })
+    return new FunctionCall(_function, _arguments)
   }
 }
 

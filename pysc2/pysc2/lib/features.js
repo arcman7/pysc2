@@ -259,9 +259,6 @@ class Feature extends namedtuple('Feature', ['index', 'name', 'layer_set', 'full
     //Return a correctly shaped numpy array for this feature.//
     const planes = getattr(obs.getFeatureLayerData(), this.layer_set)
     const plane = getattr(planes, this.name) || new sc_pb.ImageData()
-    if (this.name == 'unit_type') {
-      // console.log(plane.toObject())
-    }
     return this.unpack_layer(plane)
   }
 
@@ -1876,7 +1873,6 @@ class Features {
     if (isinstance(func_call, sc_pb.Action)) {
       return func_call
     }
-
     const func_id = func_call.function
     let func
     try {

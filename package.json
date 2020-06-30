@@ -54,7 +54,10 @@
   },
   "jest": {
     "modulePathIgnorePatterns": [
-      ".git"
+      ".git",
+      "/tests/",
+      "/env/",
+      "renderer_human"
     ]
   }
 }
