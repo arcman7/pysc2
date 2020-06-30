@@ -2,6 +2,7 @@ const path = require('path') //eslint-disable-line
 const s2clientprotocol = require('s2clientprotocol') //eslint-disable-line
 const Enum = require('python-enum') //eslint-disable-line
 const protobuf = require('protobufjs') //eslint-disable-line
+const deque = require('collections/deque') //eslint-disable-line
 const pythonUtils = require('./pythonUtils.js') //eslint-disable-line
 const point = require('./point.js') //eslint-disable-line
 const actions = require('./actions.js') //eslint-disable-line
@@ -19,7 +20,7 @@ const spatial = s2clientprotocol.spatial_pb
 const sc_ui = s2clientprotocol.ui_pb
 const sw = stopwatch.sw
 
-const { namedtuple, withPython } = pythonUtils
+const { assert, namedtuple, withPython } = pythonUtils
 
 function clamp(n, smallest, largest) {
   return Math.max(smallest, Math.min(n, largest))
@@ -164,15 +165,74 @@ class _Surface {
   }
 }
 
+class MousePos extends namedtuple('MousePos', ['world_pos', 'surf']) {
+  //Holds the mouse position in world coordinates and the surf it came from.//
+  get surf_pos() {
+    return this.surf.world_to_surf.fwd_pt(this.world_pos)
+  }
+
+  get obs_pos() {
+    return this.surf.world_to_obs.fwd_pt(this.world_pos)
+  }
+
+  action_spatial(action) {
+    //Given an Action, return the right spatial action.//
+    if (this.surf.surf_type & SurfType.FEATURE) {
+      return action.action_feature_layer
+    }
+    if (this.surf.surf_type & SurfType.RGB) {
+      return action.action_render
+    }
+    assert(this.surf.surf_type & (SurfType.RGB | SurfType.FEATURE), 'this.surf.surf_type & (SurfType.RGB | SurfType.FEATURE)')
+  }
+}
+
+class PastAction extends namedtuple('PastAction', ['ability', 'color', 'pos', 'time', 'deadline']) {
+  // Holds a past action for drawing over time.//
+}
+
+function _get_desktop_size() {
+  //Get the browser screen size.//
+  /*
+  https://stackoverflow.com/questions/3437786/get-the-size-of-the-screen-current-web-page-and-browser-window
+  */
+  /*eslint-disable*/
+
+  const win = window
+  const doc = document
+  const docElem = doc.documentElement
+  const body = doc.getElementsByTagName('body')[0]
+  const x = win.innerWidth || docElem.clientWidth || body.clientWidth
+  const y = win.innerHeight|| docElem.clientHeight|| body.clientHeight
+  return new point.Point(x, y)
+}
+
+
+function circle_mask(shape, pt, radius) {
+  let rows = new Array(shape.y)
+  let yInd = 0
+  for (let y = -pt.y; y < (shape.y - pt.y); y++) {
+    const row = new Array(shape.x)
+    let xInd = 0
+    for (let x = -pt.x; x < (shape.x - pt.x); x++) {
+      row[xInd] = (x**2 + y**2) <= (radius **2)
+      xInd ++
+    }
+    rows[yInd] = row
+    yInd ++
+  }
+  return rows
+}
+
 class RendererHuman {
   //Render starcraft obs with pygame such that it's playable by humans.//
 
   static get camera_actions() {
     const camera_actions = {}
-    camera_actions[window.gamejs.K_LEFT] = new point.Point(-3, 0)
-    camera_actions[window.gamejs.K_RIGHT] = new point.Point(3, 0)
-    camera_actions[window.gamejs.K_UP] = new point.Point(0, 3)
-    camera_actions[window.gamejs.K_DOWN] = new point.Point(0, -3)
+    camera_actions[window.gamejs.event.K_LEFT] = new point.Point(-3, 0)
+    camera_actions[window.gamejs.event.K_RIGHT] = new point.Point(3, 0)
+    camera_actions[window.gamejs.event.K_UP] = new point.Point(0, 3)
+    camera_actions[window.gamejs.event.K_DOWN] = new point.Point(0, -3)
     return camera_actions
   }
 
@@ -182,21 +242,74 @@ class RendererHuman {
 
   static get cmd_group_keys() {
     const cmd_group_keys = {}
-    cmd_group_keys[window.gamejs.K_0] = 0
-    cmd_group_keys[window.gamejs.K_1] = 1
-    cmd_group_keys[window.gamejs.K_2] = 2
-    cmd_group_keys[window.gamejs.K_3] = 3
-    cmd_group_keys[window.gamejs.K_4] = 4
-    cmd_group_keys[window.gamejs.K_5] = 5
-    cmd_group_keys[window.gamejs.K_6] = 6
-    cmd_group_keys[window.gamejs.K_7] = 7
-    cmd_group_keys[window.gamejs.K_8] = 8
-    cmd_group_keys[window.gamejs.K_9] = 9
+    cmd_group_keys[window.gamejs.event.K_0] = 0
+    cmd_group_keys[window.gamejs.event.K_1] = 1
+    cmd_group_keys[window.gamejs.event.K_2] = 2
+    cmd_group_keys[window.gamejs.event.K_3] = 3
+    cmd_group_keys[window.gamejs.event.K_4] = 4
+    cmd_group_keys[window.gamejs.event.K_5] = 5
+    cmd_group_keys[window.gamejs.event.K_6] = 6
+    cmd_group_keys[window.gamejs.event.K_7] = 7
+    cmd_group_keys[window.gamejs.event.K_8] = 8
+    cmd_group_keys[window.gamejs.event.K_9] = 9
     return cmd_group_keys
   }
 
   get cmd_group_keys() { //eslint-disable-line
     return RendererHuman.cmd_group_keys
+  }
+
+  static get upgrade_colors() {
+    return [
+      colors.black,  // unused...
+      colors.white.mul(0.6),
+      colors.white.mul(0.8),
+      colors.white,
+    ]
+  }
+
+  get upgrade_colors() {
+    return RendererHuman.upgrade_colors
+  }
+
+  constructor(fps = 22.4, step_mul = 1, render_sync = false, render_feature_grid = true, video = null) {
+    /*Create a renderer for use by humans.
+
+    Make sure to call `init` with the game info, or just use `run`.
+
+    Args:
+      fps: How fast should the game be run.
+      step_mul: How many game steps to take per observation.
+      render_sync: Whether to wait for the obs to render before continuing.
+      render_feature_grid: When RGB and feature layers are available, whether
+          to render the grid of feature layers.
+      video: A filename to write the video to. Implicitly enables render_sync.
+    */
+    this._fps = fps
+    this._step_mul = step_mul
+    this._render_sync = render_sync || Boolean(video)
+    this._raw_actions = false
+    this._render_player_relative = false
+    this._render_rgb = null
+    this._render_feature_grid = render_feature_grid
+    this._window = null
+    this._window_scale = 0.75
+    this._obs_queue = queue.Queue()
+    // probably won't need these in javascript
+    this._render_thread = null //threading.Thread(target=this.render_thread, name="Renderer")
+    // this._render_thread.start()
+    this._game_times = collections.deque(undefined, 100)  // Avg FPS over 100 frames.
+    this._render_times = collections.deque(undefined, 100)
+    this._last_time = performance.now()
+    this._last_game_loop = 0
+    this._name_lengths = {}
+    this._video_writer = video ? new video_writer.VideoWriter(video, fps) : null
+  }
+
+  close() {
+    if (this._obs_queue.length) {
+      this.
+    }
   }
 }
 
@@ -249,6 +362,8 @@ function getTypes() {
 
 module.exports = {
   getTypes,
+  MousePos,
+  PastAction,
   RendererHuman,
   _Surface,
   _Ability,

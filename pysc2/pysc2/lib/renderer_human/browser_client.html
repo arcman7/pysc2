@@ -8,9 +8,14 @@
   <script id="transform" src="/transform.js"></script>
   <script id="stopwatch" src="/stopwatch.js"></script> -->
   <script id="main">
+
 console.log('A0')
 const gamejs = require('gamejs') //eslint-disable-line
+window.gamejs = gamejs
+
 const frontend = require('frontend') //eslint-disable-line
+window.frontend = frontend
+
 const urlParams = new URLSearchParams(window.location.search) //eslint-disable-line
 const port = urlParams.get('port');
 const host = '127.0.0.1';
@@ -37,10 +42,8 @@ function getWSClient(wsUrl) {
 }
 console.log('A2')
 
-window.gamejs = gamejs
 // const gamejs = window['gamejs']
 // const { human_renderer } = require('frontend.js')
-window.frontend = frontend
 // const sw = window.stopwatch.sw
 
 console.log('B0')

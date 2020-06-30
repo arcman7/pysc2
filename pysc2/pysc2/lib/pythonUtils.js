@@ -1,5 +1,5 @@
+const os = require('os') //eslint-disable-line
 const s2clientprotocol = require('s2clientprotocol') //eslint-disable-line
-
 const { common_pb, raw_pb, spatial_pb, ui_pb } = s2clientprotocol
 
 /*eslint-disable no-use-before-define*/
@@ -81,12 +81,6 @@ function arraySub(a, b) {
   }
   return result
 }
-//eslint-disable-next-line
-Object.defineProperty(Array.prototype, 'extend', {
-  value: Array.prototype.extend,
-  iterable: false,
-  enumerable: false,
-})
 
 function assert(cond, errMsg) {
   if (cond === false) {
@@ -104,12 +98,27 @@ function eq(a, b) {
   return a === b
 }
 
+function expanduser(path) {
+  const homedir = os.homedir()
+  path = path.replace(/~user/g, homedir)
+  path = path.replace(/~/g, homedir)
+  path = path.replace(/\\/g, '/')
+  return path
+}
+
 //eslint-disable-next-line
 Array.prototype.extend = function(array) {
   for (let i = 0; i < array.length; i++) {
     this.push(array[i])
   }
 }
+//eslint-disable-next-line
+Object.defineProperty(Array.prototype, 'extend', {
+  value: Array.prototype.extend,
+  iterable: false,
+  enumerable: false,
+})
+
 function getArgNames(func) {
   // First match everything inside the function argument parens.
   const args = func.toString().match(/function\s.*?\(([^)]*)\)/)[1]
@@ -725,6 +734,7 @@ module.exports = {
   Array,
   DefaultDict,
   eq,
+  expanduser,
   getArgsArray,
   getattr,
   hashCode,

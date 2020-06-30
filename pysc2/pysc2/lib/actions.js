@@ -3,7 +3,6 @@ const s2clientprotocol = require('s2clientprotocol') //eslint-disable-line
 const Enum = require('python-enum') //eslint-disable-line
 const point = require(path.resolve(__dirname, './point.js'))
 const pythonUtils = require(path.resolve(__dirname, './pythonUtils.js'))
-// const all_collections_generated_classes = require(path.resolve(__dirname, './all_collections_generated_classes.js'))
 const numpy = require(path.resolve(__dirname, './numpy.js'))
 
 const { spatial_pb, ui_pb, common_pb } = s2clientprotocol
@@ -223,7 +222,6 @@ function numpy_to_python(val) {
   throw new ValueError(`Unknown value. Type:${typeof (val)}, repr: ${val}`)
 }
 
-// class ArgumentType extends all_collections_generated_classes.ArgumentType {
 class ArgumentType extends namedtuple("ArgumentType", ["id", "name", "sizes", "fn", "values", "count"]) {
   /*Represents a single argument type.
 
@@ -324,7 +322,6 @@ class ArgumentType extends namedtuple("ArgumentType", ["id", "name", "sizes", "f
   }
 }
 
-// class Arguments extends all_collections_generated_classes.Arguments {
 class Arguments extends namedtuple("Arguments", ["screen", "minimap", "screen2", "queued", "control_group_act", "control_group_id", "select_point_act", "select_add", "select_unit_act", "select_unit_id", "select_worker", "build_queue_id", "unload_id"]) {
   /*The full list of argument types.
 
@@ -350,30 +347,10 @@ class Arguments extends namedtuple("Arguments", ["screen", "minimap", "screen2",
   constructor(kwargs) {
     if (Array.isArray(kwargs)) {
       super(...kwargs)
-      // this.setIndexValues()
     } else {
       super(...arguments) //eslint-disable-line
-      // this.setIndexValues()
     }
   }
-
-  // setIndexValues() {
-  //   this.constructor._fields.forEach((field, index) => {
-  //     this[index] = this[field]
-  //   })
-  // }
-
-  // get _stateList() {
-  //   return [this['screen'], this['minimap'], this['screen2'], this['queued'], this['control_group_act'], this['control_group_id'], this['select_point_act'], this['select_add'], this['select_unit_act'], this['select_unit_id'], this['select_worker'], this['build_queue_id'], this['unload_id']]
-  // }
-
-  // get forEach() {
-  //   return this._stateList.forEach.bind(this._stateList)
-  // }
-
-  // get map() {
-  //   return this._stateList.map.bind(this._stateList)
-  // }
 
   keys() {
     return this.constructor._fields
@@ -389,7 +366,6 @@ class Arguments extends namedtuple("Arguments", ["screen", "minimap", "screen2",
   }
 }
 
-// class RawArguments extends all_collections_generated_classes.RawArguments {
 class RawArguments extends namedtuple("RawArguments", ["world", "queued", "unit_tags", "target_unit_tag"]) {
   /*The full list of argument types.
 
@@ -408,18 +384,6 @@ class RawArguments extends namedtuple("RawArguments", ["world", "queued", "unit_
       super(...arguments) //eslint-disable-line
     }
   }
-
-  // get _stateList() {
-  //   return [this['world'], this['queued'], this['unit_tags'], this['target_unit_tag']]
-  // }
-
-  // get forEach() {
-  //   return this._stateList.forEach.bind(this._stateList)
-  // }
-
-  // get map() {
-  //   return this._stateList.map.bind(this._stateList)
-  // }
 
   keys() {
     return this.constructor._fields
@@ -565,7 +529,6 @@ POINT_REQUIRED_FUNCS.set(true, { cmd_screen, cmd_minimap, autocast })
 
 const always = () => true
 
-// class Function extends all_collections_generated_classes.Function {
 class Function extends namedtuple("Function", ["id", "name", "ability_id", "general_id", "function_type", "args", "avail_fn", "raw"]) {
   /*Represents a function action.
 
@@ -2013,7 +1976,6 @@ Object.keys(RAW_ABILITY_IDS).forEach((key) => {
   RAW_ABILITY_ID_TO_FUNC_ID[key] = minF
 })
 // const temp_fields_ref["functionn", "argumentss"]
-// class FunctionCall extends all_collections_generated_classes.FunctionCall {
 class FunctionCall extends namedtuple("FunctionCall", ["functionn", "argumentss"]) {
   /*Represents a function call action.
   Attributes:
@@ -2130,7 +2092,6 @@ class FunctionCall extends namedtuple("FunctionCall", ["functionn", "argumentss"
   }
 }
 
-// class ValidActions extends all_collections_generated_classes.ValidActions {
 class ValidActions extends namedtuple("ValidActions", ["types", "functions"]) {}
 
 module.exports = {
