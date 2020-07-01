@@ -48,7 +48,11 @@ async function getWsServer({ port, host = '127.0.0.1', callback = () => {} }) {
 
 class InitalizeServices {
   constructor() {
+    ///Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome
     this.chromeArgs = ['C:\\Program Files (x86)\\Google\\Chrome\\Application\\Chrome.exe', '-incognito', '--new-window', 'http://127.0.0.1:']
+    if (process.platform === 'darwin') {
+      this.chromeArgs[0] = '/Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome'
+    }
     this.browserFilePath = '/renderer_human/browser_client.html'
     this.websocketServer = null
   }

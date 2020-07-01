@@ -9,9 +9,9 @@ if (process.platform === 'win32') {
   defaultVal = 'Windows'
 } else if (process.platform === 'cygwin') {
   defaultVal = 'Cygwin'
-} else if (process.platform === 'Darwin') {
+} else if (process.platform === 'darwin') {
   defaultVal = 'MacOS'
-} else if (process.platform == 'Linux') {
+} else if (process.platform == 'linux') {
   defaultVal = 'Linux'
 }
 
