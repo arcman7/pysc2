@@ -1,5 +1,5 @@
 const path = require('path')
-const units = require(path.resolve(__dirname,'units.js'))
+const units = require(path.resolve(__dirname,'./units.js'))
 // Give a crude ascii rendering of the feature_screen.
 
 function get_printable_unit_types() {
