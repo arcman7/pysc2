@@ -220,6 +220,16 @@ class Point extends namedtuple('Point', ['x', 'y']) {
   div() {
     return this.truediv(...arguments) //eslint-disable-line
   }
+
+  eq(pt_or_proto) {
+    if (!pt_or_proto) {
+      return false
+    }
+    if (pt_or_proto.getX) {
+      return pt_or_proto.getX() == this.x && pt_or_proto.getY() == this.y
+    }
+    return pt_or_proto.x == this.x && pt_or_proto.y == this.y
+  }
 }
 
 const origin = new Point(0.0, 0.0)

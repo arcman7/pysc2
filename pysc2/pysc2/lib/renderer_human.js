@@ -427,7 +427,7 @@ class RendererHuman {
       }
     }
     const window_size_px = window_size_ratio.scale_max_size(
-      _get_desktop_size() * this._window_scale
+      _get_desktop_size().mul(this._window_scale)
     ).ceil()
 
     // Create the actual window surface. This should only be blitted to from one
@@ -636,14 +636,19 @@ class RendererHuman {
                   this.draw_screen)
       feature_minimap_to_main_minimap = new transform.Linear(
           minimap_size_px.max_dim() / this._feature_minimap_px.max_dim())
-      add_surface(SurfType.FEATURE | SurfType.MINIMAP,
-                  new point.Rect(minimap_offset,
-                             minimap_offset + minimap_size_px),
-                  transform.Chain(  // surf
-                      this._world_to_feature_minimap,
-                      feature_minimap_to_main_minimap),
-                  this._world_to_feature_minimap_px,
-                  this.draw_mini_map)
+      add_surface(
+        SurfType.FEATURE | SurfType.MINIMAP,
+        new point.Rect(
+          minimap_offset,
+          minimap_offset + minimap_size_px
+        ),
+        new transform.Chain(  // surf
+          this._world_to_feature_minimap,
+          feature_minimap_to_main_minimap
+        ),
+        this._world_to_feature_minimap_px,
+        this.draw_mini_map
+      )
     }
 
     if (this._render_feature_grid && num_feature_layers > 0) {
@@ -678,21 +683,33 @@ class RendererHuman {
         ).mul(feature_grid_size)
         text = feature_font.render(name, true, colors.white)
         rect = text.get_rect()
-        rect.center = grid_offset.add(new point.Point(feature_grid_size.x / 2, feature_font_size))
-        feature_pane.blit(text, rect)
-        const surf_loc = features_loc.add(grid_offset).add(feature_layer_padding).add(
-          new point.Point(0, feature_font_size)
+        rect.center = grid_offset.add(
+          new point.Point(
+            feature_grid_size.x / 2,
+            feature_font_size
+          )
         )
+        feature_pane.blit(text, rect)
+        const surf_loc = features_loc
+          .add(grid_offset)
+          .add(feature_layer_padding)
+          .add(
+            new point.Point(0, feature_font_size)
+          )
         
         add_surface(
           surf_type,
-          new point.Rect(surf_loc, surf_loc + feature_layer_size).round(),
+          new point.Rect(
+            surf_loc,
+            surf_loc.add(feature_layer_size).round()
+          ),
           world_to_surf, world_to_obs, fn
         )
       }
 
       const raw_world_to_obs = new transform.Linear()
-      const raw_world_to_surf = new transform.Linear(feature_layer_size / this._map_size)
+      const raw_world_to_surf = new transform.Linear(feature_layer_size.div(this._map_size)
+      )
       function add_raw_layer(from_obs, name, color) {
         add_layer(
           SurfType.FEATURE | SurfType.MINIMAP,
@@ -720,9 +737,10 @@ class RendererHuman {
         // Add the minimap feature layers
         const feature_minimap_to_feature_minimap_surf = new transform.Linear(
             feature_layer_size / this._feature_minimap_px)
-        const world_to_feature_minimap_surf = transform.Chain(
+        const world_to_feature_minimap_surf = new transform.Chain(
             this._world_to_feature_minimap,
-            feature_minimap_to_feature_minimap_surf)
+            feature_minimap_to_feature_minimap_surf
+          )
         features.MINIMAP_FEATURES.forEach((feature) => {
           add_feature_layer(
             feature, SurfType.FEATURE | SurfType.MINIMAP,
@@ -735,7 +753,8 @@ class RendererHuman {
       if (this._feature_screen_px) {
         // Add the screen feature layers
         const feature_screen_to_feature_screen_surf = new transform.Linear(
-            feature_layer_size / this._feature_screen_px)
+            feature_layer_size.div(this._feature_screen_px)
+          )
         const world_to_feature_screen_surf = new transform.Chain(
           this._world_to_feature_screen,
           feature_screen_to_feature_screen_surf
@@ -764,6 +783,370 @@ class RendererHuman {
 
     // Arbitrarily set the initial camera to the center of the map.
     this._update_camera(this._map_size.div(2))
+  }
+
+  _update_camera(camera_center) {
+    //Update the camera transform based on the new camera center.//
+    this._world_tl_to_world_camera_rel.offset = (
+      this._world_to_world_tl.fwd_pt(camera_center).mul(-1).mul(this._world_tl_to_world_camera_rel.scale)
+    )
+
+    if (this._feature_screen_px) {
+      const camera_radius = (this._feature_screen_px.div(
+        this._feature_screen_px.x).mul(this._feature_camera_width_world_units).div(2)
+      )
+      const center = camera_center.bound(camera_radius, this._map_size.sub(camera_radius))
+
+      this._camera = new point.Rect(
+        center.sub(camera_radius).bound(this._map_size),
+        center.add(camera_radius).bound(this._map_size)
+      )
+    }
+  }
+
+  zoom(factor) {
+    //Zoom the window in/out.//
+    this._window_scale *= factor
+    if (performance.now() - this._last_zoom_time < 1) {
+      // Avoid a deadlock in gamejs if you zoom too quickly
+      return
+    }
+    this.init_window()
+    this._last_zoom_time = performance.now()
+  }
+
+  get_mouse_pos(window_pos = null) {
+    //Return a MousePos filled with the world position and surf it hit.//
+    window_pos = window_pos || gamejs.mouse.get_pos()
+    // +0.5 to center the point on the middle of the pixel.
+    const window_pt = new poin.Point(...window_pos).add(0.5)
+    for (let i = this._surfaces.length - 1; i >= 0; i--) {
+      const surf = this._surfaces[i]
+      if (sur.surf_type != SurfType.CHROME && surf.surf_rect.contains_point(window_pt)) {
+        const surf_rel_pt = window_pt.sub(surf.surf_rect.tl)
+        const world_pt - surf.world_to_surf.back_pt(surf_rel_pt)
+        return MousePos(world_pt, surf)
+      }
+    }
+  }
+
+  clear_queued_action() {
+    this._queued_hotkey = ''
+    this._queued_action = null
+  }
+
+  save_replay(run_config, controller) {
+    if (controller.status == remote_controller.Status.in_game || controller.status == remote_controller.Status.ended) {
+      const prefix = path.basename(this._game_info.local_map_path).split('.')[0]
+      const replay_path = run_config.save_replay(controller.save_replay(), 'local', prefix)
+      console.log('Wrote replay to: ', replay_path)
+    }
+  }
+
+  get_actions(run_config, controller) {
+    //Get actions from the UI, apply to controller, and return an ActionCmd.
+    if (!this._initialized) {
+      return ActionCmd.STEP
+    }
+    const events = gamejs.event.get()
+    for (let i = 0; i < events.length; i++) {
+      ctrl = gamejs.key.get_mods() & gamejs.event.KMOD_CTRL
+      shift = gamejs.key.get_mods() & gamejs.event.KMOD_SHIFT
+      alt = gamejs.key.get_mods() & gamejs.event.KMOD_ALT
+      if (event.type == gamejs.event.QUIT) {
+        return ActionCmd.QUIT
+      } else if (event.type == gamejs.event.KEYDOWN) {
+        if (this._help) {
+          this._help = false
+        } else if (event.key == gamejs.event.K_QUESTION || event.key == gamejs.event.K_SLASH) {
+          this._help = true
+        } else if (event.key == gamejs.event.K_PAUSE) {
+          let pause = true
+          while (pause) {
+            time.sleep(0.1)
+            const events2 = gamejs.event.get()
+            for (let j = 0; j < events2.length; j++) {
+              const event2 = events2[i]
+              if (event2.type == gamejs.event.KEYDOWN) {
+                if (event2.key == gamejs.event.K_PAUSE ||  gamejs.event.K_ESCAPE) {
+                  pause = false
+                } else if (event2.key == gamejs.event.K_F4){
+                  return ActionCmd.QUIT
+                } else if (event2.key == gamejs.event.K_F5) {
+                  return ActionCmd.RESTART
+                }
+              }
+            }
+          }
+        } else if (event.key == gamejs.event.K_F4) {
+          return ActionCmd.QUIT
+        } else if (event.key == gamejs.event.K_F5) {
+          return ActionCmd.RESTART
+        } else if (event.key == gamejs.event.K_F9) {  // Toggle rgb rendering.
+          if (this._rgb_screen_px && this._feature_screen_px) {
+            this._render_rgb = !this._render_rgb
+            console.log('Rendering', this._render_rgb && 'RGB' || 'Feature Layers')
+            this.init_window()
+          }
+        } else if (event.key == gamejs.event.K_F11) { // Toggle synchronous rendering.
+          this._render_sync = !this._render_sync
+          console.log('Rendering', this._render_sync && 'Sync' || 'Async')
+        } else if (event.key == gamejs.event.K_F12) {
+          this._raw_actions = !this._raw_actions
+          console.log('Action space:', this._raw_actions && 'Raw' || 'Spatial')
+         } else if (event.key == gamejs.event.K_F10) {  // Toggle player_relative layer.
+          this._render_player_relative = !this._render_player_relative
+         } else if (event.key == gamejs.event.K_F8) {  // Save a replay.
+          this.save_replay(run_config, controller)
+         } else if (event.key == gamejs.event.K_PLUS || event.key == gamejs.event.K_EQUALS && ctrl) {
+          this.zoom(1.1)  // zoom in
+         } else if (event.key == gamejs.event.K_MINUS || event.key == gamejs.event.K_UNDERSCORE && ctrl) {
+          this.zoom(1 / 1.1)  // zoom out
+         } else if (event.key == gamejs.event.K_PAGEUP || event.key == gamejs.event.K_PAGEDOWN) {
+          if (ctrl) {
+            if (event.key == gamejs.event.K_PAGEUP) {
+              this._step_mul += 1
+            } else if (this._step_mul > 1) {
+              this._step_mul -= 1
+            }
+            console.log('New step mul:', this._step_mul)
+          } else {
+            event.key == gamejs.event.K_PAGEUP ? (this._fps *= 1.25) : (1 / 1.25)
+            console.log(`New max game speed: ${this._fps}`)
+          }
+        } else if (event.key == gamejs.event.K_F1) {
+          if (this._obs.observation.player_common.idle_worker_count > 0) {
+            controller.act(this.select_idle_worker(ctrl, shift))
+          }
+        } else if (event.key == gamejs.event.K_F2) {
+          if (this._obs.observation.player_common.army_count > 0) {
+            controller.act(this.select_army(shift))
+          }
+        } else if (event.key == gamejs.event.K_F3) {
+          if (this._obs.observation.player_common.warp_gate_count > 0) {
+            controller.act(this.select_warp_gates(shift))
+          }
+          if (this._obs.observation.player_common.larva_count > 0) {
+            controller.act(this.select_larva())
+          }
+        } else if (this.cmd_group_keys.hasOwnProperty(event.key)) {
+          controller.act(this.control_group(this.cmd_group_keys[event.key], ctrl, shift, alt))
+        } else if (this.camera_actions.hasOwnProperty(event.key)) {
+          if (this._obs) {
+            pt = point.Point.build(this._obs.observation.raw_data.player.camera)
+            pt += this.camera_actions[event.key]
+            controller.act(this.camera_action_raw(pt))
+            controller.observer_act(this.camera_action_observer_pt(pt))
+          }
+        } else if (event.key == gamejs.event.K_ESCAPE) {
+          controller.observer_act(this.camera_action_observer_player(
+              this._obs.observation.player_common.player_id))
+          if (this._queued_action) {
+            this.clear_queued_action()
+          } else {
+            cmds = this._abilities((cmd) => cmd.hotkey == 'escape')  // Cancel
+            cmds.forEach((cmd) => {
+              // There could be multiple cancels.
+              assert(!cmd.requires_point, '!cmd.requires_point')
+              controller.act(this.unit_action(cmd, null, shift))
+            })
+          }
+        } else {
+          if (!this._queued_action) {
+            key = gamejs.key.name(event.key).toLowerCase()
+            new_cmd = this._queued_hotkey + key
+            cmds = this._abilities((cmd, n=new_cmd) =>  cmd.hotkey != 'escape' && cmd.hotkey.startswith(n))
+            if (cmds) {
+              this._queued_hotkey = new_cmd
+              if (cmds.length == 1) {
+                cmd = cmds[0]
+                if (cmd.hotkey == this._queued_hotkey) {
+                  if (cmd.requires_point) {
+                    this.clear_queued_action()
+                    this._queued_action = cmd
+                  } else {
+                    controller.act(this.unit_action(cmd, null, shift))
+                  }
+                }
+              }
+            }
+          }
+        }
+      } else if (event.type == gamejs.MOUSEBUTTONDOWN) {
+        mouse_pos = this.get_mouse_pos(event.pos)
+        if (event.button == MouseButtons.LEFT && mouse_pos) {
+          if (this._queued_action) {
+            controller.act(this.unit_action(
+                this._queued_action, mouse_pos, shift))
+          } else if (mouse_pos.surf.surf_type & SurfType.MINIMAP) {
+            controller.act(this.camera_action(mouse_pos))
+            controller.observer_act(this.camera_action_observer_pt(
+                mouse_pos.world_pos))
+          } else {
+            this._select_start = mouse_pos
+          }
+        } else if (event.button == MouseButtons.RIGHT) {
+          if (this._queued_action) {
+            this.clear_queued_action()
+          }
+          cmds = this._abilities((cmd) => cmd.name == 'Smart')
+          if (cmds) {
+            controller.act(this.unit_action(cmds[0], mouse_pos, shift))
+          }
+        }
+      } else if (event.type == gamejs.MOUSEBUTTONUP) {
+        mouse_pos = this.get_mouse_pos(event.pos)
+        if (event.button == MouseButtons.LEFT && this._select_start) {
+          if (mouse_pos
+            && mouse_pos.surf.surf_type & SurfType.SCREEN
+            && mouse_pos.surf.surf_type == this._select_start.surf.surf_type) {
+            controller.act(
+              this.select_action(
+                this._select_start, mouse_pos, ctrl, shift
+              )
+            )
+          }
+          this._select_start = null
+        }
+      }
+      return ActionCmd.STEP
+    }
+  }
+
+  camera_action(mouse_pos) {
+    //Return a `sc_pb.Action` with the camera movement filled.//
+    const action = new sc_pb.Action()
+    const action_spatial = mouse_pos.action_spatial(action)
+    mouse_pos.obs_pos.assign_to(action_spatial.getCameraMove().getCenterMinimap())
+    return action
+  }
+
+  camera_action_raw(world_pos) {
+    //Return a `sc_pb.Action` with the camera movement filled.//
+    const action = new sc_pb.Action()
+    const world_pos.assign_to(action.action_raw.camera_move.center_world_space)
+    return action
+  }
+
+  camera_action_observer_pt(world_pos) {
+    //Return a `sc_pb.ObserverAction` with the camera movement filled.//
+    const action = new sc_pb.ObserverAction()
+    const camera_move = new sc_pb.ActionObserverCameraMove()
+    const proto_world_pos = new sc_pb.Point2d()
+    world_pos.assign_to(proto_world_pos)
+    camera_move.setWorldPos(proto_world_pos)
+    action.setCameraMove(camera_move)
+    return action
+  }
+
+  camera_action_observer_player(player_id) {
+    //Return a `sc_pb.ObserverAction` with the camera movement filled.//
+    const action = new sc_pb.ObserverAction()
+    const camera_follow_player = new sc_pb.ActionObserverCameraFollowPlayer()
+    camera_follow_player.setPlayerId(player_id)
+    action.setCameraFollowPlayer(camera_follow_player)
+    return action
+  }
+
+  select_action(pos1, pos2, ctrl, shift) {
+    //Return a `sc_pb.Action` with the selection filled.//
+    assert(pos1.surf.surf_type == pos2.surf.surf_type, 'pos1.surf.surf_type == pos2.surf.surf_type')
+    assert(pos1.surf.world_to_obs == pos2.surf.world_to_obs, 'pos1.surf.world_to_obs == pos2.surf.world_to_obs')
+
+    const action = new sc_pb.Action()
+    const action_raw = new sc_pb.ActionRaw()
+    const unit_command = new sc_pb.ActionRawUnitCommand()
+    action_raw.setUnitCommand(unit_command)
+    action.setActionRaw(action_raw)
+    if (this._raw_actions) {
+      const unit_command.setAbilityId(0)  // no-op
+      const player_id = this._obs.getObservation().getPlayerCommon().getPlayerId()
+      if (pos1.world_pos == po2.word_pos) { //select a point
+        this._visible_units().forEach(([u, p]) => {
+          if (pos1.world_pos.contained_circle(p, u.getRadius()) && u.getOwner() === player_id) {
+            unit_command.addUnitTags(u.getTag())
+          }
+        })
+      } else {
+        const rect = new point.Rect(pos1.world_pos, pos2.world_pos)
+        const unitTags = []
+        this._visible_units().forEach(([u, p]) => {
+          if (u.getOwner() === player_id && rect.intersects_circle(p, u.getRadius())) {
+            unit_command.addUnitTags(u.getTag())
+          }
+        })
+        const usedTags = unit_command.getUnitTags()
+        usedTags.extend()
+        const unit_command.addUnitTags(u.getUn)
+      }
+    } else {
+      const action_spatial = pos1.action_spatial(action)
+      if (pos1.world_pos.eq(pos2.world_pos)) {
+        const select = action_spatial.getUnitSelectionPoint()
+        pos1.obs_pos.assign_to(select.getSelectionScreenCoord())
+        const mod = new sc_spatial.ActionSpatialUnitSelectionPoint()
+        if (ctrl) {
+          shift ? select.setType(mod.getAddAllType()) : select.setType(mod.getAllType())
+        } else {
+          shift ? select.setType(mod.getToggle()) : select.setType(mod.getSelect())
+        }
+      } else {
+        const select = action_spatial.getUnitSelectionRect()
+        const rect = select.getSelectionScreenCoord()
+        pos1.obs_pos.assign_to(rect.getP0())
+        pos2.obs_pos.assign_to(rect.getP1())
+        select.setSelectionAdd(shift)
+      }
+    }
+    // Clear the queued action if something will be selected. An alternative
+    // implementation may check whether the selection changed next frame.
+    const units = this._units_in_area(new point.Rect(pos1.world_pos, pos2.world_pos))
+    if (units) {
+      this.clear_queued_action()
+    }
+    return action
+  }
+
+  select_idle_worker(ctrl, shift) {
+    //Select an idle worker.//
+    const action = new sc_pb.Action()
+    const action_ui = new sc_pb.ActionUI()
+    const selectIdleWorker = new sc_pb.ActionSelectIdleWorker()
+    action_ui.setSelectIdleWorker(selectIdleWorker)
+    action.setActionUi(action_ui)
+    const mod = sc_ui.ActionSelectIdleWorker.Type
+    let select_worker
+    if (ctrl) {
+      select_worker = shift ? mod.ADDALL : mod.ALL
+    } else {
+      select_worker = shift ? mod.ADD : mod.SET
+    }
+    action.getActionUi().getSelectIdleWorker().setType(select_worker)
+    return action
+
+  }
+
+  select_army(self, shift) {
+    //Select the entire army.//
+    const action = new sc_pb.Action()
+    action.action_ui.select_army.selection_add = shift
+    return action
+
+  }
+
+  select_warp_gates(self, shift) {
+    //Select all warp gates.//
+    const action = new sc_pb.Action()
+    action.action_ui.select_warp_gates.selection_add = shift
+    return action
+
+  }
+
+  select_larva(self) {
+    //Select all larva.//
+    const action = new sc_pb.Action()
+    action.action_ui.select_larva.SetInParent()  # Adds the empty proto field.
+    return action
   }
 }
 
