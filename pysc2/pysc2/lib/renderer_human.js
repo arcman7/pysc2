@@ -20,7 +20,7 @@ const spatial = s2clientprotocol.spatial_pb
 const sc_ui = s2clientprotocol.ui_pb
 const sw = stopwatch.sw
 
-const { assert, namedtuple, ValueError, withPython } = pythonUtils
+const { assert, DefaultDict, namedtuple, ValueError, withPython } = pythonUtils
 
 function clamp(n, smallest, largest) {
   return Math.max(smallest, Math.min(n, largest))
@@ -578,7 +578,7 @@ class RendererHuman {
       )
 
       const world_tl_to_rgb_minimap = new transform.Linear(
-        this._rgb_minimap_px / this._map_size.max_dim()
+        this._rgb_minimap_px.div(this._map_size.max_dim())
       )
 
       check_eq(world_tl_to_rgb_minimap.fwd_pt(
@@ -606,36 +606,47 @@ class RendererHuman {
 
     if (this._render_rgb) {
       rgb_screen_to_main_screen = new transform.Linear(
-          screen_size_px / this._rgb_screen_px)
-      add_surface(SurfType.RGB | SurfType.SCREEN,
-                  new point.Rect(point.origin, screen_size_px),
-                  new transform.Chain(  // surf
-                      this._world_to_rgb_screen,
-                      rgb_screen_to_main_screen),
-                  this._world_to_rgb_screen_px,
-                  this.draw_screen)
+        screen_size_px / this._rgb_screen_px
+      )
+      add_surface(
+        SurfType.RGB | SurfType.SCREEN,
+        new point.Rect(point.origin, screen_size_px),
+        new transform.Chain(  // surf
+            this._world_to_rgb_screen,
+            rgb_screen_to_main_screen),
+        this._world_to_rgb_screen_px,
+        this.draw_screen
+      )
       rgb_minimap_to_main_minimap = new transform.Linear(
-          minimap_size_px / this._rgb_minimap_px)
-      add_surface(SurfType.RGB | SurfType.MINIMAP,
-                  new point.Rect(minimap_offset,
-                             minimap_offset + minimap_size_px),
-                  new transform.Chain(  // surf
-                      this._world_to_rgb_minimap,
-                      rgb_minimap_to_main_minimap),
-                  this._world_to_rgb_minimap_px,
-                  this.draw_mini_map)
+        minimap_size_px.div(this._rgb_minimap_px)
+      )
+      add_surface(
+        SurfType.RGB | SurfType.MINIMAP,
+        new point.Rect(minimap_offset,
+                   minimap_offset + minimap_size_px),
+        new transform.Chain(  // surf
+            this._world_to_rgb_minimap,
+            rgb_minimap_to_main_minimap),
+        this._world_to_rgb_minimap_px,
+        this.draw_mini_map
+      )
     } else {  // Feature layer main screen
-      feature_screen_to_main_screen = new transform.Linear(
-          screen_size_px / this._feature_screen_px)
-      add_surface(SurfType.FEATURE | SurfType.SCREEN,
-                  new point.Rect(point.origin, screen_size_px),
-                  transform.Chain(  // surf
-                      this._world_to_feature_screen,
-                      feature_screen_to_main_screen),
-                  this._world_to_feature_screen_px,
-                  this.draw_screen)
-      feature_minimap_to_main_minimap = new transform.Linear(
-          minimap_size_px.max_dim() / this._feature_minimap_px.max_dim())
+      const feature_screen_to_main_screen = new transform.Linear(
+        screen_size_px.div(this._feature_screen_px)
+      )
+      add_surface(
+        SurfType.FEATURE | SurfType.SCREEN,
+        new point.Rect(point.origin, screen_size_px),
+        new transform.Chain(  // surf
+          this._world_to_feature_screen,
+          feature_screen_to_main_screen
+        ),
+        this._world_to_feature_screen_px,
+        this.draw_screen
+      )
+      const feature_minimap_to_main_minimap = new transform.Linear(
+        minimap_size_px.max_dim() / this._feature_minimap_px.max_dim()
+      )
       add_surface(
         SurfType.FEATURE | SurfType.MINIMAP,
         new point.Rect(
@@ -665,12 +676,12 @@ class RendererHuman {
           feature_rows
         )
       )
-      const feature_layer_area = new point.Point(1, 1).scale_max_size(
-          feature_grid_size)
+      const feature_layer_area = new point.Point(1, 1)
+        .scale_max_size(feature_grid_size)
       const feature_layer_padding = feature_layer_area // 20
-      const feature_layer_size = feature_layer_area - feature_layer_padding * 2
+      const feature_layer_size = feature_layer_area.minus(feature_layer_padding.mul(2))
 
-      const feature_font_size = int(feature_grid_size.y * 0.09)
+      const feature_font_size = Math.floor(feature_grid_size.y * 0.09)
       const feature_font = gamejs.font.Font(null, feature_font_size)
 
       const feature_counter = itertools.count()
@@ -736,11 +747,12 @@ class RendererHuman {
       if (this._feature_minimap_px) {
         // Add the minimap feature layers
         const feature_minimap_to_feature_minimap_surf = new transform.Linear(
-            feature_layer_size / this._feature_minimap_px)
+          feature_layer_size.div(this._feature_minimap_px)
+        )
         const world_to_feature_minimap_surf = new transform.Chain(
-            this._world_to_feature_minimap,
-            feature_minimap_to_feature_minimap_surf
-          )
+          this._world_to_feature_minimap,
+          feature_minimap_to_feature_minimap_surf
+        )
         features.MINIMAP_FEATURES.forEach((feature) => {
           add_feature_layer(
             feature, SurfType.FEATURE | SurfType.MINIMAP,
@@ -753,8 +765,8 @@ class RendererHuman {
       if (this._feature_screen_px) {
         // Add the screen feature layers
         const feature_screen_to_feature_screen_surf = new transform.Linear(
-            feature_layer_size.div(this._feature_screen_px)
-          )
+          feature_layer_size.div(this._feature_screen_px)
+        )
         const world_to_feature_screen_surf = new transform.Chain(
           this._world_to_feature_screen,
           feature_screen_to_feature_screen_surf
@@ -824,7 +836,7 @@ class RendererHuman {
       const surf = this._surfaces[i]
       if (sur.surf_type != SurfType.CHROME && surf.surf_rect.contains_point(window_pt)) {
         const surf_rel_pt = window_pt.sub(surf.surf_rect.tl)
-        const world_pt - surf.world_to_surf.back_pt(surf_rel_pt)
+        const world_pt = surf.world_to_surf.back_pt(surf_rel_pt)
         return MousePos(world_pt, surf)
       }
     }
@@ -1024,7 +1036,13 @@ class RendererHuman {
   camera_action_raw(world_pos) {
     //Return a `sc_pb.Action` with the camera movement filled.//
     const action = new sc_pb.Action()
-    const world_pos.assign_to(action.action_raw.camera_move.center_world_space)
+    const action_raw = new sc_pb.ActionRaw()
+    const camera_move = new sc_pb.ActionObserverCameraMove()
+    const center_world_space = new sc_pb.Point2d()
+    camera_move.setCenterWorldSpace(center_world_space)
+    action_raw.setCameraMove(camera_move)
+    action.setActionRaw(action_raw)
+    world_pos.assign_to(action.action_raw.camera_move.center_world_space)
     return action
   }
 
@@ -1050,8 +1068,14 @@ class RendererHuman {
 
   select_action(pos1, pos2, ctrl, shift) {
     //Return a `sc_pb.Action` with the selection filled.//
-    assert(pos1.surf.surf_type == pos2.surf.surf_type, 'pos1.surf.surf_type == pos2.surf.surf_type')
-    assert(pos1.surf.world_to_obs == pos2.surf.world_to_obs, 'pos1.surf.world_to_obs == pos2.surf.world_to_obs')
+    assert(
+      pos1.surf.surf_type == pos2.surf.surf_type,
+      'pos1.surf.surf_type == pos2.surf.surf_type'
+    )
+    assert(
+      pos1.surf.world_to_obs == pos2.surf.world_to_obs,
+      'pos1.surf.world_to_obs == pos2.surf.world_to_obs'
+    )
 
     const action = new sc_pb.Action()
     const action_raw = new sc_pb.ActionRaw()
@@ -1059,7 +1083,7 @@ class RendererHuman {
     action_raw.setUnitCommand(unit_command)
     action.setActionRaw(action_raw)
     if (this._raw_actions) {
-      const unit_command.setAbilityId(0)  // no-op
+      unit_command.setAbilityId(0) // no-op
       const player_id = this._obs.getObservation().getPlayerCommon().getPlayerId()
       if (pos1.world_pos == po2.word_pos) { //select a point
         this._visible_units().forEach(([u, p]) => {
@@ -1077,7 +1101,7 @@ class RendererHuman {
         })
         const usedTags = unit_command.getUnitTags()
         usedTags.extend()
-        const unit_command.addUnitTags(u.getUn)
+        unit_command.addUnitTags(u.getUn)
       }
     } else {
       const action_spatial = pos1.action_spatial(action)
@@ -1123,30 +1147,608 @@ class RendererHuman {
     }
     action.getActionUi().getSelectIdleWorker().setType(select_worker)
     return action
-
   }
 
-  select_army(self, shift) {
+  select_army(shift) {
     //Select the entire army.//
     const action = new sc_pb.Action()
-    action.action_ui.select_army.selection_add = shift
+    const action_ui = new sc_pb.ActionUI()
+    const select_army = new sc_pb.ActionSelectArmy()
+    select_army.setSelectionAdd(shift)
+    action_ui.setSelectArmy(select_army)
+    action.setActionUi(action_ui)
     return action
 
   }
 
-  select_warp_gates(self, shift) {
+  select_warp_gates(shift) {
     //Select all warp gates.//
     const action = new sc_pb.Action()
-    action.action_ui.select_warp_gates.selection_add = shift
+    const action_ui = new sc_pb.ActionUI()
+    const select_warp_gates = new sc_pb.ActionSelectWarpGates()
+    select_warp_gates.setSelectionAdd(shift)
+    action_ui.setSelectWarpGates(select_warp_gates)
+    action.setActionUi(action_ui) 
     return action
-
   }
 
-  select_larva(self) {
+  select_larva() {
     //Select all larva.//
     const action = new sc_pb.Action()
-    action.action_ui.select_larva.SetInParent()  # Adds the empty proto field.
+    const action_ui = new sc_pb.ActionUI()
+    const select_larva = new sc_pb.ActionSelectLarva()
+    action_ui.setSelectLarva(select_larva)
+    action.setActionUi(action_ui)
+    // action.action_ui.select_larva.SetInParent() // Adds the empty proto field.
     return action
+  }
+
+  control_group(control_group_id, ctrl, shift, alt) {
+    //Act on a control group, selecting, setting, etc.//
+    const action = new sc_pb.Action()
+    const action_ui = new sc_pb.ActionUI()
+    action.setActionUi(action_ui)
+    const select = new sc_pb.ActionControlGroup()
+    action_ui.setControlGroup(select)
+    const mod = sc_pb.ActionControlGroup.ControlGroupAction
+    if (!(ctrl && shift && alt)) {
+      select.setAction(mod.RECALL)
+    } else if (ctrl && !(shift && alt)) {
+      select.setAction(mod.SET)
+    } else if (!ctrl && shift && !alt) {
+      select.setAction(mod.APPEND)
+    } else if (!(ctrl && shift) && alt) {
+      select.setAction(mod.SETANDSTEAL)
+    } else if (!ctrl && shift && alt) {
+      select.setAction(mod.APPENDANDSTEAL)
+    } else {
+      return //unknown
+    }
+    select.setControlGroupId(control_group_id)
+    return action
+  }
+
+  unit_action(cmd, pos, shift) {
+    //Return a `sc_pb.Action` filled with the cmd and appropriate target.//
+    const action = new sc_pb.Action()
+    const action_raw = new sc_pb.ActionRaw()
+    let unit_command = new sc_pb.ActionRawUnitCommand()
+    const target_world_space_pos = new sc_pb.Point2D()
+    unit_command.setTargetWorldSpacePos(target_world_space_pos)
+    action_raw.setUnitCommand(unit_command)
+    if (this._raw_actions) {
+      unit_command.setAbilityId(cmd.getAbilityId())
+      unit_command.setQueueCommand(shift)
+      const player_id = this._obs.getObservation().getPlayerCommon().getPlayerId()
+      unit_command.setUnitTagsList(
+        this._visible_units().filter(([u]) => u.getIsSelected() && u.getOwner() == player_id)
+      )
+      if (pos) {
+        const units = this._visible_units()
+        let found
+        for (let i = 0; i < units.length; i++) {
+          const [u, p] = units[i]
+          if (pos.world_pos.contained_circle(p, u.getRadius())) {
+            unit_command.setTargetUnitTag(u.getTag())
+            found = true
+            break
+          }
+        }
+        if (!found) {
+          pos.world_pos.assign_to(target_world_space_pos)
+        }
+      }
+    } else {
+      if (pos) {
+        const action_spatial = pos.action_spatial(action)
+        unit_command.setAbilityId(cmd.getAbilityId())
+        unit_command.setQueueCommand(shift)
+        if (pos.surf.surf_type & SurfType.SCREEN) {
+          pos.obs_pos.assign_to(unit_command.target_screen_coord)
+        } else if (pos.surf.surf_type & SurfType.MINIMAP) {
+          pos.obs_pos.assign_to(unit_command.target_minimap_coord)
+        }
+      } else {
+        unit_command = new sc_pb.ActionSpatialUnitCommand()
+        unit_command.setAbilityId(cmd.getAbilityId())
+        if (this._feature_screen_px) {
+          const action_feature_layer = new sc_pb.ActionSpatial()
+          action_feature_layer.setUnitCommand(unit_command)
+          action.setFeatureLayer(action_feature_layer)
+        } else {
+          const action_render = new sc_pb.ActionSpatial()
+          action_render.setUnitCommand(unit_command)
+          action.setActionRender(action_render)
+        }
+      }
+    }
+
+    this.clear_queued_action()
+    return action
+  }
+
+  _abilities(fn = null) {
+    //Return the list of abilities filtered by `fn`.//
+    const out = []
+    this._obs.getObservation().getAbilitiesList().forEach((cmd) => {
+      const ability = _Ability(cmd, this._static_data.abilities)
+      if (!fn || fn(ability)) {
+        // out[ability.ability_id] = ability
+        out.push(ability)
+      }
+    })
+    return out
+  }
+
+  _visible_units() {
+    /*
+      A generator of visible units and their positions as `Point`s, sorted.//
+      Sort the units by elevation, then owned (eg refinery) above world (ie 16)
+      (eg geiser), small above big, and otherwise arbitrary but stable.
+    */
+    let units = new Array(this._obs.getObservation().getRawData().getUnitsList().length)
+    this._obs.getObservation().getRawData().getUnitsList().forEach((u, i) => {
+      units[i] = [u.getPos().getZ(), u.getOwner() != 16, -u.getRadius(), u.getTag(), u]
+    })
+    units = units.sorted((a, b) => a[0] - b[0])
+    return units.map((arr) => [arr[arr.length - 1], new point.Point(u.getPos())])
+  }
+
+  _units_in_area(rect) {
+    //Return the list of units that intersect the rect.//
+    const player_id = this._obs.getObservation().getPlayerCommon().getPlayerId()
+    return this._visible_units.filter(([u, p]) => rect.intersects_circle(p, u.getRadius()) && u.getOwner() == player_id)
+  }
+
+  get_unit_name(surf, name, radius) {
+    //Get a length limited unit name for drawing units.//
+    const key = [name, radius].join(',')
+    if (!this._name_lengths.hasOwnProperty(key)) {
+      const max_len = surf.world_to_surf.fwd_dist(radius * 1.6)
+      let found = false
+      for (let i = 0; i < name.length; i++) {
+        if (this._font_small.size(name.slice(0, i + 1)) > max_len) {
+          this._name_lengths[key] = name.slice(0, i)
+          found = true
+          break
+        }
+      }
+      if (!found) {
+        this._name_lengths[key] = name
+      }
+    }
+    return this._name_lengths[key]
+  }
+
+  draw_units(surf) {
+    //Draw the units and buildings.//
+    const unit_dict = null // Cache the units {tag: unit_proto} for orders.
+    const tau = 2 * Math.PI
+    this._visible_units().forEach(([u, p]) => {
+      if (this._camera.intersects_circle(p, u.getRadius())) {
+        const fraction_damage = clamp(
+          (u.getHealthMax() - u.getHealth()) / (u.getHealthMax() || 1),
+          0,
+          1
+        )
+        if (u.getDisplayType() == sc_raw.DisplayType.PLACEHOLDER) {
+          surf.draw_circle(
+            Math.floor(colors.PLAYER_ABSOLUTE_PALETTE[u.getOwner()] / 3),
+            p,
+            u.getRadius()
+          )
+        } else {
+          surf.draw_circle(
+            colors.PLAYER_ABSOLUTE_PALETTE[u.getOwner()],
+            p,
+            u.getRadius()
+          )
+
+          if (fraction_damage > 0) {
+            surf.draw_circle(
+              Math.floor(colors.PLAYER_ABSOLUTE_PALETTE[u.getOwner()] / 2),
+              p,
+              u.getRadius() * fraction_damage
+            )
+          }
+        }
+        let thickness = 1
+        surf.draw_circle(colors.black, p, u.getRadius(), thickness)
+
+        if (this._static_data.unit_stats[u.getUnitType()].movement_speed > 0) {
+          surf.draw_arc(
+            colors.white,
+            p,
+            u.getRadius(),
+            u.getFacing() - 0.1,
+            u.getFacing() + 0.1,
+            thickness
+          )
+        }
+
+        function draw_arc_ratio(color, world_loc, radius, start, end, thickness) {
+          surf.draw(
+            color,
+            world_loc,
+            radius,
+            start * tau,
+            end * tau,
+            thickness
+          )
+        }
+
+        if (u.getShield() && u.getShieldMax()) {
+          draw_arc_ratio(colors.blue, p, u.getRadius() - 0.05, 0, u.getShield() / u.getShieldMax())
+        }
+
+        if (u.getEnergy() && u.getEnergyMax()) {
+          draw_arc_ratio(colors.purple * 0.9, p, u.getRadius() - 0.1, 0, u.getEnergy() / u.getEnergyMax())
+        }
+
+        if (0 < u.getBuildProgress() < 1) {
+          draw_arc_ratio(colors.cyan, p, u.getRadius() - 0.15, 0, u.getBuildProgress())
+        } else if (u.getOrdersList().length && 0 < u.getOrdersList()[0].getProgress() < 1) {
+          draw_arc_ratio(colors.cyan, p, u.getRadius() - 0.15, 0,
+                         u.getOrdersList()[0].getProgress())
+        }
+
+        if (u.getBuffDurationRemain() && u.buff_duration_max) {
+          draw_arc_ratio(colors.white, p, u.getRadius() - 0.2, 0,
+                         u.getBuffDurationRemain() / u.buffDurationMax())
+        }
+
+        thickness = 3
+        if (u.getAttackUpgradeLevel()) {
+          draw_arc_ratio(this.upgrade_colors[u.getAttackUpgradeLevel()], p,
+                         u.getRadius() - 0.25, 0.18, 0.22, thickness)
+        }
+
+        if (u.getArmorUpgradeLevel()) {
+          draw_arc_ratio(this.upgrade_colors[u.getArmorUpgradeLevel()], p,
+                         u.getRadius() - 0.25, 0.23, 0.27, thickness)
+        }
+
+        if (u.getShieldUpgradeLevel()) {
+          draw_arc_ratio(this.upgrade_colors[u.getShieldUpgradeLevel()], p,
+                         u.getRadius() - 0.25, 0.28, 0.32, thickness)
+        }
+
+        function write_small(loc, s) {
+          surf.write_world(this._font_small, colors.white, loc, String(s))
+        }
+
+        const name = this.get_unit_name(
+            surf, this._static_data.units.get(u.getUnitType(), "<none>"), u.getRadius())
+        if (name) {
+          write_small(p, name)
+        }
+        if (u.getIdealHarvesters() > 0) {
+          write_small(p.add(new point.Point(0, 0.5)),
+                      `${u.getAssignedHarvesters()} / ${u.getIdealHarvesters()}`)
+        }
+        if (u.getMineralContents() > 0) {
+          write_small(p.sub(new point.Point(0, 0.5)), u.getMineralContents())
+        } else if (u.getVespeneContents() > 0) {
+          write_small(p.sub(new point.Point(0, 0.5)), u.getVespeneContents())
+        } else if (u.getDisplayType() == sc_raw.DisplayType.SNAPSHOT) {
+          write_small(p.sub(new point.Point(0, 0.5)), "snapshot")
+        } else if (u.getDisplayType() == sc_raw.DisplayType.PLACEHOLDER) {
+          write_small(p.sub(new point.Point(0, 0.5)), "placeholder")
+        } else if (u.getIsHallucination()) {
+          write_small(p.sub(new point.Point(0, 0.5)), "hallucination")
+        } else if (u.getIsBurrowed()) {
+          write_small(p.sub(new point.Point(0, 0.5)), "burrowed")
+        } else if (u.getCloak() != sc_raw.CloakState.NOTCLOAKED) {
+          write_small(p.sub(new point.Point(0, 0.5)), "cloaked")
+        }
+
+        if (u.getIsSelected()) {
+          surf.draw_circle(colors.green, p, u.radius + 0.1, 1)
+          const unit_dict = {}
+
+          // Draw the orders of selected units.
+          let start_point = p
+          const orders = u.getOrdersList()
+          for (let i = 0; i < orders.length; i++) {
+            let target_point = null
+            const o = orders[i]
+            if (o.hasTargetWorldSpacePos()) {
+              target_point = new point.Point(o.getTargetWorldSpacePos())
+            } else if (o.hasTargetUnitTag()) {
+              this._obs.getObservation().getRawData().getUnitsList().forEach((t) => {
+                unit_dict[t.getTag()] = t
+              })
+              const target_unit = unit_dict[o.getTargetUnitTag()]
+              let target_point
+              if (target_unit) {
+                target_point = new point.Point(target_unit.getPos())
+              }
+              if (target_point) {
+                surf.draw_line(colors.cyan * 0.75, start_point, target_point)
+                start_point = target_point
+              } else {
+                break
+              }
+            }
+          }
+          const rallyTargets = u.getRallyTargetsList()
+          for (let i = 0; i < rallyTargets.length; i++) {
+            surf.draw_line(colors.cyan * 0.75, p,
+                           new point.Point(rally.getPoint()))
+          }
+        }
+      }
+    })
+  }
+
+  draw_selection(surf) {
+    //Draw the selection rectangle.//
+    const select_start = this._select_start // Cache to avoid a race condition.
+    if (select_start) {
+      const mouse_pos = this.get_mouse_pos()
+      if (mouse_pos && mouse_pos.surf.surft_type & SurfType.SCREEN && mouse_pos.surf.surf_type == select_start.surf.surf_type) {
+        const rect = new point.Rect(select_start.world_pos, mouse_pos.world_pos)
+        surf.draw_rect(colors.green, rect, 1)
+      }
+    }
+  }
+
+  draw_build_target(surf) {
+    // Draw the build target//
+    const round_half = (v, cond) => cond ?  Math.round(v - 0.5) + 0.5 : Math.round(v)
+
+    const queued_action = this._queued_action
+    if (queued_action) {
+      const radius = queued_action.footprint_radius
+      if (radius) {
+        let pos = this.get_mouse_pos()
+        if (pos) {
+          pos = new point.Point(
+            round_half(pos.world_pos.y, (radius * 2) % 2),
+            round_half(pos.world_pos.y, (radius * 2) % 2)
+          )
+          surf.draw_circle(
+            colors.PLAYER_ABSOLUTE_PALETTE[
+              this._obs.getObservation().getPlayerCommon().getPlayerId()
+            ],
+            pos,
+            radius
+          )
+        }
+      }
+    }
+  }
+
+  draw_overlay(surf) {
+    function sum(arr) {
+     return arr.reduce((acc, curr = 0) => acc + curr)
+    }
+    //Draw the overlay describing resources.//
+    const obs = this._obs.getObservation()
+    const player = obs.getPlayerCommon()
+    surf.write_screen(
+      this._font_large, colors.green, [0.2, 0.2],
+      `Minearls: ${player.getMinerals()}, Vespene: ${player.getVespene()}, Food: ${player.getFoodUsed()} / ${player.getFoodCap()}`,
+      'right'
+    )
+
+    const [times, steps] = zip(this._game_times)
+    const sec = Math.floor(obs.getGameLoop() / 22.4)
+    surf.write_screen(
+      this._font_large, colors.green, [-0.2, 0.2],
+      `Score: ${obs.getScore.getScore()}, Step: ${obs.getGameLoop()}, ${sum(steps) / (sum(times) || 1)}/s, Time: ${Math.floor(sec / 60)}: ${sec % 60}`,
+      'right'
+    )
+
+    surf.write_screen(
+      this._font_large, colors.green * 0.8, [-0.2, 1.2]
+      `APM: ${obs.getScore().getScoreDetails().getCurrentApm()}, EPM: ${obs.getScore.getScoreDetails().getCurrentEffectiveApm()}, FPS: O:${times.length / (sum(times) || 1)}, R: ${this._render_times / (sum(this._render_times) || 1)}`,
+      'left'
+    )
+
+    const line = 3
+    const alerts = this._alerts.sort((a, b) => a[1] - b[1])
+    alerts.forEach(([alert, ts]) => {
+      if (performance.now() < ts + (3 * 1000)) { // Show for 3 seconds.
+        surf.write_screen(this._font_large, colors.red, [20, line], alert)
+        line += 1
+      } else {
+        delete this._alerts[alert]
+      }
+    })
+  }
+
+  draw_help(surf) {
+    //Draw the help dialog.//
+    if (!this._help) {
+      return
+    }
+    function write(loc, text) {
+      surf.write_screen(this._font_large, colors.black, loc, text)
+    }
+
+    surf.surf.fill(colors.white * 0.8)
+    write([1, 1], 'Shortcuts:')
+
+    const max_len = Math.max(...this.shortcuts.map((s) => s.length))
+    const shortcuts = this.shortcuts.slice(2)
+    shortcuts.forEach(([hotkey, description], i) => {
+      write([2, i], hotkey)
+      write([3 + max_len * 0.7, i], description)
+    })
+  }
+  
+  draw_commands(surf) {
+    // Draw the list of upgrades available commands.//
+    function write(loc, text, color = colors.yellow) {
+      surf.write_screen(this._font_large, color, loc, text)
+    }
+    let line = 2
+    function write_line(x, args) {
+      line += 1
+      write([x, line], ...(Array.from(arguments).slice(1)))
+    }
+    action_count = this._obs.getObservation().getAbilitiesList().length
+    if (action_count > 0) {
+      write_line(0.2, 'Available Actions: ', colors.green)
+      const past_abilities = {}
+      this._past_actions.forEach((act) => {
+        if (act.ability) {
+          past_abilities[act.abilitiy] = act
+        }
+      })
+      let color
+      this._abilities((c) => c.name != 'Smart')
+        .sort((a, b) => a.name > b.name ? 1 : -1)
+        .forEach((cmd) => {
+          if (this._queued_action && cmd == this._queued_action) {
+            color = colors.green
+          } else if (this._queued_hotkey
+            && cmd.hotkey.slice(0, this._queued_hotkey.length) == this._queued_hotkey) {
+            color = colors.green * 0.75
+          } else if (past_abilities.hasOwnProperty(cmd.ability_id)) {
+            color = colors.red
+          } else {
+            color = colors.yellow
+          }
+          const hotkey = cmd.hotkey.slice(0, 3) // trunccate "escape" -> "esc"
+          line += 1
+          y = line
+          write([1, y], hotkey, color)
+          write([4, y], cmd.name, color)
+      })
+      line += 1
+    }
+    const upgradesList = this._obs.getObservation().getRawData().getPlayer().getUpgradeIdsList()
+    const upgrade_count = upgradesList.length
+    if (upgrade_count > 0) {
+      write_line(0.2, `Upgrades: ${upgrade_count}`, colors.green)
+      const upgrades = upgradesList
+        .map((upgrade_id) => this._static_data.upgrades[upgrade_id].name)
+      upgrades.sort().forEach((name) => write_line(1, name))
+    }
+  }
+
+  draw_panel(surf) {
+    //Draw the unit selection or build queue.//
+    const left = -14 // How far from the right border
+    let line = 3
+
+    function unit_name(unit_type) {
+      return this._static_data.units[unit_type] || '<unknown>'
+    }
+    function write(loc, text, color = colors.yellow) {
+      surf.write_screen(this._font_large, color, loc,  text)
+    }
+    function write_line(x, args) {
+      line += 1
+      write([left + x, line], ...(Array.from(arguments).slice(1)))
+    }
+
+    function write_single(unit) {
+      // Write a description of a single selected unit.//
+      write_line(1, unit_name(unit.getUnitType()), colors.cyan)
+      write_line(1, `Health: ${unit.getHealth()} / ${unit.getMaxHealth()}`)
+      if (unit.getMaxShields()) {
+        write_line(1, `Shields: ${unit.getShields()} / ${unit.getMaxShields()}`)
+      }
+      if (unit.getMaxEnergy()) {
+        write_line(1, `Energy: ${unit.getEnergy()} / ${unit.getMaxEnergy()}`)
+      }
+      if (unit.getBuildProgress() > 0) {
+        write_line(1, `Progress: ${Math.round(unit.getBuildProgress() * 100)}`)
+      }
+      if (unit.getTransportSlotsTaken()> 0) {
+        write_line(1, `Slots: ${unit.getTransportSlotsTaken()}`)
+      }
+    }
+
+    function write_multi(units) {
+      //Write a description of multiple selected units.//
+      const counts = new DefaultDict(1)
+      units.forEach((unit) => {
+        counts[unit_name(unit.getUnitType())] += 1
+      })
+      Object.keys(counts).sort().forEach((name) => {
+        const count = counts[name]
+        line += 1
+        const y = line
+        write([left + 1, y], count)
+        write([left + 3, y], name)
+      })
+    }
+
+    if (ui.getGroups()) {
+      write_line(0, 'Control Groups: ', colors.green)
+      ui.getGroupsList().forEach((group) => {
+        line += 1
+        const y = line
+        write([left + 1, y], `${group.getControlGroupIndex()}`, colors.green)
+        write([left + 3, y], `${group.getCount()} ${unit_name(group.getLeaderUnitType())}`)
+      })
+      line += 1
+    }
+
+    if (ui.hasSingle()) {
+      write_line(0, 'Selection: ', colors.green)
+      write_single(ui.getSingleUnit())
+      if (ui.getSingle().getAttackUpgradeLevel()
+        || ui.getSingle().getArmorUpgradeLevel()
+        || ui.getSingle().getShieldUpgradeLevel()) {
+        write_line(1, 'Upgrades: ')
+        if (ui.getSingle().getAttackUpgradeLevel()) {
+          write_line(2, `Attack: ${ui.getSingle().getAttackUpgradeLevel()}`)
+        }
+        if (ui.getSingle().getArmorUpgradeLevel()) {
+          write_line(2, `Armor: ${ui.getSingle().getArmorUpgradeLevel()}`)
+        }
+        if (ui.getSingle().getShieldUpgradeLevel()) {
+          write_line(2, `Shield: ${ui.getSingle().getShieldUpgradeLevel()}`)
+        }
+      }
+      if (ui.getSingle().getBuffsList().length) {
+        write_line(1, 'Buffs:')
+        ui.getSinge().getBuffsList().forEach((b) => {
+          write(line(2, buffs.Buffs(b).name))
+        })
+      }
+    } else if (ui.hasMulti()) {
+      write_line(0, 'Selection: ', colors.green)
+      write_multi(ui.getMulti().getUnitsList())
+    } else if (ui.hasCargo()) {
+      write_line(0, 'Selection: ', colors.green)
+      write_single(ui.getCargo().getUnit())
+      line += 1
+      write_line(0, 'Cargo: ', colors.green)
+      write_line(1, `Empty slots: ${ui.getCargo().getSlotsAvailable()}`)
+      write_multi(ui.getCargo().getPassengersList())
+    } else if (ui.hasProduction()) {
+      write_line(0, 'Selection: ', colors.green)
+      write_single(ui.getProduction().getUnit())
+      line += 1
+      if (ui.getProduction().getProductionQueue()) {
+        write_line(0, 'Production: ', colors.green)
+        ui.getProduction().getProductionQueue().forEach((item) => {
+          const specific_data =this.static_data.abilities[item.ability_id]
+          let general_data
+          if (specific_data.remaps_to_ability_id) {
+            general_data = this._static_data.abilities[specific_data.remaps_to_ability_id]
+          } else {
+            general_data = specific_data
+          }
+          let s = general_data.friendly_name || general_data.button_name || general_data.link_name
+          s = s.replace('Research ', '').replace('Train ', '')
+          if (item.getBuildProgress() > 0) {
+            s += `: ${Math.round(item.getBuildProgress() * 100)}`
+          }
+          write_line(1, s)
+        })
+      }
+    }
+  }
+
+  draw_actions() {
+    //Draw the actions so that they can be inspected for accuracy.//
   }
 }
 
