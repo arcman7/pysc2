@@ -12,6 +12,7 @@ const named_array = require('./named_array.js') //eslint-disable-line
 const static_data = require('./static_data.js') //eslint-disable-line
 const stopwatch = require('./stopwatch.js') //eslint-disable-line
 const transform = require('./transform.js') //eslint-disable-line
+const np = require('')
 
 const sc_error = s2clientprotocol.error_pb
 const sc_raw = s2clientprotocol.raw_pb
@@ -124,7 +125,7 @@ class _Surface {
     //Draw a rectangle using world coordinates.//
     const tl = this.world_to_surf.fwd_pt(world_rect.tl).round()
     const br = this.world_to_surf.fwd_pt(world_rect.br).round()
-    const rect = window.gamejs.Rect(tl, br - tl)
+    const rect = window.gamejs.Rect(tl, br.sub(tl))
     window.gamejs.draw.rect(this.surf, color, rect, thickness)
   }
 
@@ -1678,6 +1679,8 @@ class RendererHuman {
       })
     }
 
+    const ui = this._obs.getObservation().getUiData()
+
     if (ui.getGroups()) {
       write_line(0, 'Control Groups: ', colors.green)
       ui.getGroupsList().forEach((group) => {
@@ -1749,6 +1752,403 @@ class RendererHuman {
 
   draw_actions() {
     //Draw the actions so that they can be inspected for accuracy.//
+    const now = performance.now()
+    this._past_actions.forEach((act) => {
+      if (act.pos && now < act.deadline) {
+        const remain = (act.deadline - now) / (act.deadline - act.time)
+        if (act.pos instanceof point.Point) {
+          const size = remain / 3
+          this.all_surfs(_Surface.draw_circle, act.color, act.pos, size, 1)
+        } else {
+          // Fade with alpha would be nice, but doesn't seem to work.
+          this.all_surfs(_Surface.draw_rect, act.color, act.pos, 1)
+        }
+      }
+    })
+  }
+  prepare_actions(obs) {
+    //Keep a list of the past actions so they can be drawn.//
+    const now = performance.now()
+    while (this._past_actions.length && this._past_actions[0].dealine < now) {
+      this._past_actions.pop()
+    }
+
+    function add_act(ability_id, color, pos, timeout = 1000) {
+      let ability
+      if (ability_id) {
+        ability = this._static_data.abilities[ability_id]
+        if (ability.remaps_to_ability_id) {
+          ability_id = ability.remaps_to_ability_id
+        }
+      }
+      this._past_actions.append(new PastAction(ability_id, color, pos, now, now + timeout))
+    }
+
+    obs.getActionsList().forEach((act) => {
+      let pos
+      if (act.hasActionRaw()
+        && act.getActionRaw().hasUnitCommand()
+        && act.getActionRaw().getUnitCommand().hasTargetWorldSpacePos()) {
+        pos = new point.Point(act.getActionRaw().getUnitCommand().getTargetWorldSpacePos())
+      add_act(act.getActionRaw().getUnitCommand().getAbilityId(), colors.yellow, pos)
+      }
+      if (act.hasActionFeatureLayer()) {
+        const act_fl = act.getActionFeatureLayer()
+        if (act_fl.hasUnitCommand()) {
+          if (act_fl.getUnitCommand().hasTargetScreenCoord()) {
+            pos = this._world_to_feature_screen_px.back_pt(
+              new point.Point(act_fl.getUnitCommand().getTargetScreenCoord())
+            )
+            add_act(act_fl.getUnitCommand().getAbilityId(), colors.cyan, pos)
+          } else if (act_fl.getUnitCommand().hasTargetMinimapCoord()) {
+            pos = this._world_to_feature_minimap_px.back_pt(
+              new point.Point(act_fl.getUnitCommand().getTargetMinimapCoord())
+            )
+            add_act(act_fl.getUnitCommand().getAbilityId(), colors.cyan, pos)
+          } else {
+            add_act(act_fl.getUnitCommand().getAbilityId(), null, null)
+          }
+        }
+        if (act_fl.hasUnitSelectionPoint()
+          && act_fl.getUnitSelectionPoint().hasSelectionScreenCoord()) {
+          pos = this._world_to_feature_screen_px.back_pt(
+            new point.Point(act_fl.getUnitSelectionPoint().getSelectionScreenCoord())
+          )
+          add_act(null, colors.cyan, pos)
+        }
+        if (act_fl.hasUnitSelectionRect()) {
+          act_fl.hasUnitSelectionRect().getSelectionScreenCoordList().forEach((r) => {
+            const rect = new point.Rect(
+              this._world_to_feature_screen_px.back_pt(
+                new point.Point(r.getP0()),
+              ),
+              this._world_to_feature_screen_px.back_pt(
+                new point.Point(r.getP1())
+              )
+            )
+            add_act(null, colors.cyan, rect, 0.3)
+          })
+        }
+        if (act.hasActionRender()) {
+          const act_rgb = act.getActionRender()
+          if (act_rgb.hasUnitCommand()) {
+            if (act_rgb.getUnitCommand().hasTargetSCreenCoord()) {
+              pos = this._world_to_rgb_screen_px.back_pt(
+                new point.Point(act_rgb.getUnitCommand().getTargetScreenCoord())
+              )
+              add_act(act_rgb.getUnitCommand().getAbilityId(), colors.red, pos)
+            } else if (act_rgb.getUnitCommand().hasTargetMinimapCoord()) {
+              pos = this._world_to_rgb_minimap_px.back_pt(
+                new point.Point(act_rgb.getUnitCommand().getTargetMinimapCoord())
+              )
+              add_act(act_rgb.getUnitCommand().getAbilityId(), colors.red, pos)
+            } else {
+              add_act(act_rgb.getUnitCommand().getAbilityId(), null, null)
+            }
+          }
+          if (act_rgb.hasUnitSelectionPoint()
+            && act_rgb.getUnitSelectionPoint.hasSelectionScreenCoord()) {
+            pos = this._word_to_rgb_screen_px.back_pt(
+              new point.Point(act_rgb.getUnitSelectionPoint().getSelectionScreenCoord())
+            )
+            add_act(null, colors.red, pos)
+          }
+          if (act_rgb.hasUnitSelectionRect()) {
+            act_rgb.getUnitSelectionRect().getSelectionScreenCoordList().forEach((r) => {
+              const rect = new point.Rect(
+                this._world_to_rgb_screen_px.back_pt(
+                  new point.Point(r.getP0())
+                ),
+                this._world_to_rgb_screen_px.back_pt(
+                  new point.Point(r.getP1())
+                )
+              )
+              add_act(null, colors.red, rect, 0.3)
+            })
+          }
+        }
+      }
+    })
+  }
+
+  async draw_base_map(surf) {
+    //Draw the base map.//
+    const hmap_feature = features.SCREEN_FEATURES.height_map
+    let hmap = hmap_feature.unpack(this._obs.getObservation())
+    if (!np.any(hmap)) {
+      hmap.add(100)
+    }
+    const hmap_color = hmap_feature.color(hmap)
+    let out = hmap_color.mul(0.6)
+
+    const creep_feature = features.SCREEN_FEATURES.creep
+    const creep = creep_feature.unpack(this._obs.getObservation())
+    const creep_mask = creep.greater(0)
+    const creep_color = creep_feature.color(creep)
+    let temp1 = out.where(creep_mask, out.mul(0.4))
+    let temp2 = creep_color.where(creep_mask, creep_color.mul(0.6))
+    out = out.where(creep_mask, temp1.add(temp2))
+    
+    const power_feature = features.SCREEN_FEATURES.power_feature
+    const power = power_feature.unpack(this._obs.getObservation())
+    const power_mask = power.greater(0)
+    const power_color = power_feature.color(power)
+    temp1 = out.where(power_mask, out.mul(0.7))
+    temp2 = power_color.where(power_mask, power_color.mul(0.3))
+    out = out.where(power_mask, temp1.add(temp2))
+
+    if (this._render_player_relative) {
+      const player_rel_feature = features.SCREEN_FEATURES.player_relative
+      const player_rel = player_rel_feature.unpack(this._obs.getObservation())
+      const player_rel_mask = player_rel.greater(0)
+      const player_rel_color = player_rel_feature.color(player_rel)
+      out = out.where(player_rel_mask, player_rel_color)
+    }
+
+    const visibility = features.SCREEN_FEATURES.visibility_map.unpack(this._obs.getObservation())
+    const visibility_fade = np.tensor([[0.5, 0.5, 0.5], [0.75, 0.75, 0.75], [1, 1, 1]])
+    out = out.where(visibility, out.mul(visibility_fade))
+
+    surf.blit_np_array(out)
+  }
+
+  draw_mini_map(surf) {
+    //Draw the minimap//
+    if (this._render_rgb
+      && this._obs.getObservation.hasRenderData()
+      && this._obs.getObservation().getRenderData().hasMinimap()) {
+      // Draw the rendered version.
+      surf.blit_np_array(features.Feature.unpack_rgb_image(
+        this._obs.getObservation().getRenderData().getMinimap()
+      ))
+    } else { // Render it manually from feature layer data.
+      const hmap_feature = features.MINIMAP_FEATURES.height_map
+      let hmap = hmap_feature.unpack(this._obs.getObservation())
+      if (!np.any(hmap)) {
+        hmap = hmap.add(100)
+      }
+      hmap_color = hmap_feaure.color(hmap)
+
+      const creep_feature = features.MINIMAP_FEATURES.creep
+      const creep = creep_feature.unpack(this._obs.getObservation())
+      const creep_mask = creep.greater(0)
+      const creep_color = creep_feature.color(creep)
+
+      const player_id = this._obs.getObservation().getPlayerCommon().getPlayerId()
+      let player_feature
+      if (player_id == 0 || player_id == 16) { // observer
+        // If we're the observer, show the absolute since otherwise all player
+        // units are friendly, making it pretty boring.
+        const player_feature = features.MINIMAP_FEATURES.player_id
+      } else {
+        const player_feature = features.MINIMAP_FEATURES.player_id
+      }
+
+      const player_data = player_feature.unpack(self._obs.observation)
+      const player_mask = player_data.greater(0)
+      const player_color = player_feature.color(player_data)
+
+      const visibility = features.MINIMAP_FEATURES.visibility_map.unpack(
+        this._obs.getObservation()
+      )
+      const visibility_fade = np.tensor([[0.5, 0.5, 0.5], [0.75, 0.75, 0.75], [1, 1, 1]])
+      // Compose and color the different layers.
+      let out = hmap_color.mul(0.6)
+      let temp1 = out.where(creep_mask, out.mul(0.4))
+      let temp2 = creep_color.where(creep_mask, creep_color.mul(0.6))
+      out = out.where(creep_mask, temp1.add(temp2))
+
+      out = out.where(player_mask, player_color)
+      out = out.where(visibility, out.mul(visibility_fade))
+
+      const shape = this._playable.diagonal.scale_max_size(
+        this._feature_minimap_px
+      ).floor()
+      surf.blit_np_array(out.slice([0, 0], [shape.y, shape.x]))
+
+      surf.draw_rect(colors.white.mul(0.8), this._camera, 1) // Camera
+
+      // Sensor rings.
+      this._obs.getObservation().getRawData().getRadarList().forEach((radar) => {
+        surf.draw_circle(
+          colors.white.div(2),
+          new point.Point(radar.getPos()),
+          radar.getRadius(),
+          1
+        )
+      })
+    }
+
+    // highlight enemy base locations for a short while at start of game
+    if (this._obs.getObservation().getGameLoop() < 22.4 * 20) {
+      this._game_info.getStartRaw().getStartLocationsList().forEach((loc) => {
+        surf.draw_circle(colors.red, new point.Point(loc), 5, 1)
+      })
+    }
+
+    gamejs.draw.rect(surf.surf, colors.red, surf.surf.get_rect(), 1) // Border
+  }
+
+  check_valid_queued_action() {
+    // Make sure the existing command is still valid
+    if (this._queued_hotkey && !this._abilities((cmd) => cmd.hotkey.slice(0, this._queued_hotkey.length) == this._queued_hotkey)) {
+      this._queued_hotkey = ''
+    }
+    if (this._queued_action && !this._abilities((cmd) => this._queued_action == cmd)) {
+      this._queued_action = null
+    }
+  }
+
+  draw_rendered_map(surf) {
+    // Draw the rendered pixels.//
+    surf.blit_np_array(features.Feature.unpack_rgb_image(
+      this._obs.getObservation().getRenderData().getMap()
+    ))
+  }
+
+  draw_screen(surf) {
+    //Draw the screen area.//
+    if (this._reander_rgb &&
+      this._obs.getObservation().hasRenderData() &&
+      this._obs.getObservation().getRenderData().hasMap()) {
+      this.draw_rendered_map(surf)
+    } else {
+      this.draw_base_map(surf)
+      this.draw_effects(surf)
+      this.draw_units(surf)
+    }
+    this.draw_selection(surf)
+    this.draw_build_target(surf)
+    this.draw_overlay(surf)
+    this.draw_commands(surf)
+    this.draw_panel(surf)
+  }
+
+  draw_feature_layer(surf, feature) {
+    //Draw a feature layer//
+    const layer = feature.unpack(this._obs.getObservation())
+    if (layer != null) {
+      surf.blit_np_array(feature.color(layer))
+    } else { // Ignore layers that aren't in this version of SC2.
+      surf.surf.fill(colors.black)
+    }
+  }
+
+  draw_all_surfs(fn, args) {
+    this._surfaces.forEach((surf) => {
+      if (surf.world_to_surf) {
+        fn(surf, ...Array.from(arguments).slice(1))
+      }
+    })
+  }
+
+  render(obs) {
+    //Push an observation onto the queue to be rendered.//
+    if (!this._initialized) {
+      return
+    }
+    const now = performance.now()
+    this._game_times.push(
+      now - this._last_time,
+      Math.max(1, obs.getObservation().getGameLoop() - this._obs.getObersvation().getGameLoop())
+    )
+    this._last_time = now
+    this._last_game_loop = this._obs.getObservation().getGameLoop()
+    this._obs_queue.add(obs)
+    // dont think we need this for JavaScript
+    // if (this._render_sync) {
+    //   this._obs_queue.join()
+    // }
+  }
+
+  get sc_alerts() {
+    return Enum.IntEnum('Alert', sc_pb.Alert)
+  }
+
+  get sc_error_action_result() {
+    return Enum.IntEnum('ActionResult')
+  }
+
+  render_thread() {
+    //A render loop that pulls observations off the queue to render.//
+    let obs = true
+    while (obs) {  // Send something falsy through the queue to shut down.
+      obs = this._obs_queue.get()
+      if (obs) {
+        obs.getObservation().getAlerts().forEach((alert) => {
+          this._alerts[this.sc_alerts(alert)] = performance.now()
+        })
+        obs.getActionErrorsList().forEach((err) => {
+          if (err.getResult() != this.sc_error_action_result.SUCCESS) {
+            this._alerts[this.sc_error_action_result(err.getResult())] = performance.now()
+          }
+        })
+        this.prepare_actions(obs)
+        if (this._obs_queue.length === 0) {
+          // Only render the latest observation so we keep up with the game.
+          this.render_obs(obs)
+        }
+        if (this._video_writer) {
+          const axes = [1, 0, 2]
+          this._video_writer.add(np.transpose(
+            window.gamejs.surfarray.pixels3d(this._window), axes)
+          )
+        }
+      }
+      // Dont think we need this in JavaScript
+      // this._obs_queue.task_done()
+    }
+  }
+
+  render_obs(obs) {
+    //Render a frame given an observation.//
+    const start_time = performance.now()
+    this._obs = obs
+    this.check_valid_queued_action()
+    this._update_camera(new point.Point(
+      this._obs.getObservation().getRawData().getPlayer().getCamera())
+    )
+
+    this._surfaces.forEach((surf) => {
+      // Render that surface.
+      surf.draw(surf)
+    })
+    const mouse_pos = this.get_mouse_pos()
+    if (mouse_pos) {
+      // Draw a small mouse cursor)
+      this.all_surfs(_Surface.draw_circle, colors.green, mouse_pos.world_pos, 0.1)
+    }
+
+    this.draw_actions()
+
+    withPython(sw('flip'), () => {
+      window.gamejs.display.flip()
+    })
+
+    this._render_times.push(performance.now() - start_time)
+  }
+
+  async run(run_config, controller, max_game_steps = 0, max_episodes = 0, game_steps_per_episode = 0, save_replay=false) {
+    //Run loop that gets observations, renders them, and sends back actions.//
+    const is_replay = controller.status == remote_controller.Status.in_replay
+    let total_game_steps = 0
+    const start_time = performance.now()
+    let num_episodes = 0
+
+    try {
+        this.init(controller.game_info(), controller.data())
+        episode_steps = 0
+        num_episodes += 1
+
+
+      }
+    } catch (err) {
+      console.error(err)
+    } finally {
+      this.close()
+      const elapsed_time = performance.now() - start_time
+      console.log(`took ${Math.round(elapsed_time / 1000)} seconds for ${total_game_steps} steps: ${total_game_steps / elapsed_time} fps`)
+    }
   }
 }
 
