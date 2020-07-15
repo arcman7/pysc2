@@ -109,6 +109,89 @@ class InitalizeServices {
   launchChrome() {
     this._proc = spawn(this.chromeArgs[0], this.chromeArgs)
   }
+
+  // async run(run_config, controller, max_game_steps = 0, max_episodes = 0, game_steps_per_episode = 0, save_replay=false) {
+  //   //Run loop that gets observations, renders them, and sends back actions.//
+  //   const is_replay = controller.status == remote_controller.Status.in_replay
+  //   let total_game_steps = 0
+  //   const start_time = performance.now()
+  //   let num_episodes = 0
+  //   let should_continue = true
+  //   let episode_steps
+  //   async function run_loop(run_config, controller, max_game_steps = 0, max_episodes = 0, game_steps_per_episode = 0, save_replay=false) {
+  //     total_game_steps += this._step_mul
+  //     episode_steps += this._step_mul
+  //     // const frame_start_time = performance.now()
+
+  //     const obs = await controller.observe()
+  //     this.render(obs)
+
+  //     if (obs.getPlayerResult()) {
+  //       should_continue = false
+  //     }
+
+  //     const cmd = this.get_actions(run_config, controller)
+  //     if (cmd == ActionCmd.STEP) {
+  //       // do nothing
+  //     } else if (cmd == ActionCmd.QUIT) {
+  //       if (!is_replay && save_replay) {
+  //         await this.save_replay(run_config, controller)
+  //       }
+  //       should_continue = false
+  //       return
+  //     } else if (cmd == ActionCmd.RESTART) {
+  //       return
+  //     } else {
+  //       throw new Error(`Unexpected command: ${cmd}`)
+  //     }
+
+  //     await controller.step(this._step_mul)
+
+  //     if (max_game_steps && total_game_steps >= max_game_steps) {
+  //       if (!is_replay && save_replay) {
+  //         await this.save_replay(run_config, controller)
+  //       }
+  //       should_continue = false
+  //       return
+  //     }
+  //     if (game_steps_per_episode && episode_steps >= game_steps_per_episode) {
+  //       // should_continue = false
+  //       return
+  //     }
+  //     // withPython(sw("sleep"), () => {
+  //     //   elapsed_time = time.time() - frame_start_time
+  //     //   time.sleep(max(0, 1 / this._fps - elapsed_time))
+  //     // })
+  //   }
+
+  //   try {
+  //     while (should_continue) {
+  //       await this.init(controller.game_info(), controller.data())
+  //       episode_steps = 0
+  //       num_episodes += 1
+  //       while (should_continue) {
+  //         await run_loop()
+  //       }
+  //       if (is_replay) {
+  //         should_continue = false
+  //       }
+  //       if (save_replay) {
+  //         await this.save_replay(run_config, controller)
+  //       }
+  //       if (max_episodes && num_episodes >=  max_episodes) {
+  //         should_continue = false
+  //       }
+  //       console.log('Restarting')
+  //       await controller.restart()
+  //     }
+  //   } catch (err) {
+  //     console.error(err)
+  //   } finally {
+  //     this.close()
+  //     const elapsed_time = performance.now() - start_time
+  //     console.log(`took ${Math.round(elapsed_time / 1000)} seconds for ${total_game_steps} steps: ${total_game_steps / elapsed_time} fps`)
+  //   }
+  // }
 }
 
 module.exports = {
