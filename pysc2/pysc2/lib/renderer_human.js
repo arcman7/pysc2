@@ -319,7 +319,7 @@ class RendererHuman {
     }
   }
 
-  async init() {
+  async init(game_info, static_data) {
     /*Take the game info and the static data needed to set up the game.
 
     This must be called before render or get_actions for each game or restart.
@@ -2128,90 +2128,6 @@ class RendererHuman {
     this._render_times.push(performance.now() - start_time)
   }
 
-
-
-  async run(run_config, controller, max_game_steps = 0, max_episodes = 0, game_steps_per_episode = 0, save_replay=false) {
-    //Run loop that gets observations, renders them, and sends back actions.//
-    const is_replay = controller.status == remote_controller.Status.in_replay
-    let total_game_steps = 0
-    const start_time = performance.now()
-    let num_episodes = 0
-    let should_continue = true
-    let episode_steps
-    async function run_loop(run_config, controller, max_game_steps = 0, max_episodes = 0, game_steps_per_episode = 0, save_replay=false) {
-      total_game_steps += this._step_mul
-      episode_steps += this._step_mul
-      frame_start_time = performance.now()
-
-      obs = await controller.observe()
-      this.render(obs)
-
-      if (obs.getPlayerResult()) {
-        should_continue = false
-      }
-
-      cmd = this.get_actions(run_config, controller)
-      if (cmd == ActionCmd.STEP) {
-        // do nothing
-      } else if (cmd == ActionCmd.QUIT) {
-        if (!is_replay && save_replay) {
-          await this.save_replay(run_config, controller)
-        }
-        should_continue = false
-        return
-      } else if (cmd == ActionCmd.RESTART) {
-        return
-      } else {
-        throw new Error(`Unexpected command: ${cmd}`)
-      }
-
-      await controller.step(this._step_mul)
-
-      if (max_game_steps && total_game_steps >= max_game_steps) {
-        if (!is_replay && save_replay) {
-          await this.save_replay(run_config, controller)
-        }
-        should_continue = false
-        return
-      }
-      if (game_steps_per_episode && episode_steps >= game_steps_per_episode) {
-        // should_continue = false
-        return
-      }
-      // withPython(sw("sleep"), () => {
-      //   elapsed_time = time.time() - frame_start_time
-      //   time.sleep(max(0, 1 / this._fps - elapsed_time))
-      // })
-    }
-
-    try {
-      while (should_continue) {
-        await this.init(controller.game_info(), controller.data())
-        episode_steps = 0
-        num_episodes += 1
-        while (should_continue) {
-          await run_loop()
-        }
-        if (is_replay) {
-          should_continue = false
-        }
-        if (save_replay) {
-          await this.save_replay(run_config, controller)
-        }
-        if (max_episodes && num_episodes >=  max_episodes) {
-          should_continue = false
-        }
-        console.log('Restarting')
-        await controller.restart()
-      }
-    } catch (err) {
-      console.error(err)
-    } finally {
-      this.close()
-      const elapsed_time = performance.now() - start_time
-      console.log(`took ${Math.round(elapsed_time / 1000)} seconds for ${total_game_steps} steps: ${total_game_steps / elapsed_time} fps`)
-    }
-  }
 }
 
 class RendererHumanBackend {
@@ -2308,7 +2224,7 @@ class RendererHumanBackend {
     }
   }
 
-  async init() {
+  async init(game_info, static_data) {
     /*Take the game info and the static data needed to set up the game.
 
     This must be called before render or get_actions for each game or restart.
@@ -4119,76 +4035,72 @@ class RendererHumanBackend {
 
 
 
-  async run(run_config, controller, max_game_steps = 0, max_episodes = 0, game_steps_per_episode = 0, save_replay=false) {
+  async run(run_config, controller, max_game_steps = 0, max_episodes = 0, game_steps_per_episode = 0, save_replay = false) {
     //Run loop that gets observations, renders them, and sends back actions.//
+    /* eslint-disable no-await-in-loop */
     const is_replay = controller.status == remote_controller.Status.in_replay
     let total_game_steps = 0
     const start_time = performance.now()
     let num_episodes = 0
-    let should_continue = true
     let episode_steps
-    async function run_loop(run_config, controller, max_game_steps = 0, max_episodes = 0, game_steps_per_episode = 0, save_replay=false) {
-      total_game_steps += this._step_mul
-      episode_steps += this._step_mul
-      frame_start_time = performance.now()
-
-      obs = await controller.observe()
-      this.render(obs)
-
-      if (obs.getPlayerResult()) {
-        should_continue = false
-      }
-
-      cmd = this.get_actions(run_config, controller)
-      if (cmd == ActionCmd.STEP) {
-        // do nothing
-      } else if (cmd == ActionCmd.QUIT) {
-        if (!is_replay && save_replay) {
-          await this.save_replay(run_config, controller)
-        }
-        should_continue = false
-        return
-      } else if (cmd == ActionCmd.RESTART) {
-        return
-      } else {
-        throw new Error(`Unexpected command: ${cmd}`)
-      }
-
-      await controller.step(this._step_mul)
-
-      if (max_game_steps && total_game_steps >= max_game_steps) {
-        if (!is_replay && save_replay) {
-          await this.save_replay(run_config, controller)
-        }
-        should_continue = false
-        return
-      }
-      if (game_steps_per_episode && episode_steps >= game_steps_per_episode) {
-        // should_continue = false
-        return
-      }
-      // withPython(sw("sleep"), () => {
-      //   elapsed_time = time.time() - frame_start_time
-      //   time.sleep(max(0, 1 / this._fps - elapsed_time))
-      // })
-    }
 
     try {
-      while (should_continue) {
-        await this.init(controller.game_info(), controller.data())
+      while (true) {
+        await this.init(await controller.game_info(), await controller.data())
         episode_steps = 0
         num_episodes += 1
-        while (should_continue) {
-          await run_loop()
+
+        while (true) {
+          total_game_steps += this._step_mul
+          episode_steps += this._step_mul
+          // const frame_start_time = performance.now()
+
+          const obs = await controller.observe()
+          this.render(obs)
+
+          if (obs.getPlayerResult()) {
+            break
+          }
+
+          const cmd = this.get_actions(run_config, controller)
+          if (cmd == ActionCmd.STEP) {
+            // do nothing
+          } else if (cmd == ActionCmd.QUIT) {
+            if (!is_replay && save_replay) {
+              await this.save_replay(run_config, controller)
+            }
+            return
+          } else if (cmd == ActionCmd.RESTART) {
+            break
+          } else {
+            throw new Error(`Unexpected command: ${cmd}`)
+          }
+
+          await controller.step(this._step_mul)
+
+          if (max_game_steps && total_game_steps >= max_game_steps) {
+            if (!is_replay && save_replay) {
+              await this.save_replay(run_config, controller)
+            }
+            return
+          }
+          if (game_steps_per_episode && episode_steps >= game_steps_per_episode) {
+            break
+          }
+          // withPython(sw("sleep"), () => {
+          //   elapsed_time = time.time() - frame_start_time
+          //   time.sleep(max(0, 1 / this._fps - elapsed_time))
+          // })
         }
+
         if (is_replay) {
-          should_continue = false
+          break
         }
         if (save_replay) {
           await this.save_replay(run_config, controller)
         }
-        if (max_episodes && num_episodes >=  max_episodes) {
-          should_continue = false
+        if (max_episodes && num_episodes >= max_episodes) {
+          break
         }
         console.log('Restarting')
         await controller.restart()
@@ -4204,51 +4116,59 @@ class RendererHumanBackend {
 }
 
 function getTypes() {
-  let resolve
-  let reject
-  const prom = new Promise((res, rej) => {
-    resolve = res
-    reject = rej
-  })
-  let requestTypes
-  let responseTypes
-  let dataTypes
-  protobuf.load('human_renderer.proto', (err, root) => {
-    if (err) {
-      reject(err)
-    }
-    // Data types
-    const Point = root.lookupType('human_renderer.Point')
-    const Rectangle = root.lookupType('human_renderer.Rectangle')
-    dataTypes = [Point, Rectangle]
-    // Request types
-    const DrawLineRequest = root.lookupType('human_renderer.DrawLineRequest')
-    const DrawArcRequest = root.lookupType('human_renderer.DrawArcRequest')
-    const DrawCircleRequest = root.lookupType('human_renderer.DrawCircleRequest')
-    const BlitArrayRequest = root.lookupType('human_renderer.BlitArrayRequest')
-    const WriteScreenRequest = root.lookupType('human_renderer.WriteScreenRequest')
-    const WriteWorldRequest = root.lookupType('human_renderer.WriteWorldRequest')
-    requestTypes = [
-      DrawLineRequest, DrawArcRequest,
-      DrawCircleRequest, BlitArrayRequest,
-      WriteScreenRequest, WriteWorldRequest
-    ]
-    // Response types
-    const DrawLineResponse = root.lookupType('human_renderer.DrawLineResponse')
-    const DrawArcResponse = root.lookupType('human_renderer.DrawArcResponse')
-    const DrawCircleResponse = root.lookupType('human_renderer.DrawCircleResponse')
-    const BlitArrayResponse = root.lookupType('human_renderer.BlitArrayResponse')
-    const WriteScreenResponse = root.lookupType('human_renderer.WriteScreenReponse')
-    const WriteWorldResponse = root.lookupType('human_renderer.WriteWorldResponse')
-    responseTypes = [
-      DrawLineResponse, DrawArcResponse,
-      DrawCircleResponse, BlitArrayResponse,
-      WriteScreenResponse, WriteWorldResponse
-    ]
-    resolve({ dataTypes, requestTypes, responseTypes })
-  })
-  return prom
+  const root = new protobuf.Root().loadSync('human_renderer.proto')
+  const RequestStaticData = root.lookupType('human_renderer.RequestStaticData')
+  return { RequestStaticData }
 }
+
+// function getTypes() {
+//   let resolve
+//   let reject
+//   const prom = new Promise((res, rej) => {
+//     resolve = res
+//     reject = rej
+//   })
+//   let requestTypes
+//   let responseTypes
+//   let dataTypes
+//   protobuf.load('human_renderer.proto', (err, root) => {
+//     if (err) {
+//       reject(err)
+//     }
+//     // Data types
+//     const Point = root.lookupType('human_renderer.Point')
+//     const Rectangle = root.lookupType('human_renderer.Rectangle')
+//     dataTypes = [Point, Rectangle]
+//     // Request types
+//     const DrawLineRequest = root.lookupType('human_renderer.DrawLineRequest')
+//     const DrawArcRequest = root.lookupType('human_renderer.DrawArcRequest')
+//     const DrawCircleRequest = root.lookupType('human_renderer.DrawCircleRequest')
+//     const BlitArrayRequest = root.lookupType('human_renderer.BlitArrayRequest')
+//     const WriteScreenRequest = root.lookupType('human_renderer.WriteScreenRequest')
+//     const WriteWorldRequest = root.lookupType('human_renderer.WriteWorldRequest')
+//     const RequestStaticData = root.lookupType('human_renderer.RequestStaticData')
+//     requestTypes = [
+//       DrawLineRequest, DrawArcRequest,
+//       DrawCircleRequest, BlitArrayRequest,
+//       WriteScreenRequest, WriteWorldRequest,
+//       RequestStaticData,
+//     ]
+//     // Response types
+//     const DrawLineResponse = root.lookupType('human_renderer.DrawLineResponse')
+//     const DrawArcResponse = root.lookupType('human_renderer.DrawArcResponse')
+//     const DrawCircleResponse = root.lookupType('human_renderer.DrawCircleResponse')
+//     const BlitArrayResponse = root.lookupType('human_renderer.BlitArrayResponse')
+//     const WriteScreenResponse = root.lookupType('human_renderer.WriteScreenReponse')
+//     const WriteWorldResponse = root.lookupType('human_renderer.WriteWorldResponse')
+//     responseTypes = [
+//       DrawLineResponse, DrawArcResponse,
+//       DrawCircleResponse, BlitArrayResponse,
+//       WriteScreenResponse, WriteWorldResponse
+//     ]
+//     resolve({ dataTypes, requestTypes, responseTypes })
+//   })
+//   return prom
+// }
 
 module.exports = {
   ActionCmd,

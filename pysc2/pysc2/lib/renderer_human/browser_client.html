@@ -5,13 +5,16 @@
   <script id="s2clientprotocol" src="/renderer_human/s2clientprotocol.js"></script>
   <script id="bundle" src="/renderer_human/bundle.js"></script>
   <script id="main">
+const s2clientprotocol = require('s2clientprotocol') //eslint-disable-line
+const stopwatch = require('/stopwatch.js') //eslint-disable-line
+const pythonUtils = require('/pythonUtils.js') //eslint-disable-line
 
+const sc_pb = s2clientprotocol.sc2api_pb
+const { withPython } = pythonUtils
 console.log('A0')
+
 const gamejs = require('gamejs') //eslint-disable-line
 window.gamejs = gamejs
-
-const frontend = require('frontend') //eslint-disable-line
-window.frontend = frontend
 
 const urlParams = new URLSearchParams(window.location.search) //eslint-disable-line
 const port = urlParams.get('port');
@@ -19,24 +22,7 @@ const host = '127.0.0.1';
 const url = `ws://${host}:${port}/`;
 console.log('A1')
 
-function getWSClient(wsUrl) {
-  let resolve;
-  let reject;
-  const prom = new Promise((res, rej) => {
-    resolve = res
-    reject = rej
-  });
-  const ws = new WebSocket(wsUrl);
-  function handleError(err) {
-    reject(err)
-  }
-  ws.addEventListener('open', () => {
-    ws.removeEventListener('error', handleError)
-    resolve(ws)
-  })
-  ws.addEventListener('error', handleError)
-  return prom
-}
+
 console.log('A2')
 
 // const gamejs = window['gamejs']
@@ -45,10 +31,98 @@ console.log('A2')
 
 console.log('B0')
 
+class WsClient {
+  constructor(url) { //eslint-disable-line
+    this._ws = null
+    this.url = url
+    this._trigger = null
+    this._que = []
+    this._sw = stopwatch.sw
+  }
+
+  getWSClient(wsUrl, callback) { //eslint-disable-line
+    let resolve;
+    let reject;
+    const prom = new Promise((res, rej) => {
+      resolve = res
+      reject = rej
+    });
+    const ws = new WebSocket(wsUrl);
+    function handleError(err) {
+      reject(err)
+    }
+    ws.addEventListener('open', () => {
+      ws.removeEventListener('error', handleError)
+      resolve(ws)
+    })
+    ws.addEventListener('error', handleError)
+    ws.addEventListener('message', callback)
+    return prom
+  }
+
+  _catchData(response) {
+    if (!response) {
+      throw new Error('Got an empty response from SC2.')
+    }
+    if (this._trigger) {
+      this._trigger(response)
+      this._trigger = null
+      return
+    }
+    this._que.push(response)
+  }
+
+  async read() {
+    //Actually read the response and parse it, returning a Response.//
+    let response = await withPython(this._sw('read_response'), async () => {
+      if (this._que.length) {
+        return this._que.shift()
+      }
+      return new Promise((resolve) => { this._trigger = resolve })
+    })
+    withPython(this._sw('parse_response'), () => {
+      response = sc_pb.Response.deserializeBinary(response)
+    })
+    return response
+  }
+
+  write(request) {
+    //Actually serialize and write the request.//
+    let request_str
+    withPython(this._sw('serialize_request'), () => {
+      request_str = request.serializeBinary()
+    })
+    withPython(this._sw('write_request'), () => {
+      try { //eslint-disable-line
+        this._ws.send(request_str)
+      } catch (err) {
+        /* TODO: Handling of different error types
+            raise ConnectionError("Connection already closed. SC2 probably crashed. "
+              "Check the error log.")
+            except websocket.WebSocketTimeoutException:
+              raise ConnectionError("Websocket timed out.")
+            except socket.error as e:
+              raise ConnectionError("Socket error: %s" % e)
+        */
+        throw err
+      }
+    })
+  }
+
+  send(message) {
+    this._ws.send(message)
+  }
+
+  async init() {
+    this._ws = await this.getWSClient(this.url, this.read.bind(this))
+  }
+}
 
 async function init() {
-  const ws = await getWSClient(url)
-  ws.send('hello!')
+  const wsClient = new WsClient(url)
+  await wsClient.init()
+  wsClient.send('hello!')
+  const renderer = new renderer_human.RenderHuman()
 }
 
 init()
@@ -56,6 +130,6 @@ console.log('B1')
 </script>
 </head>
 <body id="body">
-  <canvas id="canvas"></canvas>
+  <canvas id="gjs-canvas"></canvas>
 </body>
 </html>

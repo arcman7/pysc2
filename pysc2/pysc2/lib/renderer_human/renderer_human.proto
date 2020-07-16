@@ -69,6 +69,8 @@ message WriteWorldRequest {
   required string text = 4;
 }
 
+message RequestStaticData {}
+
 service Surface {
   rpc DrawLine(DrawLineRequest) returns (DrawLineResponse);
   rpc DrawArc(DrawArcRequest) returns (DrawArcResponse);
