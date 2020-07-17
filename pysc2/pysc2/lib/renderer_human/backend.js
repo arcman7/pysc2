@@ -15,12 +15,12 @@ const stopwatch = require(path.resolve(__dirname, '..', 'stopwatch.js'))
 const remote_controller = require(path.resolve(__dirname, '..', './remote_controller.js'))
 // const video_writter = require(path.resolve(__dirname, '..', './video_writer.js'))
 
+const sc_pb = s2clientprotocol.sc2api_pb
+
 // const sc_error = s2clientprotocol.error_pb
 // const sc_raw = s2clientprotocol.raw_pb
-const sc_pb = s2clientprotocol.sc2api_pb
 // const spatial = s2clientprotocol.spatial_pb
 // const sc_ui = s2clientprotocol.ui_pb
-const  { getTypes } = require(path.resolve(__dirname, '..', 'renderer_human.js'))
 
 const { withPython } = pythonUtils
 
@@ -30,73 +30,18 @@ const ActionCmd = Enum.IntEnum('ActionCmd', {
   QUIT: 3,
 })
 
-const root = new protobuf.Root().loadSync('./human_renderer.proto')
-const RequestStaticData = root.lookupType('human_renderer.RequestStaticData')
+// const root = new protobuf.Root().loadSync('./human_renderer.proto')
+// const RequestStaticData = root.lookupType('human_renderer.RequestStaticData')
 
-async function getWsServer({ port, host = '127.0.0.1', callback = () => {} }) {
-  port = port || await (portspicker.pick_unused_ports(1))[0]
-  const wss = new WebSocket.Server({ port, host })
-  wss.on('connection', function connection(ws) {
-    console.log('WebSocket server connection initialized.')
-    ws.on('message', function incoming(message = '') {
-      console.log('received: %s', message.slice(0, 30))
-    })
-    ws.on('message', callback)
-  })
-  return wss
-}
 
 class WsServer {
   constructor({ port, host = '127.0.0.1' }) {
     this.port = port
     this.host = host
-    this._trigger = null
-    this._que = []
     this._sw = stopwatch.sw
   }
 
-  // _catchData(response) {
-  //   if (!response) {
-  //     throw new Error('Got an empty response from SC2.')
-  //   }
-  //   if (this._trigger) {
-  //     this._trigger(response)
-  //     this._trigger = null
-  //     return
-  //   }
-  //   this._que.push(response)
-  // }
-
-  // async _read() {
-  //   //Actually read the response and parse it, returning a Response.//
-  //   let response = await withPython(this._sw('read_response'), async () => {
-  //     if (this._que.length) {
-  //       return this._que.shift()
-  //     }
-  //     return new Promise((resolve) => { this._trigger = resolve })
-  //   })
-  //   withPython(this._sw('parse_response'), () => {
-  //     response = sc_pb.Response.deserializeBinary(response)
-  //   })
-  //   return response
-  // }
-
-  _processMessage(data) {
-    if (!this.init) {
-      throw new Error('Must call init first.')
-    }
-    let message
-     withPython(this._sw('parse_message'), () => {
-      message = sc_pb.Response.deserializeBinary(data)
-    })
-    if (message instanceof RequestGameInfo) {
-
-    } else if (message instanceof RequestStaticData) {
-
-    }
-  }
-
-  _write(request) {
+  write(ws, request) {
     //Actually serialize and write the request.//
     let request_str
     withPython(this._sw('serialize_request'), () => {
@@ -104,7 +49,7 @@ class WsServer {
     })
     withPython(this._sw('write_request'), () => {
       try { //eslint-disable-line
-        this._ws.send(request_str)
+        ws.send(request_str)
       } catch (err) {
         /* TODO: Handling of different error types
             raise ConnectionError("Connection already closed. SC2 probably crashed. "
@@ -116,26 +61,42 @@ class WsServer {
         */
         throw err
       }
+      console.log('sent request!')
     })
   }
 
-  async init() {
+  async init(callback) {
+    const self = this
     withPython(this._sw('WsInit'), async () => {
-      this._wss = await getWsServer({
-        port: this.port,
-        host: this.host,
-        callback: this._catchData.bind(this)
+      const port = self.port || await (portspicker.pick_unused_ports(1))[0]
+      const host = self.host
+      const wss = new WebSocket.Server({ port, host })
+      wss.on('connection', function connection(ws) {
+        console.log('WebSocket server connection initialized.')
+        // ws.on('message', function incoming(message = '') {
+        //   console.log('received: %s', message.slice(0, 30))
+        // })
+        /*
+          Each time a client connects to the websocket server
+          the same calllback get's registered to it's message event
+
+          Routing a message back to the correct client connection
+          is gaurenteed since the callback is invoked with the
+          client connection that sent the message
+        */
+        ws.on('message', (message) => { callback(ws, message) })
       })
-      this._wss.addEventListener('data', () => {
-        const msg = await t
-      })
+      self._wss = wss
     })
   }
 }
 
 class GameLoop {
-  constructor(wss) {
-    this.wss = wss
+  constructor(run_config, controller, wss) {
+    this._run_config = run_config
+    this._controller = controller
+    this._wss = wss
+    this._sw = stopwatch.sw
   }
 
   save_replay(run_config, controller) {
@@ -146,11 +107,30 @@ class GameLoop {
     }
   }
 
-  async init(run_config, controller) {
-    this.run_config = run_config
-    this.controller = controller
-    this.game_info = await controller.game_info()
-    this.static_data = await controller.data()
+  async _routeMessage(ws, data) {
+    let message
+    withPython(this._sw('parse_message'), () => {
+      console.log(data)
+      try {
+        message = sc_pb.Response.deserializeBinary(data)
+      } catch (err) {
+        console.warn('In catch block trying sc_pb.Request')
+        message = sc_pb.Request.deserializeBinary(data)
+      }
+    })
+    if (message.hasGameInfo()/* instanceof sc_pb.RequestGameInfo*/) {
+      console.log('backend: requesting GameInfo')
+      const response = await this._controller.game_info()
+      // console.log(response)
+      this._wss.write(ws, response)
+    } else if (message.hasData() /*instanceof sc_pb.RequestData*/) {
+      console.log('backend: requesting Data')
+      const response = await this._controller.data_raw()
+      // console.log(response)
+      this._wss.write(ws, response)
+    } else if (message.hasSaveReplay() /*instanceof sc_pb.RequestQuickSave*/) {
+      this.save_replay()
+    }
   }
 
   async run(run_config, controller, max_game_steps = 0, max_episodes = 0, game_steps_per_episode = 0, save_replay = false) {
@@ -164,7 +144,7 @@ class GameLoop {
 
     try {
       while (true) {
-        await this.init(controller.game_info(), controller.data())
+        // await this.init(controller.game_info(), controller.data())
         episode_steps = 0
         num_episodes += 1
 
@@ -249,22 +229,21 @@ class InitalizeServices {
   constructor() {
     ///Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome
     this.chromeArgs = ['C:\\Program Files (x86)\\Google\\Chrome\\Application\\Chrome.exe', '-incognito', '--new-window', 'http://127.0.0.1:']
-    if (process.platform === 'darwin') {
+    if (process.platform === 'darwin') { //eslint-disable-next-line
       this.chromeArgs[0] = '/Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome'
     }
     this.browserFilePath = '/renderer_human/browser_client.html'
     this.websocketServer = null
   }
 
-  async setUp() {
+  async setUp(run_config, controller) {
     const [p1, p2] = await portspicker.pick_unused_ports(2)
     this.wsPort = p1
     this.httpPort = p2
     this.websocketServer = new WsServer({ port: this.wsPort })
-    await this.websocketServer.init()
+    this.gameLoop = new GameLoop(run_config, controller, this.websocketServer)
+    await this.websocketServer.init(this.gameLoop._routeMessage.bind(this.gameLoop))
     await this.startLocalHostServer()
-    await this.gameLoop = new GameLoop(this.websocketServer)
-    await this.gameLoop.init()
     // launch browser with websocket server port embedded as a url param
     const fullUrl = this.chromeArgs.pop() + this.httpPort + this.browserFilePath + '?port=' + this.wsPort
     this.fullUrl = fullUrl
@@ -314,6 +293,7 @@ class InitalizeServices {
 }
 
 module.exports = {
-  getWsServer,
+  GameLoop,
+  WsServer,
   InitalizeServices
 }

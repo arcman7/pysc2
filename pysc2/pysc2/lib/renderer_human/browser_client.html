@@ -6,28 +6,29 @@
   <script id="bundle" src="/renderer_human/bundle.js"></script>
   <script id="main">
 const s2clientprotocol = require('s2clientprotocol') //eslint-disable-line
+const renderer_human = require('/renderer_human.js') //eslint-disable-line
 const stopwatch = require('/stopwatch.js') //eslint-disable-line
 const pythonUtils = require('/pythonUtils.js') //eslint-disable-line
-
+const static_data = require('/static_data.js') //eslint-disable-line
 const sc_pb = s2clientprotocol.sc2api_pb
-const { withPython } = pythonUtils
+const { assert, snakeToPascal, withPython } = pythonUtils
 console.log('A0')
 
 const gamejs = require('gamejs') //eslint-disable-line
 window.gamejs = gamejs
+gamejs.events = []
+gamejs.event.onEvent((e) => { gamejs.events.push(e) })
+gamejs.getEvents = function() {
+  const events = gamejs.events
+  gamejs.events = []
+  return events
+}
 
 const urlParams = new URLSearchParams(window.location.search) //eslint-disable-line
 const port = urlParams.get('port');
 const host = '127.0.0.1';
 const url = `ws://${host}:${port}/`;
 console.log('A1')
-
-
-console.log('A2')
-
-// const gamejs = window['gamejs']
-// const { human_renderer } = require('frontend.js')
-// const sw = window.stopwatch.sw
 
 console.log('B0')
 
@@ -38,6 +39,7 @@ class WsClient {
     this._trigger = null
     this._que = []
     this._sw = stopwatch.sw
+    this._count = 1
   }
 
   getWSClient(wsUrl, callback) { //eslint-disable-line
@@ -48,6 +50,7 @@ class WsClient {
       reject = rej
     });
     const ws = new WebSocket(wsUrl);
+    ws.binaryType = 'arraybuffer'
     function handleError(err) {
       reject(err)
     }
@@ -56,8 +59,13 @@ class WsClient {
       resolve(ws)
     })
     ws.addEventListener('error', handleError)
-    ws.addEventListener('message', callback)
+    ws.addEventListener('message', (e) => { callback(Uint8Array.from(e.data)) })
     return prom
+  }
+
+  next(n) {
+    this._count = n + 1
+    return this._count
   }
 
   _catchData(response) {
@@ -78,7 +86,9 @@ class WsClient {
       if (this._que.length) {
         return this._que.shift()
       }
-      return new Promise((resolve) => { this._trigger = resolve })
+      return new Promise((resolve) => {
+        this._trigger = resolve
+      })
     })
     withPython(this._sw('parse_response'), () => {
       response = sc_pb.Response.deserializeBinary(response)
@@ -109,24 +119,102 @@ class WsClient {
     })
   }
 
-  send(message) {
-    this._ws.send(message)
+  send_req(request) {
+    this.write(request)
+    return this.read()
+  }
+
+  async send(kwargs) {
+    /*
+    Create and send a specific request, and return the response.
+
+    For example: send(ping=sc_pb.RequestPing()) => sc_pb.ResponsePing
+
+    Args:
+      **kwargs: A single kwarg with the name and value to fill in to Request.
+
+    Returns:
+      The Response corresponding to your request.
+    Raises:
+      ConnectionError: if it gets a different response.
+    */
+    const names = Object.keys(kwargs)
+    assert(names.length === 1, 'Must make a single request')
+    let name = names[0]
+    const val = kwargs[name]
+    const req = new sc_pb.Request() // init proto req class
+    name = snakeToPascal(name)
+    const isList = Array.isArray(val)
+    // proto setters: setFoo, setFooList
+    req[`set${name + (isList ? 'List' : '')}`](val)
+    req.setId(this.next(this._count))
+    let res
+    try {
+      // console.log(req.toObject())
+      res = await this.send_req(req)
+    } catch (err) {
+      console.warn('req:\n', req.toObject(), '\nres:\n', res ? res.toObject() : 'undefined')
+      throw new Error(`Error during ${name}: ${err}`)
+    }
+    // if (res.getId && res.getId() !== req.getId()) {
+    //   const reqObj = req.toObject()
+    //   Object.keys(reqObj).forEach((key) => {
+    //     if (key.match('data') && reqObj[key]) {
+    //       reqObj[key] = `<data ${reqObj[key].length}>`
+    //     }
+    //   })
+    //   console.warn('req:\n', reqObj, '\nres:\n', res ? res.toObject() : 'undefined')
+    //   throw new Error(`Error during ${name}: Got a response with a different id\n expected: ${req.getId()}, got: ${res.getId()}`)
+    // }
+
+    // proto getters: getFoo, getFooList
+    return res[`get${name + (isList ? 'List' : '')}`]()
+  }
+
+  async game_info() {
+    //Get the basic information about the game.//
+    return this.send({ game_info: new sc_pb.RequestGameInfo() })
+  }
+
+  async data_raw(ability_id = true, unit_type_id = true, upgrade_id = true, buff_id = true, effect_id = true) {
+    //Get the raw static data for the current game. Prefer `data` instead.//
+    const req = new sc_pb.RequestData()
+    req.setAbilityId(ability_id)
+    req.setUnitTypeId(unit_type_id)
+    req.setUpgradeId(upgrade_id)
+    req.setBuffId(buff_id)
+    req.setEffectId(effect_id)
+    return this.send({ data: req })
+  }
+
+  async data() {
+    //Get the static data for the current game.//
+    const reqData = await this.data_raw()
+    return new static_data.StaticData(reqData.toObject())
+  }
+
+  save_repaly() {
+    this.send({ save_replay: new sc_pb.RequestSaveReplay() })
   }
 
   async init() {
-    this._ws = await this.getWSClient(this.url, this.read.bind(this))
+    this._ws = await this.getWSClient(this.url, this._catchData.bind(this))
   }
 }
 
-async function init() {
+
+async function main() {
   const wsClient = new WsClient(url)
   await wsClient.init()
-  wsClient.send('hello!')
-  const renderer = new renderer_human.RenderHuman()
-}
 
-init()
+  const renderer = new renderer_human.RendererHuman()
+  renderer.init(await wsClient.game_info(), await wsClient.data())
+}
 console.log('B1')
+
+gamejs.ready(main)
+
+console.log('B2')
 </script>
 </head>
 <body id="body">
