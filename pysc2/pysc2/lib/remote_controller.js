@@ -541,4 +541,5 @@ async function RemoteControllerFactory(host, port, proc, timeout_seconds, passed
 module.exports = {
   RemoteController,
   RemoteControllerFactory,
+  Status,
 }

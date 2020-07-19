@@ -208,6 +208,14 @@ class WsClient {
     this.send({ save_replay: new sc_pb.RequestSaveReplay() })
   }
 
+  async start_observe_stream(disable_fog = false, target_game_loop = 0) {
+    const req = new sc_pb.RequestObservation()
+    req.setGameLoop(target_game_loop)
+    req.setDisableFog(disable_fog)
+    // returns first observation
+    return this.send({ observation: req })
+  }
+
   async init() {
     this._ws = await this.getWSClient(this.url, this._catchData.bind(this))
   }
@@ -221,7 +229,15 @@ async function main() {
   const renderer = new renderer_human.RendererHuman()
   const gameInfo = await wsClient.game_info()
   const staticData = await wsClient.data()
-  renderer.init(gameInfo, staticData)
+  await renderer.init(gameInfo, staticData)
+  // from here on only sending observations over the wire
+  /* eslint-disable no-await-in-loop */
+  let obs
+  await wsClient.start_observe_stream()
+  while (true) {
+    obs = await wsClient.read()
+    await renderer.render(obs)
+  }
 }
 
 gamejs.ready(main)

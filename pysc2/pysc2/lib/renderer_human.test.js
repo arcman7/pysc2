@@ -67,6 +67,7 @@ async function test() {
 
   const services = new backend.InitalizeServices()
   services.setUp(run_config, controller)
+  // services.gameLoop.run()
 }
 
 test()

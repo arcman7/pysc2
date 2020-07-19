@@ -14,6 +14,7 @@ const stopwatch = require(path.resolve(__dirname, '..', 'stopwatch.js'))
 // const memoize = require(path.resolve(__dirname, '..', 'memoize.js'))
 const remote_controller = require(path.resolve(__dirname, '..', './remote_controller.js'))
 // const video_writter = require(path.resolve(__dirname, '..', './video_writer.js'))
+const { performance } = require('perf_hooks') //eslint-disable-line
 
 const sc_pb = s2clientprotocol.sc2api_pb
 
@@ -44,6 +45,7 @@ class WsServer {
     this.port = port
     this.host = host
     this._sw = stopwatch.sw
+    this._connections = []
   }
 
   write(ws, request) {
@@ -70,6 +72,10 @@ class WsServer {
     })
   }
 
+  broadcast(request) {
+    this._connections.forEach((ws) => this.write(ws, request))
+  }
+
   async init(callback) {
     const self = this
     withPython(this._sw('WsInit'), async () => {
@@ -86,6 +92,7 @@ class WsServer {
           is gaurenteed since the callback is invoked with the
           client connection that sent the message
         */
+        self._connections.push(ws)
         ws.on('message', (message) => { callback(ws, message) })
       })
       self._wss = wss
@@ -115,7 +122,7 @@ class GameLoop {
       console.log(data)
       message = sc_pb.Request.deserializeBinary(data)
     })
-    if (message.hasGameInfo()/* instanceof sc_pb.RequestGameInfo*/) {
+    if (message.hasGameInfo()) {
       console.log('backend: requesting GameInfo')
       if (this._game_info) {
         this._wss.write(ws, this._game_info)
@@ -125,7 +132,7 @@ class GameLoop {
       response.setGameInfo(await this._controller.game_info())
       this._game_info = response
       this._wss.write(ws, response)
-    } else if (message.hasData() /*instanceof sc_pb.RequestData*/) {
+    } else if (message.hasData()) {
       console.log('backend: requesting Data')
       if (this._data) {
         this._wss.write(ws, this._data)
@@ -134,8 +141,12 @@ class GameLoop {
       response.setData(await this._controller.data_raw())
       this._data = response
       this._wss.write(ws, response)
-    } else if (message.hasSaveReplay() /*instanceof sc_pb.RequestQuickSave*/) {
+    } else if (message.hasSaveReplay()) {
+      console.log('backend: requesting save replay')
       this.save_replay()
+    } else if (message.hasObservation()) {
+      console.log('backend: starting observations steam')
+      this.run(this._run_config, this._controller)
     }
   }
 
@@ -163,9 +174,9 @@ class GameLoop {
           // this.render(obs)
           const response = new sc_pb.Response()
           response.setObservation(obs)
-          this._wss.write(response)
-
-          if (obs.getPlayerResult()) {
+          this._wss.broadcast(obs)
+          // this._wss.write(response)
+          if (obs.getPlayerResultList()) {
             break
           }
 

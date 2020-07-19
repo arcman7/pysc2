@@ -12,6 +12,7 @@ const named_array = require('./named_array.js') //eslint-disable-line
 const static_data = require('./static_data.js') //eslint-disable-line
 const stopwatch = require('./stopwatch.js') //eslint-disable-line
 const transform = require('./transform.js') //eslint-disable-line
+const remote_controller = require('./protocol.js') //eslint-disable-line
 const np = require('./numpy.js') //eslint-disable-line
 
 const sc_error = s2clientprotocol.error_pb
