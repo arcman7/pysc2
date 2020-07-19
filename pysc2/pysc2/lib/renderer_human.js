@@ -77,7 +77,7 @@ class _Ability extends namedtuple("_Ability", ["ability_id", "name", "footprint_
 
 class _Surface {
   //A surface to display on screen.//
-  constructor(surf, surf_type, surf_rect, world_to_surf, world_to_obs, draw, ws_client) {
+  constructor(surf, surf_type, surf_rect, world_to_surf, world_to_obs, draw) {
     /*A surface to display on screen.
 
     Args:
@@ -98,7 +98,7 @@ class _Surface {
 
   draw_line(color, start_loc, end_loc, thickness = 1) {
     window.gamejs.draw.line(
-      this.surf, color,
+      this.surf, color.toCSS(),
       this.world_to_surf.fwd_pt(start_loc).round(),
       this.world_to_surf.fwd_pt(end_loc).round(),
       Math.max(1, thickness)
@@ -111,7 +111,7 @@ class _Surface {
     const radius = Math.max(1, Math.floor(this.world_to_surf.fwd_dist(world_radius)))
     const rect = window.gamejs.Rect(center - radius, (radius * 2, radius * 2))
     window.gamejs.draw.arc(
-      this.surf, color, rect, start_angle, stop_angle,
+      this.surf, color.toCSS(), rect, start_angle, stop_angle,
       thickness < radius ? thickness : 0
     )
   }
@@ -122,7 +122,7 @@ class _Surface {
       const center = this.world_to_surf.fwd_pt(world_loc).round()
       const radius = Math.max(1, Math.floor(this.world_to_surf.fwd_dist(world_radius)))
       window.gamejs.draw.circle(
-        this.surf, color, center, radius,
+        this.surf, color.toCSS(), center, radius,
         thickness < radius ? thickness : 0
       )
     }
@@ -133,7 +133,7 @@ class _Surface {
     const tl = this.world_to_surf.fwd_pt(world_rect.tl).round()
     const br = this.world_to_surf.fwd_pt(world_rect.br).round()
     const rect = window.gamejs.Rect(tl, br.sub(tl))
-    window.gamejs.draw.rect(this.surf, color, rect, thickness)
+    window.gamejs.draw.rect(this.surf, color.toCSS(), rect, thickness)
   }
 
   blit_np_array(array) {
@@ -143,15 +143,15 @@ class _Surface {
       raw_surface = window.gamejs.surfarray.make_surface(array.transpose([1, 0, 2]))
     })
     withPython(sw('draw'), () => {
-      window.gamejs.transform.scale(raw_surface, this.surf.get_size(), this.surf)
+      window.gamejs.transform.scale(raw_surface, this.surf.getSize(), this.surf)
     })
   }
 
   write_screen(font, color, screen_pos, text, align = 'left', valign = 'top') {
     //Write to the screen in font.size relative coordinates.//
     const pos = new point.Point(...screen_pos) * new point.Point(0.75, 1) * font.get_linesize()
-    const text_surf = font.render(text.toString ? text.toString() : String(text), true, color)
-    const rect = text_surf.get_rect()
+    const text_surf = font.render(text.toString ? text.toString() : String(text), true, color.toCSS())
+    const rect = text_surf.getRect()
     if (pos.x >= 0) {
       rect[align] = pos.x
     } else {
@@ -166,8 +166,8 @@ class _Surface {
   }
 
   write_world(font, color, world_loc, text) {
-    const text_surf = font.render(text, true, color)
-    const rect = text_surf.get_rect()
+    const text_surf = font.render(text, true, color.toCSS())
+    const rect = text_surf.getRect()
     rect.center = this.world_to_surf.fwd_pt(world_loc)
     this.surf.blit(text_surf, rect)
   }
@@ -267,6 +267,31 @@ class RendererHuman {
     return RendererHuman.cmd_group_keys
   }
 
+  static get shortcuts() {
+    return [
+      ["F1", "Select idle worker"],
+      ["F2", "Select army"],
+      ["F3", "Select larva (zerg) or warp gates (protoss)"],
+      ["F4", "Quit the game"],
+      ["F5", "Restart the map"],
+      ["F8", "Save a replay"],
+      ["F9", "Toggle RGB rendering"],
+      ["F10", "Toggle rendering the player_relative layer."],
+      ["F11", "Toggle synchronous rendering"],
+      ["F12", "Toggle raw/feature layer actions"],
+      ["Ctrl++", "Zoom in"],
+      ["Ctrl+-", "Zoom out"],
+      ["PgUp/PgDn", "Increase/decrease the max game speed"],
+      ["Ctrl+PgUp/PgDn", "Increase/decrease the step multiplier"],
+      ["Pause", "Pause the game"],
+      ["?", "This help screen"],
+    ]
+  }
+
+  get shortcuts() {
+    return RendererHuman.shortcuts
+  }
+
   static get upgrade_colors() {
     return [
       colors.black,  // unused...
@@ -352,7 +377,7 @@ class RendererHuman {
     if (game_info.getOptions().hasFeatureLayer()) {
       const fl_opts = game_info.getOptions().getFeatureLayer()
       this._feature_screen_px = point.Point.build(fl_opts.getResolution())
-      this._feature_minimap_px = point.Point.build(fl_opts.getMinimap_resolution())
+      this._feature_minimap_px = point.Point.build(fl_opts.getMinimapResolution())
       this._feature_camera_width_world_units = fl_opts.getWidth()
       this._render_rgb = false
       if (!fl_opts.getCropToPlayableArea()) {
@@ -364,6 +389,12 @@ class RendererHuman {
     }
     if (game_info.getOptions().hasRender()) {
       const render_opts = game_info.getOptions().getRender()
+      this._rgb_screen_px = point.Point.build(render_opts.getResolution())
+      this._rgb_minimap_px = point.Point.build(render_opts.getMinimapResolution())
+      this._render_rgb = true
+    } else {
+      this._rgb_screen_px = null
+      this._rgb_minimap_px = null
     }
 
     if (!this._feature_screen_px && !this._rgb_screen_px) {
@@ -376,7 +407,7 @@ class RendererHuman {
     } catch (err) {
       this._initialized = false
       console.error(''.lpad(60, '-'))
-      console.error('Failed to initialize gamejs: ', e)
+      console.error('Failed to initialize gamejs: ', err)
       console.error('Continuing without gamejs.')
       console.error('If you\'re using ssh and have an X server, try ssh -X.')
       console.error(''.lpad(60, '-'))
@@ -395,12 +426,12 @@ class RendererHuman {
   async init_window() {
     //Initialize the gamejs window and lay out the surfaces//
 
-    let resolve
-    const prom = new Promise((res) => {
-      resolve = res
-    })
-    gamejs.ready(resolve)
-    await prom
+    // let resolve
+    // const prom = new Promise((res) => {
+    //   resolve = res
+    // })
+    // gamejs.ready(resolve)
+    // await prom
 
     let main_screen_px
     if (this._render_rgb && this._rgb_screen_px) {
@@ -412,9 +443,11 @@ class RendererHuman {
 
     let window_size_ratio = main_screen_px
     let num_feature_layers = 0
+    let feature_cols
+    let feature_rows
     if (this._render_feature_grid) {
       // Want a roughly square grid of feature layers, each being roughly square.
-      if (this._game_info.options.raw) {
+      if (this._game_info.getOptions().getRaw()) {
         num_feature_layers += 5
       }
       if (this._feature_screen_px) {
@@ -422,16 +455,19 @@ class RendererHuman {
         num_feature_layers += features.MINIMAP_FEATURES.length
       }
       if (num_feature_layers > 0) {
-        const feature_cols = Math.ceil(Math.sqrt(num_feature_layers))
-        const feature_rows = Math.ceil(num_feature_layers / feature_cols)
+        feature_cols = Math.ceil(Math.sqrt(num_feature_layers))
+        feature_rows = Math.ceil(num_feature_layers / feature_cols)
         const features_layout = new point.Point(
           feature_cols, feature_rows * 1.05 // Make room for titles.
         )
 
         // Scale features_layout to main_screen_px height so we know its width.
-        const features_aspect_ratio = (features_layout * main_screen_px.y /
-                                 features_layout.y)
-        window_size_ratio += point.Point(features_aspect_ratio.x, 0)
+        const features_aspect_ratio = features_layout 
+          .mul(main_screen_px.y)
+          .div(features_layout.y)
+        window_size_ratio = window_size_ratio.add(
+          new point.Point(features_aspect_ratio.x, 0)
+        )
       }
     }
     const window_size_px = window_size_ratio.scale_max_size(
@@ -440,25 +476,27 @@ class RendererHuman {
 
     // Create the actual window surface. This should only be blitted to from one
     // of the sub-surfaces defined below.
-    this._window = gamejs.display.set_mode(window_size_px, 0, 32)
-    gamejs.display.set_caption('Starcraft Viewer')
+    this._window = gamejs.display.setMode(window_size_px, 0, 32)
+    gamejs.display.setCaption('Starcraft Viewer')
 
     // The sub-surfaces that the various draw functions will draw to.
     this._surfaces = []
+    const self = this
     function add_surface(surf_type, surf_loc, world_to_surf, world_to_obs, draw_fn) {
       //Add a surface. Drawn in order and intersect in reverse order.//
-      const sub_surf = this._window.subsurface(
+      // const sub_surf = self._window.getSurface(
+      const sub_surf = gamejs.display.getSurface(
         gamejs.Rect(surf_loc.tl, surf_loc.size)
       )
-      this._surfaces.append(new _Surface(
+      self._surfaces.push(new _Surface(
           sub_surf, surf_type, surf_loc, world_to_surf, world_to_obs, draw_fn
         )
       )
     }
 
     this._scale = window_size_px.y // 32
-    this._font_small = gamejs.font.Font(null, Math.floor(this._scale * 0.5))
-    this._font_large = gamejs.font.Font(null, this._scale)
+    this._font_small = new gamejs.font.Font(null, Math.floor(this._scale * 0.5))
+    this._font_large = new gamejs.font.Font(null, this._scale)
 
     function check_eq(a, b) {
       //Used to run unit tests on the transforms.//
@@ -613,7 +651,7 @@ class RendererHuman {
     let minimap_offset = new point.Point(0, (screen_size_px.y - minimap_size_px.y))
 
     if (this._render_rgb) {
-      rgb_screen_to_main_screen = new transform.Linear(
+      let rgb_screen_to_main_screen = new transform.Linear(
         screen_size_px / this._rgb_screen_px
       )
       add_surface(
@@ -625,16 +663,19 @@ class RendererHuman {
         this._world_to_rgb_screen_px,
         this.draw_screen
       )
-      rgb_minimap_to_main_minimap = new transform.Linear(
+      let rgb_minimap_to_main_minimap = new transform.Linear(
         minimap_size_px.div(this._rgb_minimap_px)
       )
       add_surface(
         SurfType.RGB | SurfType.MINIMAP,
-        new point.Rect(minimap_offset,
-                   minimap_offset + minimap_size_px),
+        new point.Rect(
+          minimap_offset,
+          minimap_offset.add(minimap_size_px)
+        ),
         new transform.Chain(  // surf
-            this._world_to_rgb_minimap,
-            rgb_minimap_to_main_minimap),
+          this._world_to_rgb_minimap,
+          rgb_minimap_to_main_minimap
+        ),
         this._world_to_rgb_minimap_px,
         this.draw_mini_map
       )
@@ -659,7 +700,7 @@ class RendererHuman {
         SurfType.FEATURE | SurfType.MINIMAP,
         new point.Rect(
           minimap_offset,
-          minimap_offset + minimap_size_px
+          minimap_offset.add(minimap_size_px)
         ),
         new transform.Chain(  // surf
           this._world_to_feature_minimap,
@@ -673,11 +714,12 @@ class RendererHuman {
     if (this._render_feature_grid && num_feature_layers > 0) {
       // Add the raw and feature layers
       const features_loc = new point.Point(screen_size_px.x, 0)
-      const feature_pane = this._window.subsurface(
+      // const feature_pane = this._window.getSurface(
+      const feature_pane = gamejs.display.getSurface(
         gamejs.Rect(features_loc, window_size_px.sub(features_loc))
       )
-      feature_pane.fill(colors.white.div(2))
-      const feature_pane_size = new point.Point(...feature_pane.get_size())
+      feature_pane.fill(colors.white.div(2).toCSS())
+      const feature_pane_size = new point.Point(...feature_pane.getSize())
       const feature_grid_size = feature_pane_size.div(
         new point.Point(
           feature_cols,
@@ -687,21 +729,21 @@ class RendererHuman {
       const feature_layer_area = new point.Point(1, 1)
         .scale_max_size(feature_grid_size)
       const feature_layer_padding = feature_layer_area // 20
-      const feature_layer_size = feature_layer_area.minus(feature_layer_padding.mul(2))
+      const feature_layer_size = feature_layer_area.sub(feature_layer_padding.mul(2))
 
       const feature_font_size = Math.floor(feature_grid_size.y * 0.09)
-      const feature_font = gamejs.font.Font(null, feature_font_size)
+      const feature_font = new gamejs.font.Font(null, feature_font_size)
 
-      const feature_counter = itertools.count()
+      let feature_counter = 0
       function add_layer(surf_type, world_to_surf, world_to_obs, name, fn) {
         //Add a layer surface.//
-        i = next(feature_counter)
-        grid_offset = new point.Point(
+        const i = ++feature_counter
+        const grid_offset = new point.Point(
           i % feature_cols,
           i / feature_cols
         ).mul(feature_grid_size)
-        text = feature_font.render(name, true, colors.white)
-        rect = text.get_rect()
+        const text = feature_font.render(name, true, colors.white)
+        const rect = text.getRect()
         rect.center = grid_offset.add(
           new point.Point(
             feature_grid_size.x / 2,
@@ -737,7 +779,7 @@ class RendererHuman {
         )
       }
 
-      if (this._game_info.options.raw) {
+      if (this._game_info.getOptions().getRaw()) {
         add_raw_layer(false, "terrain_height", colors.height_map(256))
         add_raw_layer(false, "pathing_grid", colors.winter(2))
         add_raw_layer(false, "placement_grid", colors.winter(2))
@@ -839,7 +881,7 @@ class RendererHuman {
     //Return a MousePos filled with the world position and surf it hit.//
     window_pos = window_pos || gamejs.mouse.get_pos()
     // +0.5 to center the point on the middle of the pixel.
-    const window_pt = new poin.Point(...window_pos).add(0.5)
+    const window_pt = new point.Point(...window_pos).add(0.5)
     for (let i = this._surfaces.length - 1; i >= 0; i--) {
       const surf = this._surfaces[i]
       if (sur.surf_type != SurfType.CHROME && surf.surf_rect.contains_point(window_pt)) {
@@ -857,7 +899,7 @@ class RendererHuman {
 
   save_replay(run_config, controller) {
     if (controller.status == remote_controller.Status.in_game || controller.status == remote_controller.Status.ended) {
-      const prefix = path.basename(this._game_info.local_map_path).split('.')[0]
+      const prefix = path.basename(this._game_info.getLocalMap_Path()).split('.')[0]
       const replay_path = run_config.save_replay(controller.save_replay(), 'local', prefix)
       console.log('Wrote replay to: ', replay_path)
     }
@@ -1993,7 +2035,7 @@ class RendererHuman {
       })
     }
 
-    gamejs.draw.rect(surf.surf, colors.red, surf.surf.get_rect(), 1) // Border
+    gamejs.draw.rect(surf.surf, colors.red.toCSS(), surf.surf.getRect(), 1) // Border
   }
 
   check_valid_queued_action() {
@@ -2015,7 +2057,7 @@ class RendererHuman {
 
   draw_screen(surf) {
     //Draw the screen area.//
-    if (this._reander_rgb &&
+    if (this._render_rgb &&
       this._obs.getObservation().hasRenderData() &&
       this._obs.getObservation().getRenderData().hasMap()) {
       this.draw_rendered_map(surf)
@@ -2037,7 +2079,7 @@ class RendererHuman {
     if (layer != null) {
       surf.blit_np_array(feature.color(layer))
     } else { // Ignore layers that aren't in this version of SC2.
-      surf.surf.fill(colors.black)
+      surf.surf.fill(colors.black.toCSS())
     }
   }
 

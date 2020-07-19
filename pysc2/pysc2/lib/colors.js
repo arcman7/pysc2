@@ -50,6 +50,10 @@ class Color extends namedtuple('Color', ['r', 'g', 'b']) {
   div(val) {
     return this.__truediv__(val)
   }
+
+  toCSS() {
+    return `rgb(${this.r},${this.g},${this.b})`
+  }
 }
 
 const black = new Color(0, 0, 0)

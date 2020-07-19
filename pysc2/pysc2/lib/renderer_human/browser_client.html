@@ -12,25 +12,32 @@ const pythonUtils = require('/pythonUtils.js') //eslint-disable-line
 const static_data = require('/static_data.js') //eslint-disable-line
 const sc_pb = s2clientprotocol.sc2api_pb
 const { assert, snakeToPascal, withPython } = pythonUtils
-console.log('A0')
 
 const gamejs = require('gamejs') //eslint-disable-line
 window.gamejs = gamejs
+gamejs.mouse = {
+  get_pos() {
+    return gamejs.mouse.pos || { x: 0, y: 0 }
+  }
+}
 gamejs.events = []
-gamejs.event.onEvent((e) => { gamejs.events.push(e) })
+gamejs.event.onEvent((e) => {
+  if (e.type === gamejs.event.MOUSE_MOTION) {
+    gamejs.mouse.pos = e.pos
+  }
+  gamejs.events.push(e)
+})
 gamejs.getEvents = function() {
   const events = gamejs.events
   gamejs.events = []
   return events
 }
 
+
 const urlParams = new URLSearchParams(window.location.search) //eslint-disable-line
 const port = urlParams.get('port');
 const host = '127.0.0.1';
 const url = `ws://${host}:${port}/`;
-console.log('A1')
-
-console.log('B0')
 
 class WsClient {
   constructor(url) { //eslint-disable-line
@@ -59,7 +66,9 @@ class WsClient {
       resolve(ws)
     })
     ws.addEventListener('error', handleError)
-    ws.addEventListener('message', (e) => { callback(Uint8Array.from(e.data)) })
+    ws.addEventListener('message', (e) => {
+      callback(new Uint8Array(e.data))
+    })
     return prom
   }
 
@@ -168,6 +177,8 @@ class WsClient {
     // }
 
     // proto getters: getFoo, getFooList
+    // console.log('name: ', name)
+    // console.log(res.toObject())
     return res[`get${name + (isList ? 'List' : '')}`]()
   }
 
@@ -208,14 +219,25 @@ async function main() {
   await wsClient.init()
 
   const renderer = new renderer_human.RendererHuman()
-  renderer.init(await wsClient.game_info(), await wsClient.data())
+  const gameInfo = await wsClient.game_info()
+  const staticData = await wsClient.data()
+  renderer.init(gameInfo, staticData)
 }
-console.log('B1')
 
 gamejs.ready(main)
-
-console.log('B2')
 </script>
+<style>
+#gjs-canvas {
+  border: 1px solid #ccc;
+  margin: 20px;
+  box-shadow: 14px 10px 30px 0px rgba(50, 50, 50, 0.75);
+  width: calc(100% - 40px);
+  height: calc(100% - 60px);
+  position: absolute;
+  /** automatically made visible once game is loaded **/
+  display:none;
+}
+</style>
 </head>
 <body id="body">
   <canvas id="gjs-canvas"></canvas>

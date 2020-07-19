@@ -245,7 +245,7 @@ class Rect extends namedtuple("Rect", ["t", "l", "b", "r"]) {
     }
     if (arg.length === 2) {
       const [p1, p2] = arg
-      if ((!isinstance(p1, Point) || !(isinstance(p2, Point)))) {
+      if (!isinstance(p1, Point) || !isinstance(p2, Point)) {
         throw new Error(`TypeError: Rect expected Points`)
       }
       super({
@@ -385,6 +385,7 @@ class Rect extends namedtuple("Rect", ["t", "l", "b", "r"]) {
 }
 
 module.exports = {
+  origin,
   Point,
   Rect,
 }

@@ -24,6 +24,14 @@ class Transform {
 
 class Linear extends Transform {
   constructor(scale = null, offset = null) {
+    //object was passed in
+    // { scale: scale, offset: offset }
+    if (!(scale instanceof point.Point)) {
+      if (scale && scale.offset) {
+        offset = scale.offset
+        scale = scale.scale || null
+      }
+    }
     super(scale, offset)
     if (scale == null) {
       this.scale = new point.Point(1, 1)

@@ -32,7 +32,12 @@ const ActionCmd = Enum.IntEnum('ActionCmd', {
 
 // const root = new protobuf.Root().loadSync('./human_renderer.proto')
 // const RequestStaticData = root.lookupType('human_renderer.RequestStaticData')
-
+async function sleep(time) {
+  const prom = new Promise((res) => {
+    setTimeout(res, time * 1000)
+  })
+  return prom
+}
 
 class WsServer {
   constructor({ port, host = '127.0.0.1' }) {
@@ -73,9 +78,6 @@ class WsServer {
       const wss = new WebSocket.Server({ port, host })
       wss.on('connection', function connection(ws) {
         console.log('WebSocket server connection initialized.')
-        // ws.on('message', function incoming(message = '') {
-        //   console.log('received: %s', message.slice(0, 30))
-        // })
         /*
           Each time a client connects to the websocket server
           the same calllback get's registered to it's message event
@@ -111,22 +113,26 @@ class GameLoop {
     let message
     withPython(this._sw('parse_message'), () => {
       console.log(data)
-      try {
-        message = sc_pb.Response.deserializeBinary(data)
-      } catch (err) {
-        console.warn('In catch block trying sc_pb.Request')
-        message = sc_pb.Request.deserializeBinary(data)
-      }
+      message = sc_pb.Request.deserializeBinary(data)
     })
     if (message.hasGameInfo()/* instanceof sc_pb.RequestGameInfo*/) {
       console.log('backend: requesting GameInfo')
-      const response = await this._controller.game_info()
-      // console.log(response)
+      if (this._game_info) {
+        this._wss.write(ws, this._game_info)
+        return
+      }
+      const response = new sc_pb.Response()
+      response.setGameInfo(await this._controller.game_info())
+      this._game_info = response
       this._wss.write(ws, response)
     } else if (message.hasData() /*instanceof sc_pb.RequestData*/) {
       console.log('backend: requesting Data')
-      const response = await this._controller.data_raw()
-      // console.log(response)
+      if (this._data) {
+        this._wss.write(ws, this._data)
+      }
+      const response = new sc_pb.Response()
+      response.setData(await this._controller.data_raw())
+      this._data = response
       this._wss.write(ws, response)
     } else if (message.hasSaveReplay() /*instanceof sc_pb.RequestQuickSave*/) {
       this.save_replay()
@@ -151,10 +157,13 @@ class GameLoop {
         while (true) {
           total_game_steps += this._step_mul
           episode_steps += this._step_mul
-          // const frame_start_time = performance.now()
+          const frame_start_time = performance.now()
 
           const obs = await controller.observe()
-          this.render(obs)
+          // this.render(obs)
+          const response = new sc_pb.Response()
+          response.setObservation(obs)
+          this._wss.write(response)
 
           if (obs.getPlayerResult()) {
             break
@@ -185,10 +194,10 @@ class GameLoop {
           if (game_steps_per_episode && episode_steps >= game_steps_per_episode) {
             break
           }
-          // withPython(sw("sleep"), () => {
-          //   elapsed_time = time.time() - frame_start_time
-          //   time.sleep(max(0, 1 / this._fps - elapsed_time))
-          // })
+          await withPython(sw("sleep"), async () => { //eslint-disable-line
+            const elapsed_time = performance.now() - frame_start_time
+            await sleep(Math.max(0, 1 / this._fps - elapsed_time))
+          })
         }
 
         if (is_replay) {
