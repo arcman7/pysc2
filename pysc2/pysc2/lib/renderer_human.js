@@ -137,11 +137,17 @@ class _Surface {
     window.gamejs.draw.rect(this.surf, color.toCSS(), rect, thickness)
   }
 
-  blit_np_array(array) {
+  blit_np_array(tensor) {
     //Fill this surface using the contents of a numpy array.//
     let raw_surface
     withPython(sw('make_surface'), () => {
-      raw_surface = window.gamejs.surfarray.make_surface(array.transpose([1, 0, 2]))
+      raw_surface = window.gamejs.graphics.blitArray(this.surf, {
+        imageData: new ImageData(
+          new Uint8ClampedArray(tensor.transpose([1, 0, 2]).dataSync()),
+          tensor.shape[0],
+          tensor.shape[1]
+        )
+      })
     })
     withPython(sw('draw'), () => {
       window.gamejs.transform.scale(raw_surface, this.surf.getSize(), this.surf)
@@ -415,6 +421,9 @@ class RendererHuman {
     }
 
     this._obs = new sc_pb.ResponseObservation()
+    const ob = new sc_pb.Observation()
+    ob.setGameLoop(0)
+    this._obs.setObservation(ob)
     this._queued_action = null
     this._queued_hotkey = ''
     this._select_start = null
@@ -490,7 +499,7 @@ class RendererHuman {
         gamejs.Rect(surf_loc.tl, surf_loc.size)
       )
       self._surfaces.push(new _Surface(
-          sub_surf, surf_type, surf_loc, world_to_surf, world_to_obs, draw_fn
+          sub_surf, surf_type, surf_loc, world_to_surf, world_to_obs, draw_fn.bind(self)
         )
       )
     }
@@ -1921,7 +1930,7 @@ class RendererHuman {
     })
   }
 
-  async draw_base_map(surf) {
+  draw_base_map(surf) {
     //Draw the base map.//
     const hmap_feature = features.SCREEN_FEATURES.height_map
     let hmap = hmap_feature.unpack(this._obs.getObservation())
@@ -2100,15 +2109,29 @@ class RendererHuman {
     const now = performance.now()
     this._game_times.push(
       now - this._last_time,
-      Math.max(1, obs.getObservation().getGameLoop() - this._obs.getObersvation().getGameLoop())
+      Math.max(1, obs.getObservation().getGameLoop() - this._obs.getObservation().getGameLoop())
     )
     this._last_time = now
     this._last_game_loop = this._obs.getObservation().getGameLoop()
+    if (this._obs_trigger) {
+      this._obs_trigger(obs)
+      this._obs_trigger = null
+      return
+    }
     this._obs_queue.add(obs)
     // dont think we need this for JavaScript
     // if (this._render_sync) {
     //   this._obs_queue.join()
     // }
+  }
+
+  get_next_obs() {
+    if (this._obs_queue.length) {
+      return Promsise.resolve(this._obs_queue.get())
+    }
+    return new Promise((resolve) => {
+      this._obs_trigger = resolve
+    })
   }
 
   get sc_alerts() {
@@ -2123,12 +2146,14 @@ class RendererHuman {
     //A render loop that pulls observations off the queue to render.//
     let obs = true
     while (obs) {  // Send something falsy through the queue to shut down.
-      obs = await this._obs_queue.get()
+      // obs = this._obs_queue.get()
+      obs = await this.get_next_obs()
       if (obs) {
-        obs.getObservation().getAlerts().forEach((alert) => {
+        obs.getObservation().getAlertsList().forEach((alert) => {
           this._alerts[this.sc_alerts(alert)] = performance.now()
         })
         obs.getActionErrorsList().forEach((err) => {
+          console.log('in action errors list: ', err)
           if (err.getResult() != this.sc_error_action_result.SUCCESS) {
             this._alerts[this.sc_error_action_result(err.getResult())] = performance.now()
           }
@@ -2165,7 +2190,7 @@ class RendererHuman {
     })
     const mouse_pos = this.get_mouse_pos()
     if (mouse_pos) {
-      // Draw a small mouse cursor)
+      // Draw a small mouse cursor
       this.all_surfs(_Surface.draw_circle, colors.green, mouse_pos.world_pos, 0.1)
     }
 
@@ -2180,65 +2205,9 @@ class RendererHuman {
 
 }
 
-// function getTypes() {
-//   const root = new protobuf.Root().loadSync('human_renderer.proto')
-//   const RequestStaticData = root.lookupType('human_renderer.RequestStaticData')
-//   return { RequestStaticData }
-// }
-
-// function getTypes() {
-//   let resolve
-//   let reject
-//   const prom = new Promise((res, rej) => {
-//     resolve = res
-//     reject = rej
-//   })
-//   let requestTypes
-//   let responseTypes
-//   let dataTypes
-//   protobuf.load('human_renderer.proto', (err, root) => {
-//     if (err) {
-//       reject(err)
-//     }
-//     // Data types
-//     const Point = root.lookupType('human_renderer.Point')
-//     const Rectangle = root.lookupType('human_renderer.Rectangle')
-//     dataTypes = [Point, Rectangle]
-//     // Request types
-//     const DrawLineRequest = root.lookupType('human_renderer.DrawLineRequest')
-//     const DrawArcRequest = root.lookupType('human_renderer.DrawArcRequest')
-//     const DrawCircleRequest = root.lookupType('human_renderer.DrawCircleRequest')
-//     const BlitArrayRequest = root.lookupType('human_renderer.BlitArrayRequest')
-//     const WriteScreenRequest = root.lookupType('human_renderer.WriteScreenRequest')
-//     const WriteWorldRequest = root.lookupType('human_renderer.WriteWorldRequest')
-//     const RequestStaticData = root.lookupType('human_renderer.RequestStaticData')
-//     requestTypes = [
-//       DrawLineRequest, DrawArcRequest,
-//       DrawCircleRequest, BlitArrayRequest,
-//       WriteScreenRequest, WriteWorldRequest,
-//       RequestStaticData,
-//     ]
-//     // Response types
-//     const DrawLineResponse = root.lookupType('human_renderer.DrawLineResponse')
-//     const DrawArcResponse = root.lookupType('human_renderer.DrawArcResponse')
-//     const DrawCircleResponse = root.lookupType('human_renderer.DrawCircleResponse')
-//     const BlitArrayResponse = root.lookupType('human_renderer.BlitArrayResponse')
-//     const WriteScreenResponse = root.lookupType('human_renderer.WriteScreenReponse')
-//     const WriteWorldResponse = root.lookupType('human_renderer.WriteWorldResponse')
-//     responseTypes = [
-//       DrawLineResponse, DrawArcResponse,
-//       DrawCircleResponse, BlitArrayResponse,
-//       WriteScreenResponse, WriteWorldResponse
-//     ]
-//     resolve({ dataTypes, requestTypes, responseTypes })
-//   })
-//   return prom
-// }
-
 module.exports = {
   ActionCmd,
   circle_mask,
-  // getTypes,
   MouseButtons,
   MousePos,
   PastAction,

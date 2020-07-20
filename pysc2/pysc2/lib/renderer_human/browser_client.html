@@ -101,6 +101,13 @@ class WsClient {
     })
     withPython(this._sw('parse_response'), () => {
       response = sc_pb.Response.deserializeBinary(response)
+      // try {
+      //   response = sc_pb.Response.deserializeBinary(response)
+      // } catch (err) {
+      //   console.error(err)
+      //   response = sc_pb.Request.deserializeBinary(response)
+      // }
+      // console.log(response.toObject())
     })
     return response
   }
@@ -232,10 +239,15 @@ async function main() {
   await renderer.init(gameInfo, staticData)
   // from here on only sending observations over the wire
   /* eslint-disable no-await-in-loop */
+  renderer.render_thread()
   let obs
+  let response
   await wsClient.start_observe_stream()
+  let count = 0
   while (true) {
-    obs = await wsClient.read()
+    console.log('game step: ', ++count)
+    response = await wsClient.read()
+    obs = response.getObservation()
     await renderer.render(obs)
   }
 }

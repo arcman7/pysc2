@@ -25,11 +25,11 @@ const sc_pb = s2clientprotocol.sc2api_pb
 
 const { withPython } = pythonUtils
 
-const ActionCmd = Enum.IntEnum('ActionCmd', {
-  STEP: 1,
-  RESTART: 2,
-  QUIT: 3,
-})
+// const ActionCmd = Enum.IntEnum('ActionCmd', {
+//   STEP: 1,
+//   RESTART: 2,
+//   QUIT: 3,
+// })
 
 // const root = new protobuf.Root().loadSync('./human_renderer.proto')
 // const RequestStaticData = root.lookupType('human_renderer.RequestStaticData')
@@ -106,6 +106,7 @@ class GameLoop {
     this._controller = controller
     this._wss = wss
     this._sw = stopwatch.sw
+    this._game_loop_running = false
   }
 
   save_replay(run_config, controller) {
@@ -146,21 +147,28 @@ class GameLoop {
       this.save_replay()
     } else if (message.hasObservation()) {
       console.log('backend: starting observations steam')
-      this.run(this._run_config, this._controller)
+      if (this._game_loop_running) {
+        return
+      }
+      this.run({ run_config: this._run_config, controller: this._controller })
     }
   }
 
-  async run(run_config, controller, max_game_steps = 0, max_episodes = 0, game_steps_per_episode = 0, save_replay = false) {
+  async run({ run_config, controller, max_game_steps = 0, max_episodes = 0, game_steps_per_episode = 0, save_replay = false, step_mul = 1, fps = 22.4 }) {
     //Run loop that gets observations, renders them, and sends back actions.//
     /* eslint-disable no-await-in-loop */
+    this._fps = fps
+    this._step_mul = step_mul
+    this._game_steps_per_episode = game_steps_per_episode
+    this._max_episodes = max_episodes
     const is_replay = controller.status == remote_controller.Status.in_replay
     let total_game_steps = 0
     const start_time = performance.now()
     let num_episodes = 0
     let episode_steps
-
     try {
       while (true) {
+        this._game_loop_running = true
         // await this.init(controller.game_info(), controller.data())
         episode_steps = 0
         num_episodes += 1
@@ -168,31 +176,33 @@ class GameLoop {
         while (true) {
           total_game_steps += this._step_mul
           episode_steps += this._step_mul
-          const frame_start_time = performance.now()
+          console.log('episode_steps: ', episode_steps)
+          // const frame_start_time = performance.now()
 
           const obs = await controller.observe()
           // this.render(obs)
           const response = new sc_pb.Response()
           response.setObservation(obs)
-          this._wss.broadcast(obs)
+          this._wss.broadcast(response)
           // this._wss.write(response)
-          if (obs.getPlayerResultList()) {
+          if (obs.getPlayerResultList().length) {
+            console.log('getPlayerResultList')
             break
           }
 
-          const cmd = this.get_actions(run_config, controller)
-          if (cmd == ActionCmd.STEP) {
-            // do nothing
-          } else if (cmd == ActionCmd.QUIT) {
-            if (!is_replay && save_replay) {
-              await this.save_replay(run_config, controller)
-            }
-            return
-          } else if (cmd == ActionCmd.RESTART) {
-            break
-          } else {
-            throw new Error(`Unexpected command: ${cmd}`)
-          }
+          // const cmd = this.get_actions(run_config, controller)
+          // if (cmd == ActionCmd.STEP) {
+          //   // do nothing
+          // } else if (cmd == ActionCmd.QUIT) {
+          //   if (!is_replay && save_replay) {
+          //     await this.save_replay(run_config, controller)
+          //   }
+          //   return
+          // } else if (cmd == ActionCmd.RESTART) {
+          //   break
+          // } else {
+          //   throw new Error(`Unexpected command: ${cmd}`)
+          // }
 
           await controller.step(this._step_mul)
 
@@ -200,14 +210,17 @@ class GameLoop {
             if (!is_replay && save_replay) {
               await this.save_replay(run_config, controller)
             }
+            console.log('max_game_steps && total_game_steps >= max_game_steps')
             return
           }
           if (game_steps_per_episode && episode_steps >= game_steps_per_episode) {
+            console.log('game_steps_per_episode && episode_steps >= game_steps_per_episode')
             break
           }
-          await withPython(sw("sleep"), async () => { //eslint-disable-line
-            const elapsed_time = performance.now() - frame_start_time
-            await sleep(Math.max(0, 1 / this._fps - elapsed_time))
+          await withPython(this._sw("sleep"), async () => { //eslint-disable-line
+            // const elapsed_time = performance.now() - frame_start_time
+            await sleep(1)
+            // await sleep(Math.max(0, 1 / this._fps - elapsed_time))
           })
         }
 
@@ -226,6 +239,7 @@ class GameLoop {
     } catch (err) {
       console.error(err)
     } finally {
+      this._game_loop_running = false
       this.close()
       const elapsed_time = performance.now() - start_time
       console.log(`took ${Math.round(elapsed_time / 1000)} seconds for ${total_game_steps} steps: ${total_game_steps / elapsed_time} fps`)
@@ -233,22 +247,11 @@ class GameLoop {
   }
 }
 
-/*
-  try {
-    var decodedMessage = AwesomeMessage.decode(buffer);
-  } catch (e) {
-      if (e instanceof protobuf.util.ProtocolError) {
-        // e.instance holds the so far decoded message with missing required fields
-      } else {
-        // wire format is invalid
-      }
-  }
-*/
-
 class InitalizeServices {
   constructor() {
-    ///Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome
-    this.chromeArgs = ['C:\\Program Files (x86)\\Google\\Chrome\\Application\\Chrome.exe', '-incognito', '--new-window', 'http://127.0.0.1:']
+    // this.chromeArgs = ['C:\\Program Files (x86)\\Google\\Chrome\\Application\\Chrome.exe', '-incognito', '--new-window', '--auto-open-devtools-for-tabs', 'http://127.0.0.1:']
+    this.chromeArgs = ['C:\\Program Files (x86)\\Google\\Chrome\\Application\\Chrome.exe', '--auto-open-devtools-for-tabs', 'http://127.0.0.1:']
+
     if (process.platform === 'darwin') { //eslint-disable-next-line
       this.chromeArgs[0] = '/Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome'
     }
@@ -308,7 +311,8 @@ class InitalizeServices {
   }
 
   launchChrome() {
-    this._proc = spawn(this.chromeArgs[0], this.chromeArgs)
+    const launchString = this.chromeArgs.shift()
+    this._proc = spawn(launchString, this.chromeArgs)
   }
 }
 
