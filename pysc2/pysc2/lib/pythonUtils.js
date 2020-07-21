@@ -146,6 +146,37 @@ String.prototype.splitlines = function() {
   return this.split(/\r?\n/)
 }
 
+function getImageData(unit8data, [width, height], rgb = true) {
+  const multiplier = 1//255;
+  const bytes = new Uint8ClampedArray(width * height * 4);
+  if (rgb) {
+    for (let i = 0; i < height * width; ++i) {
+      const r = unit8data[i * 3] * multiplier;
+      const g = unit8data[i * 3 + 1] * multiplier;
+      const b = unit8data[i * 3 + 2] * multiplier;
+      const a = 255;
+      const j = i * 4;
+      bytes[j + 0] = Math.round(r);
+      bytes[j + 1] = Math.round(g);
+      bytes[j + 2] = Math.round(b);
+      bytes[j + 3] = Math.round(a);
+    }
+  } else {
+    for (let i = 0; i < height * width; ++i) {
+      const r = unit8data[i] * multiplier;
+      const g = r
+      const b = r
+      const a = 255;
+      const j = i * 4;
+      bytes[j + 0] = Math.round(r);
+      bytes[j + 1] = Math.round(g);
+      bytes[j + 2] = Math.round(b);
+      bytes[j + 3] = Math.round(a);
+    }
+  }
+  return new ImageData(bytes, width, height);
+}
+
 function hashCode(str) {
 // https://werxltd.com/wp/2010/05/13/javascript-implementation-of-javas-string-hashcode-method/
   var hash = 0;
@@ -737,6 +768,7 @@ module.exports = {
   expanduser,
   getArgsArray,
   getattr,
+  getImageData,
   hashCode,
   int,
   iter,

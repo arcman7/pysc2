@@ -31,8 +31,6 @@ const { withPython } = pythonUtils
 //   QUIT: 3,
 // })
 
-// const root = new protobuf.Root().loadSync('./human_renderer.proto')
-// const RequestStaticData = root.lookupType('human_renderer.RequestStaticData')
 async function sleep(time) {
   const prom = new Promise((res) => {
     setTimeout(res, time * 1000)

@@ -22,7 +22,7 @@ const spatial = s2clientprotocol.spatial_pb
 const sc_ui = s2clientprotocol.ui_pb
 const sw = stopwatch.sw
 
-const { assert, DefaultDict, namedtuple, ValueError, withPython } = pythonUtils
+const { assert, DefaultDict, getattr, getImageData, namedtuple, ValueError, withPython, zip } = pythonUtils
 
 function clamp(n, smallest, largest) {
   return Math.max(smallest, Math.min(n, largest))
@@ -98,7 +98,7 @@ class _Surface {
   }
 
   draw_line(color, start_loc, end_loc, thickness = 1) {
-    window.gamejs.draw.line(
+    window.gamejs.graphics.line(
       this.surf, color.toCSS(),
       this.world_to_surf.fwd_pt(start_loc).round(),
       this.world_to_surf.fwd_pt(end_loc).round(),
@@ -111,7 +111,7 @@ class _Surface {
     const center = this.world_to_surf.fwd_pt(world_loc).round()
     const radius = Math.max(1, Math.floor(this.world_to_surf.fwd_dist(world_radius)))
     const rect = window.gamejs.Rect(center - radius, (radius * 2, radius * 2))
-    window.gamejs.draw.arc(
+    window.gamejs.graphics.arc(
       this.surf, color.toCSS(), rect, start_angle, stop_angle,
       thickness < radius ? thickness : 0
     )
@@ -122,7 +122,7 @@ class _Surface {
     if (world_radius > 0) {
       const center = this.world_to_surf.fwd_pt(world_loc).round()
       const radius = Math.max(1, Math.floor(this.world_to_surf.fwd_dist(world_radius)))
-      window.gamejs.draw.circle(
+      window.gamejs.graphics.circle(
         this.surf, color.toCSS(), center, radius,
         thickness < radius ? thickness : 0
       )
@@ -134,40 +134,38 @@ class _Surface {
     const tl = this.world_to_surf.fwd_pt(world_rect.tl).round()
     const br = this.world_to_surf.fwd_pt(world_rect.br).round()
     const rect = window.gamejs.Rect(tl, br.sub(tl))
-    window.gamejs.draw.rect(this.surf, color.toCSS(), rect, thickness)
+    window.gamejs.graphics.rect(this.surf, color.toCSS(), rect, thickness)
   }
 
-  blit_np_array(tensor) {
+  blit_np_array(imageData) {
     //Fill this surface using the contents of a numpy array.//
-    let raw_surface
+    const raw_surface = new window.gamejs.graphics.Surface(imageData.width, imageData.height)
     withPython(sw('make_surface'), () => {
-      raw_surface = window.gamejs.graphics.blitArray(this.surf, {
-        imageData: new ImageData(
-          new Uint8ClampedArray(tensor.transpose([1, 0, 2]).dataSync()),
-          tensor.shape[0],
-          tensor.shape[1]
-        )
+      // fill surface from pixel data (imageData)
+      window.gamejs.graphics.blitArray(raw_surface, {
+        imageData
       })
     })
     withPython(sw('draw'), () => {
-      window.gamejs.transform.scale(raw_surface, this.surf.getSize(), this.surf)
+      this.surf.blit(raw_surface.scale(this.surf.getSize()))
     })
   }
 
   write_screen(font, color, screen_pos, text, align = 'left', valign = 'top') {
     //Write to the screen in font.size relative coordinates.//
-    const pos = new point.Point(...screen_pos) * new point.Point(0.75, 1) * font.get_linesize()
+    const line_size = (font.size()[1])
+    const pos = new point.Point(...screen_pos) * new point.Point(0.75, 1) * line_size
     const text_surf = font.render(text.toString ? text.toString() : String(text), true, color.toCSS())
     const rect = text_surf.getRect()
     if (pos.x >= 0) {
       rect[align] = pos.x
     } else {
-      rect[align] = this.surf.get_width() + pos.x
+      rect[align] = this.surf.getSize()[0] + pos.x
     }
     if (pos.y >= 0) {
       rect[valign] = pos.y
     } else {
-      rect[valign] = this.surf.get_height() + pos.y
+      rect[valign] = this.surf.getSize()[1] + pos.y
     }
     this.surf.blit(text_surf, rect)
   }
@@ -779,13 +777,15 @@ class RendererHuman {
       }
 
       const raw_world_to_obs = new transform.Linear()
-      const raw_world_to_surf = new transform.Linear(feature_layer_size.div(this._map_size)
+      const raw_world_to_surf = new transform.Linear(
+        feature_layer_size.div(this._map_size)
       )
+      const self = this
       function add_raw_layer(from_obs, name, color) {
         add_layer(
           SurfType.FEATURE | SurfType.MINIMAP,
           raw_world_to_surf, raw_world_to_obs, "raw " + name,
-          (surf) => this.draw_raw_layer(surf, from_obs, name, color)
+          (surf) => self.draw_raw_layer(surf, from_obs, name, color)
         )
       }
 
@@ -800,7 +800,7 @@ class RendererHuman {
       function add_feature_layer(feature, surf_type, world_to_surf, world_to_obs) {
         add_layer(
           surf_type, world_to_surf, world_to_obs, feature.full_name,
-          (surf) => this.draw_feature_layer(surf, feature)
+          (surf) => self.draw_feature_layer(surf, feature)
         )
       }
 
@@ -891,13 +891,13 @@ class RendererHuman {
     //Return a MousePos filled with the world position and surf it hit.//
     window_pos = window_pos || gamejs.mouse.get_pos()
     // +0.5 to center the point on the middle of the pixel.
-    const window_pt = new point.Point(...window_pos).add(0.5)
+    const window_pt = new point.Point(window_pos).add(0.5)
     for (let i = this._surfaces.length - 1; i >= 0; i--) {
       const surf = this._surfaces[i]
-      if (sur.surf_type != SurfType.CHROME && surf.surf_rect.contains_point(window_pt)) {
+      if (surf.surf_type != SurfType.CHROME && surf.surf_rect.contains_point(window_pt)) {
         const surf_rel_pt = window_pt.sub(surf.surf_rect.tl)
         const world_pt = surf.world_to_surf.back_pt(surf_rel_pt)
-        return MousePos(world_pt, surf)
+        return new MousePos(world_pt, surf)
       }
     }
   }
@@ -1596,18 +1596,18 @@ class RendererHuman {
     const sec = Math.floor(obs.getGameLoop() / 22.4)
     surf.write_screen(
       this._font_large, colors.green, [-0.2, 0.2],
-      `Score: ${obs.getScore.getScore()}, Step: ${obs.getGameLoop()}, ${sum(steps) / (sum(times) || 1)}/s, Time: ${Math.floor(sec / 60)}: ${sec % 60}`,
+      `Score: ${obs.getScore().getScore()}, Step: ${obs.getGameLoop()}, ${sum(steps) / (sum(times) || 1)}/s, Time: ${Math.floor(sec / 60)}: ${sec % 60}`,
       'right'
     )
 
     surf.write_screen(
-      this._font_large, colors.green * 0.8, [-0.2, 1.2]
-      `APM: ${obs.getScore().getScoreDetails().getCurrentApm()}, EPM: ${obs.getScore.getScoreDetails().getCurrentEffectiveApm()}, FPS: O:${times.length / (sum(times) || 1)}, R: ${this._render_times / (sum(this._render_times) || 1)}`,
+      this._font_large, colors.green.mul(0.8), [-0.2, 1.2],
+      `APM: ${obs.getScore().getScoreDetails().getCurrentApm()}, EPM: ${obs.getScore().getScoreDetails().getCurrentEffectiveApm()}, FPS: O:${times.length / (sum(times) || 1)}, R: ${this._render_times.length / (sum(this._render_times) || 1)}`,
       'left'
     )
 
     const line = 3
-    const alerts = this._alerts.sort((a, b) => a[1] - b[1])
+    const alerts = Object.keys(this._alerts).map((key) => this._alerts[key]).sort((a, b) => a - b)
     alerts.forEach(([alert, ts]) => {
       if (performance.now() < ts + (3 * 1000)) { // Show for 3 seconds.
         surf.write_screen(this._font_large, colors.red, [20, line], alert)
@@ -1648,7 +1648,7 @@ class RendererHuman {
       line += 1
       write([x, line], ...(Array.from(arguments).slice(1)))
     }
-    action_count = this._obs.getObservation().getAbilitiesList().length
+    const action_count = this._obs.getObservation().getAbilitiesList().length
     if (action_count > 0) {
       write_line(0.2, 'Available Actions: ', colors.green)
       const past_abilities = {}
@@ -1693,12 +1693,12 @@ class RendererHuman {
     //Draw the unit selection or build queue.//
     const left = -14 // How far from the right border
     let line = 3
-
+    const self = this
     function unit_name(unit_type) {
-      return this._static_data.units[unit_type] || '<unknown>'
+      return self._static_data.units[unit_type] || '<unknown>'
     }
     function write(loc, text, color = colors.yellow) {
-      surf.write_screen(this._font_large, color, loc,  text)
+      surf.write_screen(self._font_large, color, loc,  text)
     }
     function write_line(x, args) {
       line += 1
@@ -1740,7 +1740,7 @@ class RendererHuman {
 
     const ui = this._obs.getObservation().getUiData()
 
-    if (ui.getGroups()) {
+    if (ui.getGroupsList().length) {
       write_line(0, 'Control Groups: ', colors.green)
       ui.getGroupsList().forEach((group) => {
         line += 1
@@ -1817,10 +1817,18 @@ class RendererHuman {
         const remain = (act.deadline - now) / (act.deadline - act.time)
         if (act.pos instanceof point.Point) {
           const size = remain / 3
-          this.all_surfs(_Surface.draw_circle, act.color, act.pos, size, 1)
+          this._surfaces.forEach((surf) => {
+            if (surf.world_to_surf) {
+              surf.draw_circle(act.color. act.pos, size, 1)
+            }
+          })
         } else {
-          // Fade with alpha would be nice, but doesn't seem to work.
-          this.all_surfs(_Surface.draw_rect, act.color, act.pos, 1)
+          this._surfaces.forEach((surf) => {
+            if (surf.world_to_surf) {
+              // Fade with alpha would be nice, but doesn't seem to work.
+              surf.draw_rect(act.color, act.pos, 1)
+            }
+          })
         }
       }
     })
@@ -1968,17 +1976,18 @@ class RendererHuman {
     const visibility_fade = np.tensor([[0.5, 0.5, 0.5], [0.75, 0.75, 0.75], [1, 1, 1]])
     out = out.where(visibility, out.mul(visibility_fade))
 
-    surf.blit_np_array(out)
+    surf.blit_np_array(getImageData(out.dataSync(), out.shape, false))
   }
 
   draw_mini_map(surf) {
     //Draw the minimap//
+    return
     if (this._render_rgb
-      && this._obs.getObservation.hasRenderData()
+      && this._obs.getObservation().hasRenderData()
       && this._obs.getObservation().getRenderData().hasMinimap()) {
       // Draw the rendered version.
-      surf.blit_np_array(features.Feature.unpack_rgb_image(
-        this._obs.getObservation().getRenderData().getMinimap()
+      surf.blit_np_array(features.Feature.unpack_image_data(
+        this._obs.getObservation().getRenderData().getMinimap(),
       ))
     } else { // Render it manually from feature layer data.
       const hmap_feature = features.MINIMAP_FEATURES.height_map
@@ -2023,7 +2032,13 @@ class RendererHuman {
       const shape = this._playable.diagonal.scale_max_size(
         this._feature_minimap_px
       ).floor()
-      surf.blit_np_array(out.slice([0, 0], [shape.y, shape.x]))
+      surf.blit_np_array(
+        getImageData(
+          out.slice([0, 0], [shape.y, shape.x]).dataSync(),
+          [shape.y, shape.x],
+          false
+        )
+      )
 
       surf.draw_rect(colors.white.mul(0.8), this._camera, 1) // Camera
 
@@ -2045,7 +2060,7 @@ class RendererHuman {
       })
     }
 
-    gamejs.draw.rect(surf.surf, colors.red.toCSS(), surf.surf.getRect(), 1) // Border
+    gamejs.graphics.rect(surf.surf, colors.red.toCSS(), surf.surf.getRect(), 1) // Border
   }
 
   check_valid_queued_action() {
@@ -2060,7 +2075,7 @@ class RendererHuman {
 
   draw_rendered_map(surf) {
     // Draw the rendered pixels.//
-    surf.blit_np_array(features.Feature.unpack_rgb_image(
+    surf.blit_np_array(features.Feature.unpack_image_data(
       this._obs.getObservation().getRenderData().getMap()
     ))
   }
@@ -2086,14 +2101,31 @@ class RendererHuman {
   draw_feature_layer(surf, feature) {
     //Draw a feature layer//
     const layer = feature.unpack(this._obs.getObservation())
+
     if (layer != null) {
-      surf.blit_np_array(feature.color(layer))
+      // surf.blit_np_array(feature.color(layer))
     } else { // Ignore layers that aren't in this version of SC2.
-      surf.surf.fill(colors.black.toCSS())
+      // surf.surf.fill(colors.black.toCSS())
     }
   }
 
-  draw_all_surfs(fn, args) {
+  draw_raw_layer(surf, from_obs, name, color) {
+    //Draw a raw layer.//
+    let layer
+    if (from_obs) {
+      layer = getattr(this._obs.getObservation().getRawData().getMapState(), name)
+    } else {
+      layer = getattr(this._game_info.getStartRaw(), name)
+    }
+    layer = features.Feature.unpack_layer(layer)
+    if (layer) {
+      // surf.blit_np_array(color[layer])
+    } else { //Ignore layers that aren't in this version of SC2.
+      // surf.surf.fill(colors.black.toCSS())
+    }
+  }
+
+  all_surfs(fn, args) {
     this._surfaces.forEach((surf) => {
       if (surf.world_to_surf) {
         fn(surf, ...Array.from(arguments).slice(1))

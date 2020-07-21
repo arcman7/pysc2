@@ -15,7 +15,7 @@ const sw = stopwatch.sw
 const { raw_pb, sc2api_pb } = s2clientprotocol
 const sc_raw = raw_pb
 const sc_pb = sc2api_pb
-const { Defaultdict, getArgsArray, getattr, int, isinstance, len, namedtuple, setUpProtoAction, sum, unpackbits, ValueError, withPython, zip } = pythonUtils
+const { Defaultdict, getArgsArray, getattr, getImageData, int, isinstance, len, namedtuple, setUpProtoAction, sum, unpackbits, ValueError, withPython, zip } = pythonUtils
 const EPSILON = 1e-5
 
 const FeatureType = Enum.Enum('FeatureType', {
@@ -308,6 +308,44 @@ class Feature extends namedtuple('Feature', ['index', 'name', 'layer_set', 'full
     data = np.tensor(data, [size.y, size.x], 'int32')
     return data
   }
+
+  static unpack_image_data(plane, rgb = true) {
+    //Return a correctly shaped ImageData given the feature layer bytes.//
+    if (plane.getSize() === undefined) {
+      return null
+    }
+    const size = point.Point.build(plane.getSize())
+    if (size[0] === 0 && size[1] === 0) {
+      // New layer that isn't implemented in this SC2 version.
+      return null
+    }
+    let data = plane.getData()
+    const buffer = data.buffer
+    if (plane.getBitsPerPixel() === 24) {
+      // rgb data, don't do anything
+    } else if (plane.getBitsPerPixel() !== 8 && plane.getBitsPerPixel() !== 1) {
+      data = new Feature.dtypes[plane.getBitsPerPixel()](
+        buffer.slice(data.byteOffset, data.byteOffset + data.length)
+      )
+    } else if (plane.getBitsPerPixel() === 1) {
+      data = unpackbits(data)
+      if (data.length !== (size.x * size.y)) {
+        // This could happen if the correct length isn't a multiple of 8, leading
+        // to some padding bits at the end of the string which are incorrectly
+        // interpreted as data.
+        data = data.slice(0, size.x * size.y)
+      }
+    }
+    return getImageData(data, [size.x, size.y], rgb)
+  }
+
+  // unpack_image_data(plane) { //eslint-disable-line
+  //   return Feature.unpack_image_data(plane, false)
+  // }
+
+  // unpack_rgb_image_data(plane) { //eslint-disable-line
+  //   return Feature.unpack_image_data(plane, true)
+  // }
 
   unpack_rgb_image(plane) {//eslint-disable-line
     return Feature.unpack_rgb_image(plane)

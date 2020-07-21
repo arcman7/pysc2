@@ -101,12 +101,6 @@ class WsClient {
     })
     withPython(this._sw('parse_response'), () => {
       response = sc_pb.Response.deserializeBinary(response)
-      // try {
-      //   response = sc_pb.Response.deserializeBinary(response)
-      // } catch (err) {
-      //   console.error(err)
-      //   response = sc_pb.Request.deserializeBinary(response)
-      // }
       // console.log(response.toObject())
     })
     return response

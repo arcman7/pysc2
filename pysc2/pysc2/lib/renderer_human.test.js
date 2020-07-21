@@ -37,6 +37,7 @@ async function test() {
   join.setRace(sc_common.Race.RANDOM)
   const Interface = new sc_pb.InterfaceOptions()
   Interface.setRaw(true)
+  Interface.setScore(true)
   const featureLayer = new sc_pb.SpatialCameraSetup()
   featureLayer.setWidth(24)
   featureLayer.setCropToPlayableArea(true)
@@ -67,7 +68,6 @@ async function test() {
 
   const services = new backend.InitalizeServices()
   services.setUp(run_config, controller)
-  // services.gameLoop.run()
 }
 
 test()
