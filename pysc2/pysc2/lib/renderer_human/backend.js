@@ -8,10 +8,8 @@ const s2clientprotocol = require('s2clientprotocol') //eslint-disable-line
 const Enum = require('python-enum') //eslint-disable-line
 const portspicker = require(path.resolve(__dirname, '..', 'portspicker.js'))
 const pythonUtils = require(path.resolve(__dirname, '..', 'pythonUtils.js'))
-// const np = require(path.resolve(__dirname, '..', 'numpy.js'))
 const gfile = require(path.resolve(__dirname, '..', 'gfile.js'))
 const stopwatch = require(path.resolve(__dirname, '..', 'stopwatch.js'))
-// const memoize = require(path.resolve(__dirname, '..', 'memoize.js'))
 const remote_controller = require(path.resolve(__dirname, '..', './remote_controller.js'))
 // const video_writter = require(path.resolve(__dirname, '..', './video_writer.js'))
 const { performance } = require('perf_hooks') //eslint-disable-line
@@ -167,7 +165,6 @@ class GameLoop {
     try {
       while (true) {
         this._game_loop_running = true
-        // await this.init(controller.game_info(), controller.data())
         episode_steps = 0
         num_episodes += 1
 
@@ -175,14 +172,12 @@ class GameLoop {
           total_game_steps += this._step_mul
           episode_steps += this._step_mul
           console.log('episode_steps: ', episode_steps)
-          // const frame_start_time = performance.now()
+          const frame_start_time = performance.now()
 
           const obs = await controller.observe()
-          // this.render(obs)
           const response = new sc_pb.Response()
           response.setObservation(obs)
           this._wss.broadcast(response)
-          // this._wss.write(response)
           if (obs.getPlayerResultList().length) {
             console.log('getPlayerResultList')
             break
@@ -216,19 +211,21 @@ class GameLoop {
             break
           }
           await withPython(this._sw("sleep"), async () => { //eslint-disable-line
-            // const elapsed_time = performance.now() - frame_start_time
-            await sleep(1)
-            // await sleep(Math.max(0, 1 / this._fps - elapsed_time))
+            const elapsed_time = performance.now() - frame_start_time
+            // await sleep(1)
+            await sleep(Math.max(0, (1 / this._fps) - elapsed_time))
           })
         }
 
         if (is_replay) {
+          console.log('is_replay')
           break
         }
         if (save_replay) {
           await this.save_replay(run_config, controller)
         }
         if (max_episodes && num_episodes >= max_episodes) {
+          console.log('max_episodes && num_episodes >= max_episodes')
           break
         }
         console.log('Restarting')

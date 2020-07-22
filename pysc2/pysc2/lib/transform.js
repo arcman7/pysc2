@@ -33,7 +33,7 @@ class Linear extends Transform {
       }
     }
     super(scale, offset)
-    if (scale == null) {
+    if (scale == null || scale == undefined) {
       this.scale = new point.Point(1, 1)
     } else if (isinstance(scale, Number)) {
       this.scale = new point.Point(scale, scale)
@@ -49,7 +49,7 @@ class Linear extends Transform {
   }
 
   fwd_pt(pt) {
-    return this.scale.mul(pt).add(this.offset)
+    return pt.mul(this.scale).add(this.offset)
   }
 
   back_dist(dist) {

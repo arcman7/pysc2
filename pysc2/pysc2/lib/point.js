@@ -17,7 +17,10 @@ class Point extends namedtuple('Point', ['x', 'y']) {
   //A basic Point class.//
   constructor(x, y) {
     super({})
-    if (Number(x) == x) {
+    if (Array.isArray(x)) {
+      y = x[1]
+      x = x[0]
+    } else if (Number(x) == x) {
       this.x = x
       this.y = y
     } else if (x && x.x && isinstance(x.x, [common_pb.Point, spatial_pb.PointI, common_pb.Point2D])) { // if x is a proto point class

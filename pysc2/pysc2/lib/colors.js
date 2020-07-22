@@ -175,8 +175,8 @@ function piece_wise_linear(scale, points) {
   let [p1, c1] = points[0]
   let [p2, c2] = points[1]
   const out = Array(scale)
+  out[0] = new Color(0, 0, 0)
   let next_pt = 2
-  let temp
   let frac
   let v
   for (let i = 1; i < scale; i++) {
@@ -189,8 +189,7 @@ function piece_wise_linear(scale, points) {
       next_pt += 1
     }
     frac = (v - p1) / (p2 - p1)
-    temp = c1 * (1 - frac) + c2 * frac
-    out[i] = [temp.r, temp.g, temp.b]
+    out[i] = c1.mul(1 - frac).add(c2.mul(frac))
   }
   return out
 }

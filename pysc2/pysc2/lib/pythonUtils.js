@@ -156,9 +156,10 @@ function getImageData(unit8data, [width, height], rgb = true) {
       const b = unit8data[i * 3 + 2] * multiplier;
       const a = 255;
       const j = i * 4;
-      bytes[j + 0] = Math.round(r);
+      // start craft 2 api appears to be switching the red and blue channels
+      bytes[j + 0] = Math.round(b);
       bytes[j + 1] = Math.round(g);
-      bytes[j + 2] = Math.round(b);
+      bytes[j + 2] = Math.round(r);
       bytes[j + 3] = Math.round(a);
     }
   } else {

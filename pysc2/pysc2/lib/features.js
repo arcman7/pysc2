@@ -286,7 +286,7 @@ class Feature extends namedtuple('Feature', ['index', 'name', 'layer_set', 'full
 
     if (plane.getBitsPerPixel() !== 8 && plane.getBitsPerPixel() !== 1) {
       data = new Feature.dtypes[plane.getBitsPerPixel()](
-        buffer.slice(data.byteOffset, data.byteOffset + data.length)
+        buffer.slice(data.byteOffset, data.byteOffset + data.byteLength)
       )
     }
 
@@ -325,7 +325,7 @@ class Feature extends namedtuple('Feature', ['index', 'name', 'layer_set', 'full
       // rgb data, don't do anything
     } else if (plane.getBitsPerPixel() !== 8 && plane.getBitsPerPixel() !== 1) {
       data = new Feature.dtypes[plane.getBitsPerPixel()](
-        buffer.slice(data.byteOffset, data.byteOffset + data.length)
+        buffer.slice(data.byteOffset, data.byteOffset + data.byteLength)
       )
     } else if (plane.getBitsPerPixel() === 1) {
       data = unpackbits(data)
@@ -338,14 +338,6 @@ class Feature extends namedtuple('Feature', ['index', 'name', 'layer_set', 'full
     }
     return getImageData(data, [size.x, size.y], rgb)
   }
-
-  // unpack_image_data(plane) { //eslint-disable-line
-  //   return Feature.unpack_image_data(plane, false)
-  // }
-
-  // unpack_rgb_image_data(plane) { //eslint-disable-line
-  //   return Feature.unpack_image_data(plane, true)
-  // }
 
   unpack_rgb_image(plane) {//eslint-disable-line
     return Feature.unpack_rgb_image(plane)
@@ -366,6 +358,7 @@ class Feature extends namedtuple('Feature', ['index', 'name', 'layer_set', 'full
     if (this.clip) {
       plane = np.clip(plane, 0, this.scale - 1)
     }
+    // return this.plane.map(())
     return this.palette[plane]
   }
 }

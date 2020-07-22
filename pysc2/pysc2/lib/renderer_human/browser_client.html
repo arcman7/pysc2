@@ -166,20 +166,7 @@ class WsClient {
       console.warn('req:\n', req.toObject(), '\nres:\n', res ? res.toObject() : 'undefined')
       throw new Error(`Error during ${name}: ${err}`)
     }
-    // if (res.getId && res.getId() !== req.getId()) {
-    //   const reqObj = req.toObject()
-    //   Object.keys(reqObj).forEach((key) => {
-    //     if (key.match('data') && reqObj[key]) {
-    //       reqObj[key] = `<data ${reqObj[key].length}>`
-    //     }
-    //   })
-    //   console.warn('req:\n', reqObj, '\nres:\n', res ? res.toObject() : 'undefined')
-    //   throw new Error(`Error during ${name}: Got a response with a different id\n expected: ${req.getId()}, got: ${res.getId()}`)
-    // }
 
-    // proto getters: getFoo, getFooList
-    // console.log('name: ', name)
-    // console.log(res.toObject())
     return res[`get${name + (isList ? 'List' : '')}`]()
   }
 

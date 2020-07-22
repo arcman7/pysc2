@@ -434,13 +434,6 @@ class RendererHuman {
   async init_window() {
     //Initialize the gamejs window and lay out the surfaces//
 
-    // let resolve
-    // const prom = new Promise((res) => {
-    //   resolve = res
-    // })
-    // gamejs.ready(resolve)
-    // await prom
-
     let main_screen_px
     if (this._render_rgb && this._rgb_screen_px) {
       main_screen_px = this._rgb_screen_px
@@ -660,7 +653,7 @@ class RendererHuman {
 
     if (this._render_rgb) {
       let rgb_screen_to_main_screen = new transform.Linear(
-        screen_size_px / this._rgb_screen_px
+        screen_size_px.div(this._rgb_screen_px)
       )
       add_surface(
         SurfType.RGB | SurfType.SCREEN,
@@ -1393,7 +1386,7 @@ class RendererHuman {
         )
         if (u.getDisplayType() == sc_raw.DisplayType.PLACEHOLDER) {
           surf.draw_circle(
-            Math.floor(colors.PLAYER_ABSOLUTE_PALETTE[u.getOwner()] / 3),
+            colors.PLAYER_ABSOLUTE_PALETTE[u.getOwner()].div(3).floor(),
             p,
             u.getRadius()
           )
@@ -1406,7 +1399,7 @@ class RendererHuman {
 
           if (fraction_damage > 0) {
             surf.draw_circle(
-              Math.floor(colors.PLAYER_ABSOLUTE_PALETTE[u.getOwner()] / 2),
+              colors.PLAYER_ABSOLUTE_PALETTE[u.getOwner()].div(2).floor(),
               p,
               u.getRadius() * fraction_damage
             )
@@ -1817,17 +1810,13 @@ class RendererHuman {
         const remain = (act.deadline - now) / (act.deadline - act.time)
         if (act.pos instanceof point.Point) {
           const size = remain / 3
-          this._surfaces.forEach((surf) => {
-            if (surf.world_to_surf) {
-              surf.draw_circle(act.color. act.pos, size, 1)
-            }
+          this.all_surfs((surf) => {
+            surf.draw_circle(act.color, act.pos, size, 1)
           })
         } else {
-          this._surfaces.forEach((surf) => {
-            if (surf.world_to_surf) {
+          this.all_surfs((surf) => {
               // Fade with alpha would be nice, but doesn't seem to work.
               surf.draw_rect(act.color, act.pos, 1)
-            }
           })
         }
       }
@@ -2125,10 +2114,11 @@ class RendererHuman {
     }
   }
 
-  all_surfs(fn, args) {
+  all_surfs(cb, args) {
     this._surfaces.forEach((surf) => {
       if (surf.world_to_surf) {
-        fn(surf, ...Array.from(arguments).slice(1))
+        // cb(surf, ...Array.from(arguments).slice(1))
+        cb(surf)
       }
     })
   }
@@ -2178,32 +2168,36 @@ class RendererHuman {
     //A render loop that pulls observations off the queue to render.//
     let obs = true
     while (obs) {  // Send something falsy through the queue to shut down.
-      // obs = this._obs_queue.get()
-      obs = await this.get_next_obs()
-      if (obs) {
-        obs.getObservation().getAlertsList().forEach((alert) => {
-          this._alerts[this.sc_alerts(alert)] = performance.now()
-        })
-        obs.getActionErrorsList().forEach((err) => {
-          console.log('in action errors list: ', err)
-          if (err.getResult() != this.sc_error_action_result.SUCCESS) {
-            this._alerts[this.sc_error_action_result(err.getResult())] = performance.now()
+      try {
+        // obs = this._obs_queue.get()
+        obs = await this.get_next_obs()
+        if (obs) {
+          obs.getObservation().getAlertsList().forEach((alert) => {
+            this._alerts[this.sc_alerts(alert)] = performance.now()
+          })
+          obs.getActionErrorsList().forEach((err) => {
+            console.log('in action errors list: ', err)
+            if (err.getResult() != this.sc_error_action_result.SUCCESS) {
+              this._alerts[this.sc_error_action_result(err.getResult())] = performance.now()
+            }
+          })
+          this.prepare_actions(obs)
+          if (this._obs_queue.length === 0) {
+            // Only render the latest observation so we keep up with the game.
+            this.render_obs(obs)
           }
-        })
-        this.prepare_actions(obs)
-        if (this._obs_queue.length === 0) {
-          // Only render the latest observation so we keep up with the game.
-          this.render_obs(obs)
+          if (this._video_writer) {
+            const axes = [1, 0, 2]
+            this._video_writer.add(np.transpose(
+              window.gamejs.surfarray.pixels3d(this._window), axes)
+            )
+          }
         }
-        if (this._video_writer) {
-          const axes = [1, 0, 2]
-          this._video_writer.add(np.transpose(
-            window.gamejs.surfarray.pixels3d(this._window), axes)
-          )
-        }
+        // Dont think we need this in JavaScript
+        // this._obs_queue.task_done()
+      } catch (err) {
+        console.error(err)
       }
-      // Dont think we need this in JavaScript
-      // this._obs_queue.task_done()
     }
   }
 
@@ -2223,13 +2217,14 @@ class RendererHuman {
     const mouse_pos = this.get_mouse_pos()
     if (mouse_pos) {
       // Draw a small mouse cursor
-      this.all_surfs(_Surface.draw_circle, colors.green, mouse_pos.world_pos, 0.1)
+      // this.all_surfs(_Surface.draw_circle, colors.green, mouse_pos.world_pos, 0.1)
+      this.all_surfs((surf) => surf.draw_circle(colors.green, mouse_pos.world_pos, 0.1))
     }
 
     this.draw_actions()
 
     withPython(sw('flip'), () => {
-      window.gamejs.display.flip()
+      // window.gamejs.display.flip()
     })
 
     this._render_times.push(performance.now() - start_time)
