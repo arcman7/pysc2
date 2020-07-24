@@ -251,9 +251,11 @@ class RemoteController {
     let resolve
     let reject
     let ws
-    function clear(e) {
+    let returnedConnection = null
+    function clear() {
       clearTimeout(this.pingTimeout);
-      reject({ status_code: 404, message: e })
+      // reject({ status_code: 404, message: e })
+      resolve(null)
     }
     function finish() {
       resolve(ws)
@@ -268,6 +270,11 @@ class RemoteController {
         throw new ConnectError('Failed to connect to the SC2 websocket. Is it up?')
       }
       console.info(`Connecting to : ${url}, attempt: ${i}, running: ${is_running}`)
+      const pendingConnection = new Promise((res, rej) => { //eslint-disable-line
+        resolve = res
+        reject = rej
+        setTimeout(clear, 6 * 1000)
+      })
       try {
         ws = new Websocket(url)
         function heartbeat() { //eslint-disable-line
@@ -280,23 +287,28 @@ class RemoteController {
             this.terminate()
           }, timeout_seconds * milisecond)
         }
-        const pendingConnection = new Promise((res, rej) => { //eslint-disable-line
-          resolve = res
-          reject = rej
-          setTimeout(clear, 6 * 1000)
-        })
+        // const pendingConnection = new Promise((res, rej) => { //eslint-disable-line
+        //   resolve = res
+        //   reject = rej
+        //   setTimeout(clear, 6 * 1000)
+        // })
         ws.on('open', finish)
         ws.on('open', heartbeat)
         ws.on('ping', heartbeat)
 
         ws.on('close', clear)
         ws.on('error', clear)
-        await pendingConnection //eslint-disable-line no-await-in-loop
-        return ws
+        console.log('start waiting')
+        returnedConnection = await pendingConnection //eslint-disable-line no-await-in-loop
+        console.log('done waiting')
+        if (returnedConnection !== null) {
+          return returnedConnection
+        }
       } catch (err) {
         // TODO: handle various error types
         // socket.error: SC2 hasn't started listening yet.
         if (err.status_code === 404) {
+          console.log('inside catch', err)
           // SC2 is listening, but hasn't set up the /sc2api endpoint yet.
         } else {
           console.error(err)
