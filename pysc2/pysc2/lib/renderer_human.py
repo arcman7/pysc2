@@ -1548,7 +1548,7 @@ class RendererHuman(object):
       player_rel_color = player_rel_feature.color(player_rel)
       out[player_rel_mask, :] = player_rel_color[player_rel_mask, :]
 
-  visibility = features.SCREEN_FEATURES.visibility_map.unpack(
+    visibility = features.SCREEN_FEATURES.visibility_map.unpack(
         self._obs.observation)
     visibility_fade = np.array([[0.5] * 3, [0.75]*3, [1]*3])
     out *= visibility_fade[visibility]

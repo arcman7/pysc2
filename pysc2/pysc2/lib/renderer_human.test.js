@@ -30,7 +30,7 @@ async function test() {
   playerSetup = new sc_pb.PlayerSetup()
   playerSetup.setType(sc_pb.PlayerType.COMPUTER)
   playerSetup.setRace(sc_common.Race.RANDOM)
-  playerSetup.setDifficulty(sc_pb.Difficulty.VERYEASY)
+  playerSetup.setDifficulty(sc_pb.Difficulty.VERYHARD)
   create.addPlayerSetup(playerSetup)
 
   const join = new sc_pb.RequestJoinGame()
@@ -50,7 +50,7 @@ async function test() {
   minimapResolution.setX(64)
   minimapResolution.setY(64)
   featureLayer.setMinimapResolution(minimapResolution)
-  Interface.setFeatureLayer(featureLayer)
+  // Interface.setFeatureLayer(featureLayer)
   const render = new sc_pb.SpatialCameraSetup()
   resolution = new sc_pb.Size2DI()
   resolution.setX(256)

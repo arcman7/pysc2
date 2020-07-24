@@ -2337,8 +2337,8 @@ function piece_wise_linear(scale, points) {
   let [p1, c1] = points[0]
   let [p2, c2] = points[1]
   const out = Array(scale)
+  out[0] = new Color(0, 0, 0)
   let next_pt = 2
-  let temp
   let frac
   let v
   for (let i = 1; i < scale; i++) {
@@ -2351,8 +2351,7 @@ function piece_wise_linear(scale, points) {
       next_pt += 1
     }
     frac = (v - p1) / (p2 - p1)
-    temp = c1 * (1 - frac) + c2 * frac
-    out[i] = [temp.r, temp.g, temp.b]
+    out[i] = c1.mul(1 - frac).add(c2.mul(frac))
   }
   return out
 }
@@ -7120,7 +7119,7 @@ class _Surface {
     //Draw an arc using world coordinates, radius, start and stop angles.//
     const center = this.world_to_surf.fwd_pt(world_loc).round()
     const radius = Math.max(1, Math.floor(this.world_to_surf.fwd_dist(world_radius)))
-    const rect = window.gamejs.Rect(center - radius, (radius * 2, radius * 2))
+    const rect = new window.gamejs.Rect(center - radius, (radius * 2, radius * 2))
     window.gamejs.graphics.arc(
       this.surf, color.toCSS(), rect, start_angle, stop_angle,
       thickness < radius ? thickness : 0
@@ -7143,7 +7142,7 @@ class _Surface {
     //Draw a rectangle using world coordinates.//
     const tl = this.world_to_surf.fwd_pt(world_rect.tl).round()
     const br = this.world_to_surf.fwd_pt(world_rect.br).round()
-    const rect = window.gamejs.Rect(tl, br.sub(tl))
+    const rect = new window.gamejs.Rect(tl, br.sub(tl))
     window.gamejs.graphics.rect(this.surf, color.toCSS(), rect, thickness)
   }
 
@@ -7164,7 +7163,7 @@ class _Surface {
   write_screen(font, color, screen_pos, text, align = 'left', valign = 'top') {
     //Write to the screen in font.size relative coordinates.//
     const line_size = (font.size()[1])
-    const pos = new point.Point(...screen_pos) * new point.Point(0.75, 1) * line_size
+    const pos = (new point.Point(...screen_pos)).mul(new point.Point(0.75, 1)).mul(line_size)
     const text_surf = font.render(text.toString ? text.toString() : String(text), true, color.toCSS())
     const rect = text_surf.getRect()
     if (pos.x >= 0) {
@@ -7178,6 +7177,7 @@ class _Surface {
       rect[valign] = this.surf.getSize()[1] + pos.y
     }
     this.surf.blit(text_surf, rect)
+    window.gamejs.display.getSurface().blit(this.surf, this.surf_rect)
   }
 
   write_world(font, color, world_loc, text) {
@@ -7185,6 +7185,7 @@ class _Surface {
     const rect = text_surf.getRect()
     rect.center = this.world_to_surf.fwd_pt(world_loc)
     this.surf.blit(text_surf, rect)
+    window.gamejs.display.getSurface().blit(this.surf, this.surf_rect)
   }
 }
 
@@ -7444,13 +7445,6 @@ class RendererHuman {
   async init_window() {
     //Initialize the gamejs window and lay out the surfaces//
 
-    // let resolve
-    // const prom = new Promise((res) => {
-    //   resolve = res
-    // })
-    // gamejs.ready(resolve)
-    // await prom
-
     let main_screen_px
     if (this._render_rgb && this._rgb_screen_px) {
       main_screen_px = this._rgb_screen_px
@@ -7503,9 +7497,10 @@ class RendererHuman {
     function add_surface(surf_type, surf_loc, world_to_surf, world_to_obs, draw_fn) {
       //Add a surface. Drawn in order and intersect in reverse order.//
       // const sub_surf = self._window.getSurface(
-      const sub_surf = gamejs.display.getSurface(
-        gamejs.Rect(surf_loc.tl, surf_loc.size)
-      )
+      // const sub_surf = gamejs.display.getSurface(
+      //   new gamejs.Rect(surf_loc.tl, surf_loc.size).size
+      // )
+      const sub_surf = new window.gamejs.graphics.Surface(surf_loc.size)
       self._surfaces.push(new _Surface(
           sub_surf, surf_type, surf_loc, world_to_surf, world_to_obs, draw_fn.bind(self)
         )
@@ -7734,7 +7729,7 @@ class RendererHuman {
       const features_loc = new point.Point(screen_size_px.x, 0)
       // const feature_pane = this._window.getSurface(
       const feature_pane = gamejs.display.getSurface(
-        gamejs.Rect(features_loc, window_size_px.sub(features_loc))
+        new gamejs.Rect(features_loc, window_size_px.sub(features_loc)).size
       )
       feature_pane.fill(colors.white.div(2).toCSS())
       const feature_pane_size = new point.Point(...feature_pane.getSize())
@@ -8549,6 +8544,33 @@ class RendererHuman {
         }
       }
     })
+    window.gamejs.display.getSurface().blit(surf.surf, surf.surf_rect)
+  }
+
+  draw_effects(surf) {
+    //Draw the effects.//
+    this._obs.getObservation().getRawData().getEffectsList().forEach((effect) => {
+      const color = [
+        colors.effects[effect.getEffectId()],
+        colors.effects[effect.getEffectId()],
+        colors.PLAYER_ABSOLUTE_PALETTE[effect.getOwner()]
+      ]
+      const name = this.get_unit_name(
+        surf, features.Effects(effect.getEffectId()).name, effect.getRadius()
+      )
+      effect.getPosList().forEach((pos) => {
+        const p = point.Point.build(pos)
+        // pygame alpha transparency doesn't work, so just draw thin circles.
+        const thickness = 2
+        for (let r = 1; r < Math.floor(effect.getRadius() * 3); r++) {
+          surf.draw_circle(color[r % 3], p, r / 3, thickness)
+        }
+        if (name) {
+          surf.write_world(this._font_small, colors.white, p, name)
+        }
+      })
+    })
+    window.gamejs.display.getSurface().blit(surf.surf, surf.surf_rect)
   }
 
   draw_selection(surf) {
@@ -8561,6 +8583,7 @@ class RendererHuman {
         surf.draw_rect(colors.green, rect, 1)
       }
     }
+    window.gamejs.display.getSurface().blit(surf.surf, surf.surf_rect)
   }
 
   draw_build_target(surf) {
@@ -8587,6 +8610,7 @@ class RendererHuman {
         }
       }
     }
+    window.gamejs.display.getSurface().blit(surf.surf, surf.surf_rect)
   }
 
   draw_overlay(surf) {
@@ -8626,6 +8650,7 @@ class RendererHuman {
         delete this._alerts[alert]
       }
     })
+    window.gamejs.display.getSurface().blit(surf.surf, surf.surf_rect)
   }
 
   draw_help(surf) {
@@ -8646,6 +8671,7 @@ class RendererHuman {
       write([2, i], hotkey)
       write([3 + max_len * 0.7, i], description)
     })
+    window.gamejs.display.getSurface().blit(surf.surf, surf.surf_rect)
   }
   
   draw_commands(surf) {
@@ -8697,6 +8723,7 @@ class RendererHuman {
         .map((upgrade_id) => this._static_data.upgrades[upgrade_id].name)
       upgrades.sort().forEach((name) => write_line(1, name))
     }
+    window.gamejs.display.getSurface().blit(surf.surf, surf.surf_rect)
   }
 
   draw_panel(surf) {
@@ -8817,6 +8844,7 @@ class RendererHuman {
         })
       }
     }
+    window.gamejs.display.getSurface().blit(surf.surf, surf.surf_rect)
   }
 
   draw_actions() {
@@ -8829,15 +8857,18 @@ class RendererHuman {
           const size = remain / 3
           this.all_surfs((surf) => {
             surf.draw_circle(act.color, act.pos, size, 1)
+            window.gamejs.display.getSurface().blit(surf.surf, surf.surf_rect)
           })
         } else {
           this.all_surfs((surf) => {
-              // Fade with alpha would be nice, but doesn't seem to work.
-              surf.draw_rect(act.color, act.pos, 1)
+            // Fade with alpha would be nice, but doesn't seem to work.
+            surf.draw_rect(act.color, act.pos, 1)
+            window.gamejs.display.getSurface().blit(surf.surf, surf.surf_rect)
           })
         }
       }
     })
+
   }
   prepare_actions(obs) {
     //Keep a list of the past actions so they can be drawn.//
@@ -8983,11 +9014,12 @@ class RendererHuman {
     out = out.where(visibility, out.mul(visibility_fade))
 
     surf.blit_np_array(getImageData(out.dataSync(), out.shape, false))
+    window.gamejs.display.getSurface().blit(surf.surf, surf.surf_rect)
   }
 
   draw_mini_map(surf) {
-    //Draw the minimap//
     return
+    //Draw the minimap//
     if (this._render_rgb
       && this._obs.getObservation().hasRenderData()
       && this._obs.getObservation().getRenderData().hasMinimap()) {
@@ -9066,7 +9098,9 @@ class RendererHuman {
       })
     }
 
-    gamejs.graphics.rect(surf.surf, colors.red.toCSS(), surf.surf.getRect(), 1) // Border
+    window.gamejs.graphics.rect(surf.surf, colors.red.toCSS(), surf.surf.getRect(), 1) // Border
+
+    window.gamejs.display.getSurface().blit(surf.surf, surf.surf_rect)
   }
 
   check_valid_queued_action() {
@@ -9084,6 +9118,7 @@ class RendererHuman {
     surf.blit_np_array(features.Feature.unpack_image_data(
       this._obs.getObservation().getRenderData().getMap()
     ))
+    window.gamejs.display.getSurface().blit(surf.surf, surf.surf_rect)
   }
 
   draw_screen(surf) {
