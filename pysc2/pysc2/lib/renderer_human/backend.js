@@ -133,6 +133,7 @@ class GameLoop {
       console.log('backend: requesting Data')
       if (this._data) {
         this._wss.write(ws, this._data)
+        return
       }
       const response = new sc_pb.Response()
       response.setData(await this._controller.data_raw())
@@ -146,6 +147,7 @@ class GameLoop {
       if (this._game_loop_running) {
         return
       }
+      console.log('****** calling this.run')
       this.run({ run_config: this._run_config, controller: this._controller })
     }
   }

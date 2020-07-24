@@ -153,9 +153,9 @@ class _Surface {
 
   write_screen(font, color, screen_pos, text, align = 'left', valign = 'top') {
     //Write to the screen in font.size relative coordinates.//
-    const line_size = (font.size()[1])
+    const line_size = font.size()[1]
     const pos = (new point.Point(...screen_pos)).mul(new point.Point(0.75, 1)).mul(line_size)
-    const text_surf = font.render(text.toString ? text.toString() : String(text), true, color.toCSS())
+    const text_surf = font.render(text.toString ? text.toString() : String(text), color.toCSS())
     const rect = text_surf.getRect()
     if (pos.x >= 0) {
       rect[align] = pos.x
@@ -168,15 +168,18 @@ class _Surface {
       rect[valign] = this.surf.getSize()[1] + pos.y
     }
     this.surf.blit(text_surf, rect)
-    window.gamejs.display.getSurface().blit(this.surf, this.surf_rect)
+    // if (!this._has_blitted) {
+    //   window.gamejs.display.getSurface().blit(this.surf, this.surf_rect)
+    //   this._has_blitted = true
+    // }
   }
 
   write_world(font, color, world_loc, text) {
-    const text_surf = font.render(text, true, color.toCSS())
+    const text_surf = font.render(text, color.toCSS())
     const rect = text_surf.getRect()
     rect.center = this.world_to_surf.fwd_pt(world_loc)
     this.surf.blit(text_surf, rect)
-    window.gamejs.display.getSurface().blit(this.surf, this.surf_rect)
+    // window.gamejs.display.getSurface().blit(this.surf, this.surf_rect)
   }
 }
 
@@ -469,7 +472,8 @@ class RendererHuman {
           .mul(main_screen_px.y)
           .div(features_layout.y)
         window_size_ratio = window_size_ratio.add(
-          new point.Point(features_aspect_ratio.x, 0)
+          // new point.Point(features_aspect_ratio.x, 0)
+          features_aspect_ratio
         )
       }
     }
@@ -499,8 +503,9 @@ class RendererHuman {
     }
 
     this._scale = window_size_px.y // 32
-    this._font_small = new gamejs.font.Font(null, Math.floor(this._scale * 0.5))
-    this._font_large = new gamejs.font.Font(null, this._scale)
+    this._font_size = 20
+    this._font_small = new gamejs.font.Font(`${Math.floor(this._font_size * 0.5)}px monospace`)
+    this._font_large = new gamejs.font.Font(`${this._font_size}px monospace`)
 
     function check_eq(a, b) {
       //Used to run unit tests on the transforms.//
@@ -746,7 +751,7 @@ class RendererHuman {
           i % feature_cols,
           i / feature_cols
         ).mul(feature_grid_size)
-        const text = feature_font.render(name, true, colors.white)
+        const text = feature_font.render(name, colors.white.toCSS())
         const rect = text.getRect()
         rect.center = grid_offset.add(
           new point.Point(
@@ -1620,14 +1625,16 @@ class RendererHuman {
     const [times, steps] = zip(this._game_times)
     const sec = Math.floor(obs.getGameLoop() / 22.4)
     surf.write_screen(
-      this._font_large, colors.green, [-0.2, 0.2],
-      `Score: ${obs.getScore().getScore()}, Step: ${obs.getGameLoop()}, ${sum(steps) / (sum(times) || 1)}/s, Time: ${Math.floor(sec / 60)}: ${sec % 60}`,
+      // this._font_large, colors.green, [-0.2, 0.2],
+      this._font_large, colors.green, [0.2, 0.2],
+      `Score: ${obs.getScore().getScore()}, Step: ${obs.getGameLoop()}, ${(sum(steps) / (sum(times) || 1)).toFixed(1)}/s, Time: ${Math.floor(sec / 60)}: ${sec % 60}`,
       'right'
     )
-
+    console.log(times.length, sum(times))
     surf.write_screen(
-      this._font_large, colors.green.mul(0.8), [-0.2, 1.2],
-      `APM: ${obs.getScore().getScoreDetails().getCurrentApm()}, EPM: ${obs.getScore().getScoreDetails().getCurrentEffectiveApm()}, FPS: O:${times.length / (sum(times) || 1)}, R: ${this._render_times.length / (sum(this._render_times) || 1)}`,
+      // this._font_large, colors.green.mul(0.8), [-0.2, 1.2],
+      this._font_large, colors.green.mul(0.8), [0.2, 1.2],
+      `APM: ${obs.getScore().getScoreDetails().getCurrentApm()}, EPM: ${obs.getScore().getScoreDetails().getCurrentEffectiveApm()}, FPS: O:${(times.length / (sum(times) || 1)).toFixed(1)}, R: ${(this._render_times.length / (sum(this._render_times) || 1)).toFixed(1)}`,
       'left'
     )
 
@@ -2171,10 +2178,10 @@ class RendererHuman {
       return
     }
     const now = performance.now()
-    this._game_times.push(
+    this._game_times.push([
       now - this._last_time,
       Math.max(1, obs.getObservation().getGameLoop() - this._obs.getObservation().getGameLoop())
-    )
+    ])
     this._last_time = now
     this._last_game_loop = this._obs.getObservation().getGameLoop()
     if (this._obs_trigger) {

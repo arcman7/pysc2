@@ -239,7 +239,7 @@ class RemoteController {
     return true
   }
 
-  _connect(host, port, proc, timeout_seconds) { //eslint-disable-line
+  async _connect(host, port, proc, timeout_seconds) { //eslint-disable-line
     timeout_seconds = Number(timeout_seconds)
     const milisecond = 1000
     //Connect to the websocket, retrying as needed. Returns the socket.//
@@ -249,21 +249,27 @@ class RemoteController {
     const url = `ws://${host}:${port}/sc2api`
     let was_running = false
     let resolve
-    const p = new Promise((res) => {
-      resolve = res
-    })
+    let reject
+    let ws
+    function clear(e) {
+      clearTimeout(this.pingTimeout);
+      reject({ status_code: 404, message: e })
+    }
+    function finish() {
+      resolve(ws)
+    }
     let i = 0
-    const connectTimeout = setInterval(() => {
+    while (i < timeout_seconds) {
       const is_running = proc && !proc._hasExited
       was_running = was_running || is_running
       if ((i >= Math.floor(timeout_seconds / 4) || was_running) && !is_running) {
         console.warn('SC2 isn\'t running, so bailing early on the websocket connection.')
-        clearInterval(connectTimeout)
+        // clearInterval(connectTimeout)
         throw new ConnectError('Failed to connect to the SC2 websocket. Is it up?')
       }
       console.info(`Connecting to : ${url}, attempt: ${i}, running: ${is_running}`)
       try {
-        const ws = new Websocket(url)
+        ws = new Websocket(url)
         function heartbeat() { //eslint-disable-line
           clearTimeout(this.pingTimeout);
           // Use `WebSocket#terminate()`, which immediately destroys the connection,
@@ -274,15 +280,19 @@ class RemoteController {
             this.terminate()
           }, timeout_seconds * milisecond)
         }
-        ws.on('open', () => {
-          clearInterval(connectTimeout)
-          resolve(ws)
+        const pendingConnection = new Promise((res, rej) => { //eslint-disable-line
+          resolve = res
+          reject = rej
+          setTimeout(clear, 6 * 1000)
         })
+        ws.on('open', finish)
         ws.on('open', heartbeat)
         ws.on('ping', heartbeat)
-        ws.on('close', function clear() {
-          clearTimeout(this.pingTimeout);
-        })
+
+        ws.on('close', clear)
+        ws.on('error', clear)
+        await pendingConnection //eslint-disable-line no-await-in-loop
+        return ws
       } catch (err) {
         // TODO: handle various error types
         // socket.error: SC2 hasn't started listening yet.
@@ -292,15 +302,75 @@ class RemoteController {
           console.error(err)
           throw err
         }
+      } finally {
+        i++
       }
-      i++
-      if (i >= timeout_seconds) {
-        clearInterval(connectTimeout)
-        throw new ConnectError('Failed to connect to the SC2 websocket. Is it up?')
-      }
-    }, 6 * 1000)
-    return p
+    }
+    throw new ConnectError('Failed to connect to the SC2 websocket. Is it up?')
   }
+
+  // _connect(host, port, proc, timeout_seconds) { //eslint-disable-line
+  //   timeout_seconds = Number(timeout_seconds)
+  //   const milisecond = 1000
+  //   //Connect to the websocket, retrying as needed. Returns the socket.//
+  //   if (host.match(':') && host[0] !== '[') { // Support ipv6 addresses.
+  //     host = `[${host}]`
+  //   }
+  //   const url = `ws://${host}:${port}/sc2api`
+  //   let was_running = false
+  //   let resolve
+  //   const p = new Promise((res) => {
+  //     resolve = res
+  //   })
+  //   let i = 0
+  //   const connectTimeout = setInterval(() => {
+  //     const is_running = proc && !proc._hasExited
+  //     was_running = was_running || is_running
+  //     if ((i >= Math.floor(timeout_seconds / 4) || was_running) && !is_running) {
+  //       console.warn('SC2 isn\'t running, so bailing early on the websocket connection.')
+  //       clearInterval(connectTimeout)
+  //       throw new ConnectError('Failed to connect to the SC2 websocket. Is it up?')
+  //     }
+  //     console.info(`Connecting to : ${url}, attempt: ${i}, running: ${is_running}`)
+  //     try {
+  //       const ws = new Websocket(url)
+  //       function heartbeat() { //eslint-disable-line
+  //         clearTimeout(this.pingTimeout);
+  //         // Use `WebSocket#terminate()`, which immediately destroys the connection,
+  //         // instead of `WebSocket#close()`, which waits for the close timer.
+  //         // Delay should be equal to the interval at which your server
+  //         // sends out pings plus a conservative assumption of the latency.
+  //         this.pingTimeout = setTimeout(() => {
+  //           this.terminate()
+  //         }, timeout_seconds * milisecond)
+  //       }
+  //       ws.on('open', () => {
+  //         clearInterval(connectTimeout)
+  //         resolve(ws)
+  //       })
+  //       ws.on('open', heartbeat)
+  //       ws.on('ping', heartbeat)
+  //       ws.on('close', function clear() {
+  //         clearTimeout(this.pingTimeout);
+  //       })
+  //     } catch (err) {
+  //       // TODO: handle various error types
+  //       // socket.error: SC2 hasn't started listening yet.
+  //       if (err.status_code === 404) {
+  //         // SC2 is listening, but hasn't set up the /sc2api endpoint yet.
+  //       } else {
+  //         console.error(err)
+  //         throw err
+  //       }
+  //     }
+  //     i++
+  //     if (i >= timeout_seconds) {
+  //       clearInterval(connectTimeout)
+  //       throw new ConnectError('Failed to connect to the SC2 websocket. Is it up?')
+  //     }
+  //   }, 6 * 1000)
+  //   return p
+  // }
 
   close() {
     this._client.close()
