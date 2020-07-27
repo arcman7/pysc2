@@ -255,7 +255,6 @@ class RemoteController {
     const url = `ws://${host}:${port}/sc2api`
     let was_running = false
     let resolve
-    let reject
     let ws
     let returnedConnection = null
     let i = 0
@@ -264,26 +263,21 @@ class RemoteController {
       was_running = was_running || is_running
       if ((i >= Math.floor(timeout_seconds / 4) || was_running) && !is_running) {
         console.warn('SC2 isn\'t running, so bailing early on the websocket connection.')
-        // clearInterval(connectTimeout)
         throw new ConnectError('Failed to connect to the SC2 websocket. Is it up?')
       }
       console.info(`Connecting to : ${url}, attempt: ${i}, running: ${is_running}`)
-      function clear(e) {
+      function clear() { //eslint-disable-line
         clearTimeout(ws.pingTimeout);
-        // reject({ status_code: 404, message: e })
-        // console.log('clearing: ', e)
         resolve(null)
       }
-      function finish() {
+      function finish() { //eslint-disable-line
         resolve(ws)
       }
-      const pendingConnection = new Promise((res, rej) => { //eslint-disable-line
+      const pendingConnection = new Promise((res) => { //eslint-disable-line
         resolve = res
-        reject = rej
         setTimeout(() => {
-          // console.log('timeout triggered after 6 seconds')
-          res(null)
-        }, 6 * 1000)
+          resolve(null)
+        }, 6 * milisecond)
       })
       try {
         ws = new Websocket(url)
@@ -297,22 +291,15 @@ class RemoteController {
         //     ws.terminate()
         //   }, 10 * milisecond)
         // }
-        // const pendingConnection = new Promise((res, rej) => { //eslint-disable-line
-        //   resolve = res
-        //   reject = rej
-        //   setTimeout(clear, 6 * 1000)
-        // })
         ws.on('open', finish)
         // ws.on('open', heartbeat)
         // ws.on('ping', heartbeat)
 
-        // ws.on('close', clear)
-        // ws.on('error', clear)
-        ws.on('close', () => { clear('ws.close') })
-        ws.on('error', (e) => { clear(e) })
-        console.log('start waiting')
+        ws.on('close', clear)
+        ws.on('error', clear)
+        // console.log('start waiting')
         returnedConnection = await pendingConnection //eslint-disable-line no-await-in-loop
-        console.log('done waiting')
+        // console.log('done waiting')
         if (returnedConnection !== null) {
           return returnedConnection
         }
@@ -327,7 +314,7 @@ class RemoteController {
           throw err
         }
       } finally {
-        await sleep(10 * 1000)
+        await sleep(6 * milisecond) //eslint-disable-line no-await-in-loop
         i++
       }
     }

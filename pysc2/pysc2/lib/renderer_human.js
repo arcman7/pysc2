@@ -147,14 +147,14 @@ class _Surface {
       })
     })
     withPython(sw('draw'), () => {
-      this.surf.blit(raw_surface.scale(this.surf.getSize()))
+      this.surf.blit(raw_surface.scale(this.surf.getSize()))//, this.surf_rect)
     })
   }
 
   write_screen(font, color, screen_pos, text, align = 'left', valign = 'top') {
     //Write to the screen in font.size relative coordinates.//
     const line_size = font.size()[1]
-    const pos = (new point.Point(...screen_pos)).mul(new point.Point(0.75, 1)).mul(line_size)
+    const pos = (new point.Point(screen_pos)).mul(new point.Point(0.75, 1)).mul(line_size)
     const text_surf = font.render(text.toString ? text.toString() : String(text), color.toCSS())
     const rect = text_surf.getRect()
     if (pos.x >= 0) {
@@ -167,11 +167,9 @@ class _Surface {
     } else {
       rect[valign] = this.surf.getSize()[1] + pos.y
     }
+    rect.top += 5
+    rect.height = line_size
     this.surf.blit(text_surf, rect)
-    // if (!this._has_blitted) {
-    //   window.gamejs.display.getSurface().blit(this.surf, this.surf_rect)
-    //   this._has_blitted = true
-    // }
   }
 
   write_world(font, color, world_loc, text) {
@@ -491,10 +489,6 @@ class RendererHuman {
     const self = this
     function add_surface(surf_type, surf_loc, world_to_surf, world_to_obs, draw_fn) {
       //Add a surface. Drawn in order and intersect in reverse order.//
-      // const sub_surf = self._window.getSurface(
-      // const sub_surf = gamejs.display.getSurface(
-      //   new gamejs.Rect(surf_loc.tl, surf_loc.size).size
-      // )
       const sub_surf = new window.gamejs.graphics.Surface(surf_loc.size)
       self._surfaces.push(new _Surface(
           sub_surf, surf_type, surf_loc, world_to_surf, world_to_obs, draw_fn.bind(self)
@@ -503,7 +497,7 @@ class RendererHuman {
     }
 
     this._scale = window_size_px.y // 32
-    this._font_size = 20
+    this._font_size = 14
     this._font_small = new gamejs.font.Font(`${Math.floor(this._font_size * 0.5)}px monospace`)
     this._font_large = new gamejs.font.Font(`${this._font_size}px monospace`)
 
@@ -1540,7 +1534,7 @@ class RendererHuman {
         }
       }
     })
-    window.gamejs.display.getSurface().blit(surf.surf, surf.surf_rect)
+    window.gamejs.display.getSurface().blit(surf.surf, [surf.surf_rect.left, surf.surf_rect.top])
   }
 
   draw_effects(surf) {
@@ -1566,7 +1560,7 @@ class RendererHuman {
         }
       })
     })
-    window.gamejs.display.getSurface().blit(surf.surf, surf.surf_rect)
+    window.gamejs.display.getSurface().blit(surf.surf, [surf.surf_rect.left, surf.surf_rect.top])
   }
 
   draw_selection(surf) {
@@ -1579,7 +1573,7 @@ class RendererHuman {
         surf.draw_rect(colors.green, rect, 1)
       }
     }
-    window.gamejs.display.getSurface().blit(surf.surf, surf.surf_rect)
+    window.gamejs.display.getSurface().blit(surf.surf, [surf.surf_rect.left, surf.surf_rect.top])
   }
 
   draw_build_target(surf) {
@@ -1606,7 +1600,7 @@ class RendererHuman {
         }
       }
     }
-    window.gamejs.display.getSurface().blit(surf.surf, surf.surf_rect)
+    window.gamejs.display.getSurface().blit(surf.surf, [surf.surf_rect.left, surf.surf_rect.top])
   }
 
   draw_overlay(surf) {
@@ -1619,23 +1613,24 @@ class RendererHuman {
     surf.write_screen(
       this._font_large, colors.green, [0.2, 0.2],
       `Minearls: ${player.getMinerals()}, Vespene: ${player.getVespene()}, Food: ${player.getFoodUsed()} / ${player.getFoodCap()}`,
-      'right'
+      'left'
     )
-
-    const [times, steps] = zip(this._game_times)
+    const times = []
+    const steps = []
+    this._game_times.forEach(([time, step]) => {
+      times.push(time)
+      steps.push(step)
+    })
     const sec = Math.floor(obs.getGameLoop() / 22.4)
     surf.write_screen(
-      // this._font_large, colors.green, [-0.2, 0.2],
-      this._font_large, colors.green, [0.2, 0.2],
-      `Score: ${obs.getScore().getScore()}, Step: ${obs.getGameLoop()}, ${(sum(steps) / (sum(times) || 1)).toFixed(1)}/s, Time: ${Math.floor(sec / 60)}: ${sec % 60}`,
+      this._font_large, colors.green, [-0.2, 0.2],
+      `Score: ${obs.getScore().getScore()}, Step: ${obs.getGameLoop()}, ${(sum(steps) / (sum(times) || 1)).toFixed(1)}/s, Time: ${Math.floor(sec / 60)}:${sec % 60}`,
       'right'
     )
-    console.log(times.length, sum(times))
     surf.write_screen(
-      // this._font_large, colors.green.mul(0.8), [-0.2, 1.2],
-      this._font_large, colors.green.mul(0.8), [0.2, 1.2],
-      `APM: ${obs.getScore().getScoreDetails().getCurrentApm()}, EPM: ${obs.getScore().getScoreDetails().getCurrentEffectiveApm()}, FPS: O:${(times.length / (sum(times) || 1)).toFixed(1)}, R: ${(this._render_times.length / (sum(this._render_times) || 1)).toFixed(1)}`,
-      'left'
+      this._font_large, colors.green.mul(0.8), [-0.2, 1.2],
+      `APM: ${obs.getScore().getScoreDetails().getCurrentApm()}, EPM: ${obs.getScore().getScoreDetails().getCurrentEffectiveApm()}, FPS: O:${((times.length * 1000) / (sum(times) || 1)).toFixed(1)}, R: ${(this._render_times.length / (sum(this._render_times) || 1)).toFixed(1)}`,
+      'right'
     )
 
     const line = 3
@@ -1648,7 +1643,7 @@ class RendererHuman {
         delete this._alerts[alert]
       }
     })
-    window.gamejs.display.getSurface().blit(surf.surf, surf.surf_rect)
+    window.gamejs.display.getSurface().blit(surf.surf, [surf.surf_rect.left, surf.surf_rect.top])
   }
 
   draw_help(surf) {
@@ -1669,7 +1664,7 @@ class RendererHuman {
       write([2, i], hotkey)
       write([3 + max_len * 0.7, i], description)
     })
-    window.gamejs.display.getSurface().blit(surf.surf, surf.surf_rect)
+    window.gamejs.display.getSurface().blit(surf.surf, [surf.surf_rect.left, surf.surf_rect.top])
   }
   
   draw_commands(surf) {
@@ -1721,7 +1716,7 @@ class RendererHuman {
         .map((upgrade_id) => this._static_data.upgrades[upgrade_id].name)
       upgrades.sort().forEach((name) => write_line(1, name))
     }
-    window.gamejs.display.getSurface().blit(surf.surf, surf.surf_rect)
+    window.gamejs.display.getSurface().blit(surf.surf, [surf.surf_rect.left, surf.surf_rect.top])
   }
 
   draw_panel(surf) {
@@ -1842,7 +1837,7 @@ class RendererHuman {
         })
       }
     }
-    window.gamejs.display.getSurface().blit(surf.surf, surf.surf_rect)
+    window.gamejs.display.getSurface().blit(surf.surf, [surf.surf_rect.left, surf.surf_rect.top])
   }
 
   draw_actions() {
@@ -1855,13 +1850,13 @@ class RendererHuman {
           const size = remain / 3
           this.all_surfs((surf) => {
             surf.draw_circle(act.color, act.pos, size, 1)
-            window.gamejs.display.getSurface().blit(surf.surf, surf.surf_rect)
+            window.gamejs.display.getSurface().blit(surf.surf, [surf.surf_rect.left, surf.surf_rect.top])
           })
         } else {
           this.all_surfs((surf) => {
             // Fade with alpha would be nice, but doesn't seem to work.
             surf.draw_rect(act.color, act.pos, 1)
-            window.gamejs.display.getSurface().blit(surf.surf, surf.surf_rect)
+            window.gamejs.display.getSurface().blit(surf.surf, [surf.surf_rect.left, surf.surf_rect.top])
           })
         }
       }
@@ -2012,7 +2007,7 @@ class RendererHuman {
     out = out.where(visibility, out.mul(visibility_fade))
 
     surf.blit_np_array(getImageData(out.dataSync(), out.shape, false))
-    window.gamejs.display.getSurface().blit(surf.surf, surf.surf_rect)
+    window.gamejs.display.getSurface().blit(surf.surf, [surf.surf_rect.left, surf.surf_rect.top])
   }
 
   draw_mini_map(surf) {
@@ -2097,7 +2092,7 @@ class RendererHuman {
 
     window.gamejs.graphics.rect(surf.surf, colors.red.toCSS(), surf.surf.getRect(), 1) // Border
 
-    window.gamejs.display.getSurface().blit(surf.surf, surf.surf_rect)
+    window.gamejs.display.getSurface().blit(surf.surf, [surf.surf_rect.left, surf.surf_rect.top])
   }
 
   check_valid_queued_action() {
@@ -2115,7 +2110,7 @@ class RendererHuman {
     surf.blit_np_array(features.Feature.unpack_image_data(
       this._obs.getObservation().getRenderData().getMap()
     ))
-    window.gamejs.display.getSurface().blit(surf.surf, surf.surf_rect)
+    window.gamejs.display.getSurface().blit(surf.surf, [surf.surf_rect.left, surf.surf_rect.top])
   }
 
   draw_screen(surf) {
@@ -2178,7 +2173,7 @@ class RendererHuman {
       return
     }
     const now = performance.now()
-    this._game_times.push([
+    this._game_times.add([
       now - this._last_time,
       Math.max(1, obs.getObservation().getGameLoop() - this._obs.getObservation().getGameLoop())
     ])

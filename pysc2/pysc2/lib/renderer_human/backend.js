@@ -64,7 +64,7 @@ class WsServer {
         */
         throw err
       }
-      console.log('sent request!')
+      // console.log('sent request!')
     })
   }
 

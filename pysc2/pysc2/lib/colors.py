@@ -167,7 +167,7 @@ def piece_wise_linear(scale, points):
   assert points[0][0] == 0
   assert points[-1][0] == 1
   assert all(i < j for i, j in zip(points[:-1], points[1:]))
-  out = numpy.zeros((scale, 3))
+  out = np.zeros((scale, 3))
   p1, c1 = points[0]
   p2, c2 = points[1]
   next_pt = 2

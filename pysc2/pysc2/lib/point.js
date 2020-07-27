@@ -18,8 +18,8 @@ class Point extends namedtuple('Point', ['x', 'y']) {
   constructor(x, y) {
     super({})
     if (Array.isArray(x)) {
-      y = x[1]
-      x = x[0]
+      this.y = x[1]
+      this.x = x[0]
     } else if (Number(x) == x) {
       this.x = x
       this.y = y
