@@ -146,35 +146,51 @@ String.prototype.splitlines = function() {
   return this.split(/\r?\n/)
 }
 
-function getImageData(unit8data, [width, height], rgb = true) {
+function getImageData(unit8data, [width, height], rgb = true, color) {
   const multiplier = 1//255;
   const bytes = new Uint8ClampedArray(width * height * 4);
+  const a = Math.round(255);
+
   if (rgb) {
     for (let i = 0; i < height * width; ++i) {
       const r = unit8data[i * 3] * multiplier;
       const g = unit8data[i * 3 + 1] * multiplier;
       const b = unit8data[i * 3 + 2] * multiplier;
-      const a = 255;
       const j = i * 4;
       // start craft 2 api appears to be switching the red and blue channels
       bytes[j + 0] = Math.round(b);
       bytes[j + 1] = Math.round(g);
       bytes[j + 2] = Math.round(r);
-      bytes[j + 3] = Math.round(a);
+      bytes[j + 3] = a;
+    }
+  } else if (color) {
+    for (let i = 0; i < height * width; ++i) {
+      const j = i * 4;
+      if (unit8data[i]) {
+        bytes[j + 0] = Math.round(color.r);
+        bytes[j + 1] = Math.round(color.g);
+        bytes[j + 2] = Math.round(color.b);
+        bytes[j + 3] = a;
+      } else {
+        bytes[j + 0] = 0;
+        bytes[j + 1] = 0;
+        bytes[j + 2] = 0;
+        bytes[j + 3] = a;
+      }
     }
   } else {
     for (let i = 0; i < height * width; ++i) {
       const r = unit8data[i] * multiplier;
       const g = r
       const b = r
-      const a = 255;
       const j = i * 4;
       bytes[j + 0] = Math.round(r);
       bytes[j + 1] = Math.round(g);
       bytes[j + 2] = Math.round(b);
-      bytes[j + 3] = Math.round(a);
+      bytes[j + 3] = a;
     }
   }
+
   return new ImageData(bytes, width, height);
 }
 

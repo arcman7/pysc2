@@ -147,7 +147,6 @@ class GameLoop {
       if (this._game_loop_running) {
         return
       }
-      console.log('****** calling this.run')
       this.run({ run_config: this._run_config, controller: this._controller })
     }
   }

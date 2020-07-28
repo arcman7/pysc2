@@ -309,12 +309,12 @@ class Feature extends namedtuple('Feature', ['index', 'name', 'layer_set', 'full
     return data
   }
 
-  static unpack_image_data(plane, rgb = true) {
+  static unpack_image_data(plane, rgb = true, color) {
     //Return a correctly shaped ImageData given the feature layer bytes.//
     if (plane.getSize() === undefined) {
       return null
     }
-    const size = point.Point.build(plane.getSize())
+    const size = { x: plane.getSize().getX(), y: plane.getSize().getY() } //point.Point.build(plane.getSize())
     if (size[0] === 0 && size[1] === 0) {
       // New layer that isn't implemented in this SC2 version.
       return null
@@ -336,7 +336,7 @@ class Feature extends namedtuple('Feature', ['index', 'name', 'layer_set', 'full
         data = data.slice(0, size.x * size.y)
       }
     }
-    return getImageData(data, [size.x, size.y], rgb)
+    return getImageData(data, [size.x, size.y], rgb, color)
   }
 
   unpack_rgb_image(plane) {//eslint-disable-line
@@ -358,8 +358,8 @@ class Feature extends namedtuple('Feature', ['index', 'name', 'layer_set', 'full
     if (this.clip) {
       plane = np.clip(plane, 0, this.scale - 1)
     }
-    // return this.plane.map(())
-    return this.palette[plane]
+    return plane.dataSync().map((n) => n ? this.palette[n] : n) //eslint-disable-line
+    // return this.palette[plane]
   }
 }
 

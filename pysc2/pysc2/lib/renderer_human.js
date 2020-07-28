@@ -151,11 +151,27 @@ class _Surface {
     })
   }
 
+  _write_screen_helper(text, color, dims, font) { //eslint-disable-line
+    dims[1] += 4
+    const surface = new window.gamejs.graphics.Surface(dims);
+    const ctx = surface.context;
+    ctx.save();
+    ctx.font = font.sampleSurface.context.font;
+    ctx.textBaseline = 'alphabetic'
+    ctx.textAlign = font.sampleSurface.context.textAlign;
+    ctx.fillStyle = (ctx.strokeStyle = color.toCSS() || "#000000"); //eslint-disable-line
+    ctx.fillText(text, 0, surface.rect.height - 4, surface.rect.width);
+    ctx.restore();
+    return surface;
+  }
+
   write_screen(font, color, screen_pos, text, align = 'left', valign = 'top') {
     //Write to the screen in font.size relative coordinates.//
     const line_size = font.size()[1]
+    const rectDim = font.size(text)
     const pos = (new point.Point(screen_pos)).mul(new point.Point(0.75, 1)).mul(line_size)
-    const text_surf = font.render(text.toString ? text.toString() : String(text), color.toCSS())
+    // const text_surf = font.render(text.toString ? text.toString() : String(text), color.toCSS())
+    const text_surf = this._write_screen_helper(text, color, rectDim, font)
     const rect = text_surf.getRect()
     if (pos.x >= 0) {
       rect[align] = pos.x
@@ -167,13 +183,14 @@ class _Surface {
     } else {
       rect[valign] = this.surf.getSize()[1] + pos.y
     }
-    rect.top += 5
-    rect.height = line_size
+    rect.height = rectDim[1]
+    rect.width = rectDim[0]
     this.surf.blit(text_surf, rect)
   }
 
   write_world(font, color, world_loc, text) {
-    const text_surf = font.render(text, color.toCSS())
+    const rectDim = font.size(text)
+    const text_surf = this._write_screen_helper(text, color, rectDim, font)
     const rect = text_surf.getRect()
     rect.center = this.world_to_surf.fwd_pt(world_loc)
     this.surf.blit(text_surf, rect)
@@ -345,6 +362,26 @@ class RendererHuman {
     this._last_game_loop = 0
     this._name_lengths = {}
     this._video_writer = video ? new video_writer.VideoWriter(video, fps) : null
+    // apply decorators
+    this.init_window = sw.decorate(this.init_window.bind(this))
+    this.get_actions = sw.decorate(this.get_actions.bind(this))
+    this.draw_units = sw.decorate(this.draw_units.bind(this))
+    this.draw_effects = sw.decorate(this.draw_effects.bind(this))
+    this.draw_selection = sw.decorate(this.draw_selection.bind(this))
+    this.draw_build_target = sw.decorate(this.draw_build_target.bind(this))
+    this.draw_overlay = sw.decorate(this.draw_overlay.bind(this))
+    this.draw_help = sw.decorate(this.draw_help.bind(this))
+    this.draw_commands = sw.decorate(this.draw_commands.bind(this))
+    this.draw_panel = sw.decorate(this.draw_panel.bind(this))
+    this.draw_actions = sw.decorate(this.draw_actions.bind(this))
+    this.prepare_actions = sw.decorate(this.prepare_actions.bind(this))
+    this.draw_base_map = sw.decorate(this.draw_base_map.bind(this))
+    this.draw_mini_map = sw.decorate(this.draw_mini_map.bind(this))
+    this.draw_rendered_map = sw.decorate(this.draw_rendered_map.bind(this))
+    this.draw_feature_layer = sw.decorate(this.draw_feature_layer.bind(this))
+    this.draw_raw_layer = sw.decorate(this.draw_raw_layer.bind(this))
+    this.render = sw.decorate(this.render.bind(this))
+    this.render_obs = sw.decorate(this.render_obs.bind(this))
   }
 
   close() {
@@ -498,8 +535,9 @@ class RendererHuman {
 
     this._scale = window_size_px.y // 32
     this._font_size = 14
-    this._font_small = new gamejs.font.Font(`${Math.floor(this._font_size * 0.5)}px monospace`)
-    this._font_large = new gamejs.font.Font(`${this._font_size}px monospace`)
+    this._font_style = 'Arial'//'monospace' //
+    this._font_small = new gamejs.font.Font(`${Math.floor(this._font_size * 0.5)}px ${this._font_style}`)
+    this._font_large = new gamejs.font.Font(`${this._font_size}px ${this._font_style}`)
 
     function check_eq(a, b) {
       //Used to run unit tests on the transforms.//
@@ -1634,7 +1672,7 @@ class RendererHuman {
     )
 
     const line = 3
-    const alerts = Object.keys(this._alerts).map((key) => this._alerts[key]).sort((a, b) => a - b)
+    const alerts = Object.keys(this._alerts).map((key) => [this._alerts[key], key]).sort((a, b) => a[0] - b[0])
     alerts.forEach(([alert, ts]) => {
       if (performance.now() < ts + (3 * 1000)) { // Show for 3 seconds.
         surf.write_screen(this._font_large, colors.red, [20, line], alert)
@@ -2136,9 +2174,9 @@ class RendererHuman {
     const layer = feature.unpack(this._obs.getObservation())
 
     if (layer != null) {
-      // surf.blit_np_array(feature.color(layer))
+      surf.blit_np_array(getImageData(feature.color(layer), layer.shape, false))
     } else { // Ignore layers that aren't in this version of SC2.
-      // surf.surf.fill(colors.black.toCSS())
+      surf.surf.fill(colors.black.toCSS())
     }
   }
 
@@ -2150,11 +2188,10 @@ class RendererHuman {
     } else {
       layer = getattr(this._game_info.getStartRaw(), name)
     }
-    layer = features.Feature.unpack_layer(layer)
     if (layer) {
-      // surf.blit_np_array(color[layer])
+      surf.blit_np_array(features.Feature.unpack_image_data(layer, false, color))
     } else { //Ignore layers that aren't in this version of SC2.
-      // surf.surf.fill(colors.black.toCSS())
+      surf.surf.fill(colors.black.toCSS())
     }
   }
 
@@ -2212,17 +2249,17 @@ class RendererHuman {
     //A render loop that pulls observations off the queue to render.//
     let obs = true
     while (obs) {  // Send something falsy through the queue to shut down.
-      try {
+      try { 
         // obs = this._obs_queue.get()
         obs = await this.get_next_obs()
         if (obs) {
           obs.getObservation().getAlertsList().forEach((alert) => {
-            this._alerts[this.sc_alerts(alert)] = performance.now()
+            this._alerts[this.sc_alerts(alert).key] = performance.now()
           })
           obs.getActionErrorsList().forEach((err) => {
             console.log('in action errors list: ', err)
             if (err.getResult() != this.sc_error_action_result.SUCCESS) {
-              this._alerts[this.sc_error_action_result(err.getResult())] = performance.now()
+              this._alerts[this.sc_error_action_result(err.getResult()).key] = performance.now()
             }
           })
           this.prepare_actions(obs)

@@ -1,0 +1,11 @@
+browserify
+
+
+browserify --detect-globals -r gamejs -r ./pythonUtils.js -r ./numpy.js -r ./stopwatch.js -r ./point.js -r ./colors.js -r ./transform.js -r ./actions.js -r ./features.js -r ./renderer_human/s2clientprotocol.min.js:s2clientprotocol -r ./renderer_human.js:frontend > ./renderer_human/bundle.js
+
+
+browserify -r renderer_human/tensorflow_stub.js:@tensorflow/tfjs -r renderer_human/tensorflow_node_stub.js:@tensorflow/tfjs-node -r gamejs -r ./pythonUtils.js -r ./named_array.js -r ./numpy.js -r ./stopwatch.js -r ./point.js -r ./colors.js -r ./transform.js -r ./actions.js -r ./features.js -r ./renderer_human/s2clientprotocol.min.js:s2clientprotocol -r ./renderer_human.js:frontend > ./renderer_human/bundle.js
+
+browserify -r ./renderer_human/tensorflow_stub.js:'@tensorflow/tfjs' -r ./renderer_human/tensorflow_node_stub.js:@tensorflow/tfjs-node --detect-globals -r gamejs -r ./pythonUtils.js -r ./numpy.js -r ./named_array.js -r ./stopwatch.js -r ./point.js -r ./colors.js -r ./transform.js -r ./actions.js -r ./features.js -r ./renderer_human/s2clientprotocol.min.js:s2clientprotocol -r ./renderer_human.js:frontend > ./renderer_human/bundle.js
+
+browserify -r ./renderer_human/tensorflow_stub.js:@tensorflow/tfjs -r ./renderer_human/tensorflow_node_stub.js:@tensorflow/tfjs-node -r s2clientprotocol -r gamejs -r ./pythonUtils.js -r ./numpy.js -r ./named_array.js -r ./static_data.js -r ./stopwatch.js -r ./point.js -r ./colors.js -r ./transform.js -r ./actions.js -r ./features.js -r ./protocol.js -r ./renderer_human.js > ./renderer_human/bundle.js

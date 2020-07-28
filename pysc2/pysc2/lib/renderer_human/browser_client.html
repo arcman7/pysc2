@@ -13,8 +13,28 @@ const static_data = require('/static_data.js') //eslint-disable-line
 const sc_pb = s2clientprotocol.sc2api_pb
 const { assert, snakeToPascal, withPython } = pythonUtils
 
+stopwatch.sw.enable()
 const gamejs = require('gamejs') //eslint-disable-line
 window.gamejs = gamejs
+gamejs.font.Font.prototype.render = function(text, color) {
+   var dims = this.size(text);
+   var padding = Math.ceil(dims[1] * 0.285)
+   dims[1] += padding
+   var surface = new window.gamejs.graphics.Surface(dims);
+   var ctx = surface.context;
+   ctx.save();
+   if ( this.backgroundColor ) {
+       ctx.fillStyle = this.backgroundColor;
+       ctx.fillRect(0, 0, surface.rect.width, surface.rect.height);
+   }
+   ctx.font = this.sampleSurface.context.font;
+   ctx.textBaseline = 'alphabetic'//'bottom'
+   ctx.textAlign = this.sampleSurface.context.textAlign;
+   ctx.fillStyle = ctx.strokeStyle = color || "#000000";
+   ctx.fillText(text, 0, surface.rect.height - padding, surface.rect.width);
+   ctx.restore();
+   return surface;
+};
 gamejs.mouse = {
   get_pos() {
     return gamejs.mouse.pos || { x: 0, y: 0 }
