@@ -20,7 +20,8 @@
     "pysc2_agent": "npm run pysc2.bin.agent:entry_point",
     "pysc2_play": "npm run pysc2.bin.play:entry_point",
     "pysc2_replay_info": "npm run pysc2.bin.replay_info:entry_point",
-    "tests": "jest --colors"
+    "tests": "jest --colors",
+    "build_launch_render": "cd pysc2/pysc2/lib && browserify -r ./renderer_human/tensorflow_stub.js:@tensorflow/tfjs -r ./renderer_human/tensorflow_node_stub.js:@tensorflow/tfjs-node -r s2clientprotocol -r gamejs -r ./pythonUtils.js -r ./numpy.js -r ./named_array.js -r ./static_data.js -r ./stopwatch.js -r ./point.js -r ./colors.js -r ./transform.js -r ./actions.js -r ./features.js -r ./protocol.js -r ./renderer_human.js > ./renderer_human/bundle.js && node renderer_human.test.js"
   },
   "dependencies": {
     "@ffmpeg-installer/ffmpeg": "^1.0.20",

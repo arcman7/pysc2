@@ -2310,7 +2310,7 @@ function smooth_hue_palette(scale) {
   // b[mask] = x[mask]
   b = x.where(mask, b)
 
-  return np.stack([r, g, b])
+  return np.stack([r, g, b]).transpose([1, 0])
 }
 
 function shuffled_hue(scale) {
@@ -2802,7 +2802,7 @@ const sw = stopwatch.sw
 const { raw_pb, sc2api_pb } = s2clientprotocol
 const sc_raw = raw_pb
 const sc_pb = sc2api_pb
-const { Defaultdict, getArgsArray, getattr, getImageData, int, isinstance, len, namedtuple, setUpProtoAction, sum, unpackbits, ValueError, withPython, zip } = pythonUtils
+const { clip, Defaultdict, getArgsArray, getattr, getImageData, int, isinstance, len, namedtuple, setUpProtoAction, sum, unpackbits, ValueError, withPython, zip } = pythonUtils
 const EPSILON = 1e-5
 
 const FeatureType = Enum.Enum('FeatureType', {
@@ -3003,7 +3003,6 @@ const ProductionQueue = Enum.IntEnum('ProductionQueue', {
   build_progress: 1,
 })
 
-// class Feature extends all_collections_generated_classes.Feature {
 class Feature extends namedtuple('Feature', ['index', 'name', 'layer_set', 'full_name', 'scale', 'type', 'palette', 'clip']) {
   /*Define properties of a feature layer.
 
@@ -3019,6 +3018,7 @@ class Feature extends namedtuple('Feature', ['index', 'name', 'layer_set', 'full
   */
 
   constructor(kwargs) {
+    // console.log('from Feature constructor: ', kwargs)
     super(kwargs)
     // javascript only set up
     this.color = sw.decorate(this.color)
@@ -3047,6 +3047,12 @@ class Feature extends namedtuple('Feature', ['index', 'name', 'layer_set', 'full
     const planes = getattr(obs.getFeatureLayerData(), this.layer_set)
     const plane = getattr(planes, this.name) || new sc_pb.ImageData()
     return this.unpack_layer(plane)
+  }
+
+  unpack_obs(obs) {
+    const planes = getattr(obs.getFeatureLayerData(), this.layer_set)
+    const plane = getattr(planes, this.name) || new sc_pb.ImageData()
+    return plane
   }
 
   unpack_layer(plane) {//eslint-disable-line
@@ -3096,7 +3102,7 @@ class Feature extends namedtuple('Feature', ['index', 'name', 'layer_set', 'full
     return data
   }
 
-  static unpack_image_data(plane, rgb = true, color) {
+  static unpack_image_data(plane, rgb = true, color, palette) {
     //Return a correctly shaped ImageData given the feature layer bytes.//
     if (plane.getSize() === undefined) {
       return null
@@ -3123,7 +3129,10 @@ class Feature extends namedtuple('Feature', ['index', 'name', 'layer_set', 'full
         data = data.slice(0, size.x * size.y)
       }
     }
-    return getImageData(data, [size.x, size.y], rgb, color)
+    if (palette) {
+      clip(data, 0, palette.length - 1)
+    }
+    return getImageData(data, [size.x, size.y], rgb, color, palette)
   }
 
   unpack_rgb_image(plane) {//eslint-disable-line
@@ -3141,11 +3150,14 @@ class Feature extends namedtuple('Feature', ['index', 'name', 'layer_set', 'full
     return data
   }
 
-  color(plane) {
-    if (this.clip) {
-      plane = np.clip(plane, 0, this.scale - 1)
+  color(plane, isTensor = false) {
+    if (isTensor) {
+      if (this.clip) {
+        plane = np.clip(plane, 0, this.scale - 1)
+      }
+      return plane.dataSync().map((n) => n ? this.palette[n] : n) //eslint-disable-line
     }
-    return plane.dataSync().map((n) => n ? this.palette[n] : n) //eslint-disable-line
+    return 
     // return this.palette[plane]
   }
 }
@@ -3190,6 +3202,7 @@ class MinimapFeatures extends namedtuple('MinimapFeatures', [
   constructor(kwargs) {
     const feats = {}
     let val
+    // console.log('MinimapFeatures constructor: ', kwargs)
     Object.keys(kwargs).forEach((name) => {
       val = kwargs[name]
       const [scale, type_, palette] = val
@@ -6296,6 +6309,18 @@ function assert(cond, errMsg) {
   }
 }
 
+function clip(a, a_min, a_max) {
+  let n
+  for (let i = 0; i < a.length; i++) {
+    n = a[i]
+    if (n < a_min) {
+      a[i] = a_min
+    } else if (n > a_max) {
+      a[i] = a_max
+    }
+  }
+}
+
 function eq(a, b) {
   if (a.__eq__) {
     return a.__eq__(b)
@@ -6354,8 +6379,8 @@ String.prototype.splitlines = function() {
   return this.split(/\r?\n/)
 }
 
-function getImageData(unit8data, [width, height], rgb = true, color) {
-  const multiplier = 1//255;
+function getImageData(unit8data, [width, height], rgb = true, color, palette) {
+  const multiplier = 1
   const bytes = new Uint8ClampedArray(width * height * 4);
   const a = Math.round(255);
 
@@ -6366,18 +6391,34 @@ function getImageData(unit8data, [width, height], rgb = true, color) {
       const b = unit8data[i * 3 + 2] * multiplier;
       const j = i * 4;
       // start craft 2 api appears to be switching the red and blue channels
-      bytes[j + 0] = Math.round(b);
-      bytes[j + 1] = Math.round(g);
-      bytes[j + 2] = Math.round(r);
+      bytes[j + 0] = b | 0;
+      bytes[j + 1] = g | 0;
+      bytes[j + 2] = r | 0;
       bytes[j + 3] = a;
+    }
+  } else if (palette) {
+    for (let i = 0; i < height * width; ++i) {
+      const j = i * 4;
+      if (unit8data[i]) {
+        color = palette[unit8data[i]]
+        bytes[j + 0] = color[0] | 0;
+        bytes[j + 1] = color[1] | 0;
+        bytes[j + 2] = color[2] | 0;
+        bytes[j + 3] = a;
+      } else {
+        bytes[j + 0] = 0;
+        bytes[j + 1] = 0;
+        bytes[j + 2] = 0;
+        bytes[j + 3] = a;
+      }
     }
   } else if (color) {
     for (let i = 0; i < height * width; ++i) {
       const j = i * 4;
       if (unit8data[i]) {
-        bytes[j + 0] = Math.round(color.r);
-        bytes[j + 1] = Math.round(color.g);
-        bytes[j + 2] = Math.round(color.b);
+        bytes[j + 0] = color[0] | 0;
+        bytes[j + 1] = color[1] | 0;
+        bytes[j + 2] = color[2] | 0;
         bytes[j + 3] = a;
       } else {
         bytes[j + 0] = 0;
@@ -6392,9 +6433,9 @@ function getImageData(unit8data, [width, height], rgb = true, color) {
       const g = r
       const b = r
       const j = i * 4;
-      bytes[j + 0] = Math.round(r);
-      bytes[j + 1] = Math.round(g);
-      bytes[j + 2] = Math.round(b);
+      bytes[j + 0] = r | 0;
+      bytes[j + 1] = g | 0;
+      bytes[j + 2] = b | 0;
       bytes[j + 3] = a;
     }
   }
@@ -6988,6 +7029,7 @@ module.exports = {
   arraySub,
   assert,
   Array,
+  clip,
   DefaultDict,
   eq,
   expanduser,
@@ -7047,7 +7089,7 @@ const spatial = s2clientprotocol.spatial_pb
 const sc_ui = s2clientprotocol.ui_pb
 const sw = stopwatch.sw
 
-const { assert, DefaultDict, getattr, getImageData, namedtuple, ValueError, withPython, zip } = pythonUtils
+const { assert, DefaultDict, getattr, getImageData, namedtuple, ValueError, withPython } = pythonUtils
 
 function clamp(n, smallest, largest) {
   return Math.max(smallest, Math.min(n, largest))
@@ -7176,27 +7218,12 @@ class _Surface {
     })
   }
 
-  _write_screen_helper(text, color, dims, font) { //eslint-disable-line
-    dims[1] += 4
-    const surface = new window.gamejs.graphics.Surface(dims);
-    const ctx = surface.context;
-    ctx.save();
-    ctx.font = font.sampleSurface.context.font;
-    ctx.textBaseline = 'alphabetic'
-    ctx.textAlign = font.sampleSurface.context.textAlign;
-    ctx.fillStyle = (ctx.strokeStyle = color.toCSS() || "#000000"); //eslint-disable-line
-    ctx.fillText(text, 0, surface.rect.height - 4, surface.rect.width);
-    ctx.restore();
-    return surface;
-  }
-
   write_screen(font, color, screen_pos, text, align = 'left', valign = 'top') {
     //Write to the screen in font.size relative coordinates.//
     const line_size = font.size()[1]
     const rectDim = font.size(text)
     const pos = (new point.Point(screen_pos)).mul(new point.Point(0.75, 1)).mul(line_size)
-    // const text_surf = font.render(text.toString ? text.toString() : String(text), color.toCSS())
-    const text_surf = this._write_screen_helper(text, color, rectDim, font)
+    const text_surf = font.render(text.toString ? text.toString() : String(text), color.toCSS())
     const rect = text_surf.getRect()
     if (pos.x >= 0) {
       rect[align] = pos.x
@@ -7219,7 +7246,6 @@ class _Surface {
     const rect = text_surf.getRect()
     rect.center = this.world_to_surf.fwd_pt(world_loc)
     this.surf.blit(text_surf, rect)
-    // window.gamejs.display.getSurface().blit(this.surf, this.surf_rect)
   }
 }
 
@@ -7532,8 +7558,8 @@ class RendererHuman {
           .mul(main_screen_px.y)
           .div(features_layout.y)
         window_size_ratio = window_size_ratio.add(
-          // new point.Point(features_aspect_ratio.x, 0)
-          features_aspect_ratio
+          new point.Point(features_aspect_ratio.x, 0)
+          // features_aspect_ratio
         )
       }
     }
@@ -7543,7 +7569,7 @@ class RendererHuman {
 
     // Create the actual window surface. This should only be blitted to from one
     // of the sub-surfaces defined below.
-    this._window = gamejs.display.setMode(window_size_px, 0, 32)
+    this._window = gamejs.display.setMode(window_size_px, 0)
     gamejs.display.setCaption('Starcraft Viewer')
 
     // The sub-surfaces that the various draw functions will draw to.
@@ -7558,9 +7584,9 @@ class RendererHuman {
       )
     }
 
-    this._scale = window_size_px.y // 32
-    this._font_size = 14
-    this._font_style = 'Arial'//'monospace' //
+    this._scale = Math.floor(window_size_px.y / 32)
+    this._font_size = 12
+    this._font_style = 'Arial'
     this._font_small = new gamejs.font.Font(`${Math.floor(this._font_size * 0.5)}px ${this._font_style}`)
     this._font_large = new gamejs.font.Font(`${this._font_size}px ${this._font_style}`)
 
@@ -7798,7 +7824,7 @@ class RendererHuman {
       const feature_layer_size = feature_layer_area.sub(feature_layer_padding.mul(2))
 
       const feature_font_size = Math.floor(feature_grid_size.y * 0.09)
-      const feature_font = new gamejs.font.Font(null, feature_font_size)
+      const feature_font = new gamejs.font.Font(`${feature_font_size}px ${this._font_style}`)
 
       let feature_counter = 0
       function add_layer(surf_type, world_to_surf, world_to_obs, name, fn) {
@@ -7839,11 +7865,11 @@ class RendererHuman {
         feature_layer_size.div(this._map_size)
       )
       const self = this
-      function add_raw_layer(from_obs, name, color) {
+      function add_raw_layer(from_obs, name, colorPalette) {
         add_layer(
           SurfType.FEATURE | SurfType.MINIMAP,
           raw_world_to_surf, raw_world_to_obs, "raw " + name,
-          (surf) => self.draw_raw_layer(surf, from_obs, name, color)
+          (surf) => self.draw_raw_layer(surf, from_obs, name, null, colorPalette)
         )
       }
 
@@ -8706,7 +8732,6 @@ class RendererHuman {
         delete this._alerts[alert]
       }
     })
-    window.gamejs.display.getSurface().blit(surf.surf, [surf.surf_rect.left, surf.surf_rect.top])
   }
 
   draw_help(surf) {
@@ -9196,16 +9221,16 @@ class RendererHuman {
 
   draw_feature_layer(surf, feature) {
     //Draw a feature layer//
-    const layer = feature.unpack(this._obs.getObservation())
-
+    const layer = feature.unpack_obs(this._obs.getObservation())
     if (layer != null) {
-      surf.blit_np_array(getImageData(feature.color(layer), layer.shape, false))
+      surf.blit_np_array(features.Feature.unpack_image_data(layer, false, null, feature.palette))
     } else { // Ignore layers that aren't in this version of SC2.
       surf.surf.fill(colors.black.toCSS())
     }
+    window.gamejs.display.getSurface().blit(surf.surf, [surf.surf_rect.left, surf.surf_rect.top])
   }
 
-  draw_raw_layer(surf, from_obs, name, color) {
+  draw_raw_layer(surf, from_obs, name, color, palette) {
     //Draw a raw layer.//
     let layer
     if (from_obs) {
@@ -9214,16 +9239,16 @@ class RendererHuman {
       layer = getattr(this._game_info.getStartRaw(), name)
     }
     if (layer) {
-      surf.blit_np_array(features.Feature.unpack_image_data(layer, false, color))
+      surf.blit_np_array(features.Feature.unpack_image_data(layer, false, color, palette))
     } else { //Ignore layers that aren't in this version of SC2.
       surf.surf.fill(colors.black.toCSS())
     }
+    window.gamejs.display.getSurface().blit(surf.surf, [surf.surf_rect.left, surf.surf_rect.top])
   }
 
   all_surfs(cb, args) {
     this._surfaces.forEach((surf) => {
       if (surf.world_to_surf) {
-        // cb(surf, ...Array.from(arguments).slice(1))
         cb(surf)
       }
     })

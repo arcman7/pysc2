@@ -148,7 +148,7 @@ function smooth_hue_palette(scale) {
   // b[mask] = x[mask]
   b = x.where(mask, b)
 
-  return np.stack([r, g, b])
+  return np.stack([r, g, b]).transpose([1, 0])
 }
 
 function shuffled_hue(scale) {

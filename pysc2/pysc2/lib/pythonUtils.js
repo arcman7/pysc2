@@ -88,6 +88,18 @@ function assert(cond, errMsg) {
   }
 }
 
+function clip(a, a_min, a_max) {
+  let n
+  for (let i = 0; i < a.length; i++) {
+    n = a[i]
+    if (n < a_min) {
+      a[i] = a_min
+    } else if (n > a_max) {
+      a[i] = a_max
+    }
+  }
+}
+
 function eq(a, b) {
   if (a.__eq__) {
     return a.__eq__(b)
@@ -146,8 +158,8 @@ String.prototype.splitlines = function() {
   return this.split(/\r?\n/)
 }
 
-function getImageData(unit8data, [width, height], rgb = true, color) {
-  const multiplier = 1//255;
+function getImageData(unit8data, [width, height], rgb = true, color, palette) {
+  const multiplier = 1
   const bytes = new Uint8ClampedArray(width * height * 4);
   const a = Math.round(255);
 
@@ -158,18 +170,34 @@ function getImageData(unit8data, [width, height], rgb = true, color) {
       const b = unit8data[i * 3 + 2] * multiplier;
       const j = i * 4;
       // start craft 2 api appears to be switching the red and blue channels
-      bytes[j + 0] = Math.round(b);
-      bytes[j + 1] = Math.round(g);
-      bytes[j + 2] = Math.round(r);
+      bytes[j + 0] = b | 0;
+      bytes[j + 1] = g | 0;
+      bytes[j + 2] = r | 0;
       bytes[j + 3] = a;
+    }
+  } else if (palette) {
+    for (let i = 0; i < height * width; ++i) {
+      const j = i * 4;
+      if (unit8data[i]) {
+        color = palette[unit8data[i]]
+        bytes[j + 0] = color[0] | 0;
+        bytes[j + 1] = color[1] | 0;
+        bytes[j + 2] = color[2] | 0;
+        bytes[j + 3] = a;
+      } else {
+        bytes[j + 0] = 0;
+        bytes[j + 1] = 0;
+        bytes[j + 2] = 0;
+        bytes[j + 3] = a;
+      }
     }
   } else if (color) {
     for (let i = 0; i < height * width; ++i) {
       const j = i * 4;
       if (unit8data[i]) {
-        bytes[j + 0] = Math.round(color.r);
-        bytes[j + 1] = Math.round(color.g);
-        bytes[j + 2] = Math.round(color.b);
+        bytes[j + 0] = color[0] | 0;
+        bytes[j + 1] = color[1] | 0;
+        bytes[j + 2] = color[2] | 0;
         bytes[j + 3] = a;
       } else {
         bytes[j + 0] = 0;
@@ -184,9 +212,9 @@ function getImageData(unit8data, [width, height], rgb = true, color) {
       const g = r
       const b = r
       const j = i * 4;
-      bytes[j + 0] = Math.round(r);
-      bytes[j + 1] = Math.round(g);
-      bytes[j + 2] = Math.round(b);
+      bytes[j + 0] = r | 0;
+      bytes[j + 1] = g | 0;
+      bytes[j + 2] = b | 0;
       bytes[j + 3] = a;
     }
   }
@@ -780,6 +808,7 @@ module.exports = {
   arraySub,
   assert,
   Array,
+  clip,
   DefaultDict,
   eq,
   expanduser,

@@ -15,7 +15,7 @@ const sw = stopwatch.sw
 const { raw_pb, sc2api_pb } = s2clientprotocol
 const sc_raw = raw_pb
 const sc_pb = sc2api_pb
-const { Defaultdict, getArgsArray, getattr, getImageData, int, isinstance, len, namedtuple, setUpProtoAction, sum, unpackbits, ValueError, withPython, zip } = pythonUtils
+const { clip, Defaultdict, getArgsArray, getattr, getImageData, int, isinstance, len, namedtuple, setUpProtoAction, sum, unpackbits, ValueError, withPython, zip } = pythonUtils
 const EPSILON = 1e-5
 
 const FeatureType = Enum.Enum('FeatureType', {
@@ -216,7 +216,6 @@ const ProductionQueue = Enum.IntEnum('ProductionQueue', {
   build_progress: 1,
 })
 
-// class Feature extends all_collections_generated_classes.Feature {
 class Feature extends namedtuple('Feature', ['index', 'name', 'layer_set', 'full_name', 'scale', 'type', 'palette', 'clip']) {
   /*Define properties of a feature layer.
 
@@ -232,6 +231,7 @@ class Feature extends namedtuple('Feature', ['index', 'name', 'layer_set', 'full
   */
 
   constructor(kwargs) {
+    // console.log('from Feature constructor: ', kwargs)
     super(kwargs)
     // javascript only set up
     this.color = sw.decorate(this.color)
@@ -260,6 +260,12 @@ class Feature extends namedtuple('Feature', ['index', 'name', 'layer_set', 'full
     const planes = getattr(obs.getFeatureLayerData(), this.layer_set)
     const plane = getattr(planes, this.name) || new sc_pb.ImageData()
     return this.unpack_layer(plane)
+  }
+
+  unpack_obs(obs) {
+    const planes = getattr(obs.getFeatureLayerData(), this.layer_set)
+    const plane = getattr(planes, this.name) || new sc_pb.ImageData()
+    return plane
   }
 
   unpack_layer(plane) {//eslint-disable-line
@@ -309,7 +315,7 @@ class Feature extends namedtuple('Feature', ['index', 'name', 'layer_set', 'full
     return data
   }
 
-  static unpack_image_data(plane, rgb = true, color) {
+  static unpack_image_data(plane, rgb = true, color, palette) {
     //Return a correctly shaped ImageData given the feature layer bytes.//
     if (plane.getSize() === undefined) {
       return null
@@ -336,7 +342,10 @@ class Feature extends namedtuple('Feature', ['index', 'name', 'layer_set', 'full
         data = data.slice(0, size.x * size.y)
       }
     }
-    return getImageData(data, [size.x, size.y], rgb, color)
+    if (palette) {
+      clip(data, 0, palette.length - 1)
+    }
+    return getImageData(data, [size.x, size.y], rgb, color, palette)
   }
 
   unpack_rgb_image(plane) {//eslint-disable-line
@@ -354,11 +363,14 @@ class Feature extends namedtuple('Feature', ['index', 'name', 'layer_set', 'full
     return data
   }
 
-  color(plane) {
-    if (this.clip) {
-      plane = np.clip(plane, 0, this.scale - 1)
+  color(plane, isTensor = false) {
+    if (isTensor) {
+      if (this.clip) {
+        plane = np.clip(plane, 0, this.scale - 1)
+      }
+      return plane.dataSync().map((n) => n ? this.palette[n] : n) //eslint-disable-line
     }
-    return plane.dataSync().map((n) => n ? this.palette[n] : n) //eslint-disable-line
+    return 
     // return this.palette[plane]
   }
 }
@@ -403,6 +415,7 @@ class MinimapFeatures extends namedtuple('MinimapFeatures', [
   constructor(kwargs) {
     const feats = {}
     let val
+    // console.log('MinimapFeatures constructor: ', kwargs)
     Object.keys(kwargs).forEach((name) => {
       val = kwargs[name]
       const [scale, type_, palette] = val

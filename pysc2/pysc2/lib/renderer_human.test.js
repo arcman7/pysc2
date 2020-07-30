@@ -50,7 +50,7 @@ async function test() {
   minimapResolution.setX(64)
   minimapResolution.setY(64)
   featureLayer.setMinimapResolution(minimapResolution)
-  // Interface.setFeatureLayer(featureLayer)
+  Interface.setFeatureLayer(featureLayer)
   const render = new sc_pb.SpatialCameraSetup()
   resolution = new sc_pb.Size2DI()
   resolution.setX(256)

@@ -214,8 +214,9 @@ class GameLoop {
           await withPython(this._sw("sleep"), async () => { //eslint-disable-line
             const elapsed_time = performance.now() - frame_start_time
             // await sleep(1000)
+            await sleep(200)
             // console.log('sleeping', (1000 / this._fps) - elapsed_time, 'elapsed_time: ', elapsed_time)
-            await sleep(Math.max(0, (1000 / this._fps) - elapsed_time))
+            // await sleep(Math.max(0, (1000 / this._fps) - elapsed_time))
           })
         }
 

@@ -13,12 +13,12 @@ const static_data = require('/static_data.js') //eslint-disable-line
 const sc_pb = s2clientprotocol.sc2api_pb
 const { assert, snakeToPascal, withPython } = pythonUtils
 
-stopwatch.sw.enable()
+// stopwatch.sw.enable()
 const gamejs = require('gamejs') //eslint-disable-line
 window.gamejs = gamejs
-gamejs.font.Font.prototype.render = function(text, color) {
+gamejs.font.Font.prototype.render = function(text, color, padding, textBaseline) {
    var dims = this.size(text);
-   var padding = Math.ceil(dims[1] * 0.285)
+   var padding = padding || Math.ceil(dims[1] * 0.2)
    dims[1] += padding
    var surface = new window.gamejs.graphics.Surface(dims);
    var ctx = surface.context;
@@ -28,7 +28,7 @@ gamejs.font.Font.prototype.render = function(text, color) {
        ctx.fillRect(0, 0, surface.rect.width, surface.rect.height);
    }
    ctx.font = this.sampleSurface.context.font;
-   ctx.textBaseline = 'alphabetic'//'bottom'
+   ctx.textBaseline = textBaseline || 'alphabetic'
    ctx.textAlign = this.sampleSurface.context.textAlign;
    ctx.fillStyle = ctx.strokeStyle = color || "#000000";
    ctx.fillText(text, 0, surface.rect.height - padding, surface.rect.width);
@@ -258,10 +258,12 @@ gamejs.ready(main)
 <style>
 #gjs-canvas {
   border: 1px solid #ccc;
-  margin: 20px;
-  box-shadow: 14px 10px 30px 0px rgba(50, 50, 50, 0.75);
-  width: calc(100% - 40px);
-  height: calc(100% - 60px);
+  /*margin: 20px;*/
+  /*box-shadow: 14px 10px 30px 0px rgba(50, 50, 50, 0.75);*/
+  /*width: calc(100% - 40px);*/
+  /*height: calc(100% - 60px);*/
+  width: 100%;
+  height: 100%;
   position: absolute;
   /** automatically made visible once game is loaded **/
   display:none;

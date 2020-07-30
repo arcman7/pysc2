@@ -22,7 +22,7 @@ const spatial = s2clientprotocol.spatial_pb
 const sc_ui = s2clientprotocol.ui_pb
 const sw = stopwatch.sw
 
-const { assert, DefaultDict, getattr, getImageData, namedtuple, ValueError, withPython, zip } = pythonUtils
+const { assert, DefaultDict, getattr, getImageData, namedtuple, ValueError, withPython } = pythonUtils
 
 function clamp(n, smallest, largest) {
   return Math.max(smallest, Math.min(n, largest))
@@ -151,27 +151,12 @@ class _Surface {
     })
   }
 
-  _write_screen_helper(text, color, dims, font) { //eslint-disable-line
-    dims[1] += 4
-    const surface = new window.gamejs.graphics.Surface(dims);
-    const ctx = surface.context;
-    ctx.save();
-    ctx.font = font.sampleSurface.context.font;
-    ctx.textBaseline = 'alphabetic'
-    ctx.textAlign = font.sampleSurface.context.textAlign;
-    ctx.fillStyle = (ctx.strokeStyle = color.toCSS() || "#000000"); //eslint-disable-line
-    ctx.fillText(text, 0, surface.rect.height - 4, surface.rect.width);
-    ctx.restore();
-    return surface;
-  }
-
   write_screen(font, color, screen_pos, text, align = 'left', valign = 'top') {
     //Write to the screen in font.size relative coordinates.//
     const line_size = font.size()[1]
     const rectDim = font.size(text)
     const pos = (new point.Point(screen_pos)).mul(new point.Point(0.75, 1)).mul(line_size)
-    // const text_surf = font.render(text.toString ? text.toString() : String(text), color.toCSS())
-    const text_surf = this._write_screen_helper(text, color, rectDim, font)
+    const text_surf = font.render(text.toString ? text.toString() : String(text), color.toCSS())
     const rect = text_surf.getRect()
     if (pos.x >= 0) {
       rect[align] = pos.x
@@ -194,7 +179,6 @@ class _Surface {
     const rect = text_surf.getRect()
     rect.center = this.world_to_surf.fwd_pt(world_loc)
     this.surf.blit(text_surf, rect)
-    // window.gamejs.display.getSurface().blit(this.surf, this.surf_rect)
   }
 }
 
@@ -507,8 +491,8 @@ class RendererHuman {
           .mul(main_screen_px.y)
           .div(features_layout.y)
         window_size_ratio = window_size_ratio.add(
-          // new point.Point(features_aspect_ratio.x, 0)
-          features_aspect_ratio
+          new point.Point(features_aspect_ratio.x, 0)
+          // features_aspect_ratio
         )
       }
     }
@@ -518,7 +502,7 @@ class RendererHuman {
 
     // Create the actual window surface. This should only be blitted to from one
     // of the sub-surfaces defined below.
-    this._window = gamejs.display.setMode(window_size_px, 0, 32)
+    this._window = gamejs.display.setMode(window_size_px, 0)
     gamejs.display.setCaption('Starcraft Viewer')
 
     // The sub-surfaces that the various draw functions will draw to.
@@ -533,9 +517,9 @@ class RendererHuman {
       )
     }
 
-    this._scale = window_size_px.y // 32
-    this._font_size = 14
-    this._font_style = 'Arial'//'monospace' //
+    this._scale = Math.floor(window_size_px.y / 32)
+    this._font_size = 12
+    this._font_style = 'Arial'
     this._font_small = new gamejs.font.Font(`${Math.floor(this._font_size * 0.5)}px ${this._font_style}`)
     this._font_large = new gamejs.font.Font(`${this._font_size}px ${this._font_style}`)
 
@@ -773,7 +757,7 @@ class RendererHuman {
       const feature_layer_size = feature_layer_area.sub(feature_layer_padding.mul(2))
 
       const feature_font_size = Math.floor(feature_grid_size.y * 0.09)
-      const feature_font = new gamejs.font.Font(null, feature_font_size)
+      const feature_font = new gamejs.font.Font(`${feature_font_size}px ${this._font_style}`)
 
       let feature_counter = 0
       function add_layer(surf_type, world_to_surf, world_to_obs, name, fn) {
@@ -814,11 +798,11 @@ class RendererHuman {
         feature_layer_size.div(this._map_size)
       )
       const self = this
-      function add_raw_layer(from_obs, name, color) {
+      function add_raw_layer(from_obs, name, colorPalette) {
         add_layer(
           SurfType.FEATURE | SurfType.MINIMAP,
           raw_world_to_surf, raw_world_to_obs, "raw " + name,
-          (surf) => self.draw_raw_layer(surf, from_obs, name, color)
+          (surf) => self.draw_raw_layer(surf, from_obs, name, null, colorPalette)
         )
       }
 
@@ -1681,7 +1665,6 @@ class RendererHuman {
         delete this._alerts[alert]
       }
     })
-    window.gamejs.display.getSurface().blit(surf.surf, [surf.surf_rect.left, surf.surf_rect.top])
   }
 
   draw_help(surf) {
@@ -2171,16 +2154,16 @@ class RendererHuman {
 
   draw_feature_layer(surf, feature) {
     //Draw a feature layer//
-    const layer = feature.unpack(this._obs.getObservation())
-
+    const layer = feature.unpack_obs(this._obs.getObservation())
     if (layer != null) {
-      surf.blit_np_array(getImageData(feature.color(layer), layer.shape, false))
+      surf.blit_np_array(features.Feature.unpack_image_data(layer, false, null, feature.palette))
     } else { // Ignore layers that aren't in this version of SC2.
       surf.surf.fill(colors.black.toCSS())
     }
+    window.gamejs.display.getSurface().blit(surf.surf, [surf.surf_rect.left, surf.surf_rect.top])
   }
 
-  draw_raw_layer(surf, from_obs, name, color) {
+  draw_raw_layer(surf, from_obs, name, color, palette) {
     //Draw a raw layer.//
     let layer
     if (from_obs) {
@@ -2189,16 +2172,16 @@ class RendererHuman {
       layer = getattr(this._game_info.getStartRaw(), name)
     }
     if (layer) {
-      surf.blit_np_array(features.Feature.unpack_image_data(layer, false, color))
+      surf.blit_np_array(features.Feature.unpack_image_data(layer, false, color, palette))
     } else { //Ignore layers that aren't in this version of SC2.
       surf.surf.fill(colors.black.toCSS())
     }
+    window.gamejs.display.getSurface().blit(surf.surf, [surf.surf_rect.left, surf.surf_rect.top])
   }
 
   all_surfs(cb, args) {
     this._surfaces.forEach((surf) => {
       if (surf.world_to_surf) {
-        // cb(surf, ...Array.from(arguments).slice(1))
         cb(surf)
       }
     })
