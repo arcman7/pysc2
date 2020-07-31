@@ -2145,7 +2145,7 @@ class RendererHuman {
     //Draw the screen area.//
     if (this._render_rgb &&
       this._obs.getObservation().hasRenderData() &&
-      this._obs.getObservation().getRenderData().hasMap()) {
+      this._obs.getObservation().getRenderData().hasMap() && false) {
       this.draw_rendered_map(surf)
     } else {
       this.draw_base_map(surf)

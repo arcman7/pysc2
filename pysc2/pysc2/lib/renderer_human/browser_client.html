@@ -17,11 +17,11 @@ const { assert, snakeToPascal, withPython } = pythonUtils
 const gamejs = require('gamejs') //eslint-disable-line
 window.gamejs = gamejs
 gamejs.font.Font.prototype.render = function(text, color, padding, textBaseline) {
-  var dims = this.size(text);
-  var padding = padding || Math.ceil(dims[1] * 0.2)
+  const dims = this.size(text);
+  padding = padding || Math.ceil(dims[1] * 0.2)
   dims[1] += padding
-  var surface = new window.gamejs.graphics.Surface(dims);
-  var ctx = surface.context;
+  const surface = new window.gamejs.graphics.Surface(dims);
+  const ctx = surface.context;
   ctx.save();
   if (this.backgroundColor) {
     ctx.fillStyle = this.backgroundColor;
@@ -30,7 +30,7 @@ gamejs.font.Font.prototype.render = function(text, color, padding, textBaseline)
   ctx.font = this.sampleSurface.context.font;
   ctx.textBaseline = textBaseline || 'alphabetic'
   ctx.textAlign = this.sampleSurface.context.textAlign;
-  ctx.fillStyle = ctx.strokeStyle = color || "#000000";
+  ctx.fillStyle = ctx.strokeStyle = color || "#000000"; //eslint-disable-line
   ctx.fillText(text, 0, surface.rect.height - padding, surface.rect.width);
   ctx.restore();
   return surface;

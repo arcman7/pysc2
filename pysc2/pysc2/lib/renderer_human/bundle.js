@@ -3151,14 +3151,15 @@ class Feature extends namedtuple('Feature', ['index', 'name', 'layer_set', 'full
   }
 
   color(plane, isTensor = false) {
-    if (isTensor) {
-      if (this.clip) {
-        plane = np.clip(plane, 0, this.scale - 1)
-      }
-      return plane.dataSync().map((n) => n ? this.palette[n] : n) //eslint-disable-line
+    if (this.clip) {
+      plane = np.clip(plane, 0, this.scale - 1)
     }
-    return 
-    // return this.palette[plane]
+    if (isTensor === false) {
+      const rgb = false
+      const color = null
+      return Feature.unpack_image_data(plane, rgb, color, this.palette)
+    }
+    return plane.dataSync().map((n) => n ? this.palette[n] : n) //eslint-disable-line
   }
 }
 
@@ -9212,7 +9213,7 @@ class RendererHuman {
     //Draw the screen area.//
     if (this._render_rgb &&
       this._obs.getObservation().hasRenderData() &&
-      this._obs.getObservation().getRenderData().hasMap()) {
+      this._obs.getObservation().getRenderData().hasMap() && false) {
       this.draw_rendered_map(surf)
     } else {
       this.draw_base_map(surf)
