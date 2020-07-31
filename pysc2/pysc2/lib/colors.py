@@ -260,11 +260,7 @@ def buffs(scale=None):
 def categorical(options, scale=None):
   # Can specify a scale to match the api or to accept unknown unit types.
   palette_size = scale or max(options) + 1
-  print('from categorical: ')
-  print('palette_size: ', palette_size)
   palette = shuffled_hue(palette_size)
-  print(palette)
-  print('palette.length: ', len(palette))
   assert len(options) <= len(distinct_colors)
   for i, v in enumerate(options):
     palette[v] = distinct_colors[i]

@@ -17,23 +17,23 @@ const { assert, snakeToPascal, withPython } = pythonUtils
 const gamejs = require('gamejs') //eslint-disable-line
 window.gamejs = gamejs
 gamejs.font.Font.prototype.render = function(text, color, padding, textBaseline) {
-   var dims = this.size(text);
-   var padding = padding || Math.ceil(dims[1] * 0.2)
-   dims[1] += padding
-   var surface = new window.gamejs.graphics.Surface(dims);
-   var ctx = surface.context;
-   ctx.save();
-   if ( this.backgroundColor ) {
-       ctx.fillStyle = this.backgroundColor;
-       ctx.fillRect(0, 0, surface.rect.width, surface.rect.height);
-   }
-   ctx.font = this.sampleSurface.context.font;
-   ctx.textBaseline = textBaseline || 'alphabetic'
-   ctx.textAlign = this.sampleSurface.context.textAlign;
-   ctx.fillStyle = ctx.strokeStyle = color || "#000000";
-   ctx.fillText(text, 0, surface.rect.height - padding, surface.rect.width);
-   ctx.restore();
-   return surface;
+  var dims = this.size(text);
+  var padding = padding || Math.ceil(dims[1] * 0.2)
+  dims[1] += padding
+  var surface = new window.gamejs.graphics.Surface(dims);
+  var ctx = surface.context;
+  ctx.save();
+  if (this.backgroundColor) {
+    ctx.fillStyle = this.backgroundColor;
+    ctx.fillRect(0, 0, surface.rect.width, surface.rect.height);
+  }
+  ctx.font = this.sampleSurface.context.font;
+  ctx.textBaseline = textBaseline || 'alphabetic'
+  ctx.textAlign = this.sampleSurface.context.textAlign;
+  ctx.fillStyle = ctx.strokeStyle = color || "#000000";
+  ctx.fillText(text, 0, surface.rect.height - padding, surface.rect.width);
+  ctx.restore();
+  return surface;
 };
 gamejs.mouse = {
   get_pos() {

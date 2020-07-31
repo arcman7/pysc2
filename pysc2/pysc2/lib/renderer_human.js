@@ -15,10 +15,10 @@ const transform = require('./transform.js') //eslint-disable-line
 const remote_controller = require('./protocol.js') //eslint-disable-line
 const np = require('./numpy.js') //eslint-disable-line
 
-const sc_error = s2clientprotocol.error_pb
+// const sc_error = s2clientprotocol.error_pb
 const sc_raw = s2clientprotocol.raw_pb
 const sc_pb = s2clientprotocol.sc2api_pb
-const spatial = s2clientprotocol.spatial_pb
+// const spatial = s2clientprotocol.spatial_pb
 const sc_ui = s2clientprotocol.ui_pb
 const sw = stopwatch.sw
 
@@ -147,7 +147,7 @@ class _Surface {
       })
     })
     withPython(sw('draw'), () => {
-      this.surf.blit(raw_surface.scale(this.surf.getSize()))//, this.surf_rect)
+      this.surf.blit(raw_surface.scale(this.surf.getSize()))
     })
   }
 
@@ -739,11 +739,12 @@ class RendererHuman {
     if (this._render_feature_grid && num_feature_layers > 0) {
       // Add the raw and feature layers
       const features_loc = new point.Point(screen_size_px.x, 0)
-      // const feature_pane = this._window.getSurface(
-      const feature_pane = gamejs.display.getSurface(
-        new gamejs.Rect(features_loc, window_size_px.sub(features_loc)).size
+      const feature_pane_rect = new gamejs.Rect(features_loc, window_size_px.sub(features_loc))
+      const feature_pane = new window.gamejs.graphics.Surface(
+        feature_pane_rect
       )
       feature_pane.fill(colors.white.div(2).toCSS())
+      window.gamejs.display.getSurface().blit(feature_pane, feature_pane_rect)
       const feature_pane_size = new point.Point(...feature_pane.getSize())
       const feature_grid_size = feature_pane_size.div(
         new point.Point(
@@ -753,21 +754,24 @@ class RendererHuman {
       )
       const feature_layer_area = new point.Point(1, 1)
         .scale_max_size(feature_grid_size)
-      const feature_layer_padding = feature_layer_area // 20
+      const feature_layer_padding = feature_layer_area.div(20).floor()
       const feature_layer_size = feature_layer_area.sub(feature_layer_padding.mul(2))
 
-      const feature_font_size = Math.floor(feature_grid_size.y * 0.09)
+      const feature_font_size = Math.floor(feature_grid_size.y * 0.08)
       const feature_font = new gamejs.font.Font(`${feature_font_size}px ${this._font_style}`)
+      
+      console.log('feature_grid_size:' + feature_grid_size.round())
+      console.log('feature_layer_area:' + feature_layer_area.round())
 
       let feature_counter = 0
       function add_layer(surf_type, world_to_surf, world_to_obs, name, fn) {
         //Add a layer surface.//
-        const i = ++feature_counter
+        const i = feature_counter++
         const grid_offset = new point.Point(
           i % feature_cols,
-          i / feature_cols
+          Math.floor(i / feature_cols)
         ).mul(feature_grid_size)
-        const text = feature_font.render(name, colors.white.toCSS())
+        const text = feature_font.render(name, colors.white.toCSS(), null, 'bottom')
         const rect = text.getRect()
         rect.center = grid_offset.add(
           new point.Point(
@@ -775,14 +779,17 @@ class RendererHuman {
             feature_font_size
           )
         )
+        console.log( `grid_offset ${grid_offset.round()} +  ${new point.Point((feature_grid_size.x / 2), feature_font_size).round()} = rect.center ${rect.center}    i = ${i}`)
+
         feature_pane.blit(text, rect)
+        window.gamejs.display.getSurface().blit(feature_pane, feature_pane_rect)
         const surf_loc = features_loc
           .add(grid_offset)
           .add(feature_layer_padding)
           .add(
             new point.Point(0, feature_font_size)
           )
-        
+        console.log('surf_loc ' + surf_loc.round())
         add_surface(
           surf_type,
           new point.Rect(
@@ -2156,7 +2163,8 @@ class RendererHuman {
     //Draw a feature layer//
     const layer = feature.unpack_obs(this._obs.getObservation())
     if (layer != null) {
-      surf.blit_np_array(features.Feature.unpack_image_data(layer, false, null, feature.palette))
+      const rgb = false
+      surf.blit_np_array(features.Feature.unpack_image_data(layer, rgb, null, feature.palette))
     } else { // Ignore layers that aren't in this version of SC2.
       surf.surf.fill(colors.black.toCSS())
     }
@@ -2172,7 +2180,8 @@ class RendererHuman {
       layer = getattr(this._game_info.getStartRaw(), name)
     }
     if (layer) {
-      surf.blit_np_array(features.Feature.unpack_image_data(layer, false, color, palette))
+      const rgb = false
+      surf.blit_np_array(features.Feature.unpack_image_data(layer, rgb, color, palette))
     } else { //Ignore layers that aren't in this version of SC2.
       surf.surf.fill(colors.black.toCSS())
     }
