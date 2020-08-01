@@ -10,7 +10,7 @@ const actions = require(path.resolve(__dirname, '..', 'lib', 'actions.js'))
 const features = require(path.resolve(__dirname, '..', 'lib', 'features.js'))
 const metrics = require(path.resolve(__dirname, '..', 'lib', 'metrics.js'))
 const portspicker = require(path.resolve(__dirname, '..', 'lib', 'portspicker.js'))
-const renderer_human = require(path.resolve(__dirname, '..', 'lib', 'renderer_human.js'))
+const renderer_human = require(path.resolve(__dirname, '..', 'lib', 'renderer_human', 'backend.js'))
 // const run_parallel = require(path.resolve(__dirname, '..', 'lib', 'run_parallel.js'))
 const stopwatch = require(path.resolve(__dirname, '..', 'lib', 'stopwatch.js'))
 const pythonUtils = require(path.resolve(__dirname, '..', 'lib', 'pythonUtils.js'))
@@ -327,10 +327,11 @@ class SC2Env extends environment.Base {
     }
 
     if (visualize) {
-      this._renderer_human = new renderer_human.RendererHuman()
-      this._renderer_human.init(
-        this._controllers[0].game_info(),
-        this._controllers[0].data()
+      // this._renderer_human = new renderer_human.RendererHuman()
+      this._renderer_human = new renderer_human.InitalizeServices()
+      this._renderer_human.setUp(
+        this._run_config,
+        this._controllers[0]
       )
     } else {
       this._renderer_human = null
