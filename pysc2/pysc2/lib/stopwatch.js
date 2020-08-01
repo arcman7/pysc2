@@ -99,15 +99,20 @@ class StopWatchContext {
     this._sw.push(name)
     this.__enter__ = this.__enter__.bind(this)
     this.__exit__ = this.__exit__.bind(this)
+    if (typeof window === 'undefined') {
+      this.performance = performance
+    } else {
+      this.performance = window.performance
+    }
   }
 
   // performance.now() => measured in milliseconds.
   __enter__() {
-    this._start = performance.now() * msToS
+    this._start = this.performance.now() * msToS
   }
 
   __exit__() {
-    this._sw.add(this._sw.pop(), (performance.now() * msToS) - this._start)
+    this._sw.add(this._sw.pop(), (this.performance.now() * msToS) - this._start)
   }
 }
 
@@ -117,6 +122,11 @@ class TracingStopWatchContext extends StopWatchContext {
     super(stopwatch, name)
     this.__enter__ = this.__enter__.bind(this)
     this.__exit__ = this.__exit__.bind(this)
+    if (typeof window === 'undefined') {
+      this.performance = performance
+    } else {
+      this.performance = window.performance
+    }
   }
 
   __enter__() {
@@ -125,7 +135,7 @@ class TracingStopWatchContext extends StopWatchContext {
   }
 
   __exit__() {
-    this._log(`<<< ${this._sw.cur_stack()} ${(performance.now() - this._start).toFixed(6)} secs`)
+    this._log(`<<< ${this._sw.cur_stack()} ${(this.performance.now() - this._start).toFixed(6)} secs`)
     super.__exit__()
   }
 

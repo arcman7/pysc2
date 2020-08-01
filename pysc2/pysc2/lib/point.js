@@ -1,8 +1,8 @@
 const path = require('path') //eslint-disable-line
 const s2clientprotocol = require('s2clientprotocol') //eslint-disable-line
 const { common_pb, spatial_pb } = s2clientprotocol
-const all_collections_generated_classes = require(path.resolve(__dirname, './all_collections_generated_classes.js'))
-const pythonUtils = require(path.resolve(__dirname, './pythonUtils.js'))
+// const all_collections_generated_classes = require(path.resolve(__dirname, './all_collections_generated_classes.js'))
+const pythonUtils = require(path.resolve(__dirname, 'pythonUtils.js'))
 const { isinstance, namedtuple, randomUniform } = pythonUtils
 
 Math.radians = function(degrees) {
@@ -17,7 +17,10 @@ class Point extends namedtuple('Point', ['x', 'y']) {
   //A basic Point class.//
   constructor(x, y) {
     super({})
-    if (Number(x) == x) {
+    if (Array.isArray(x)) {
+      this.y = x[1]
+      this.x = x[0]
+    } else if (Number(x) == x) {
       this.x = x
       this.y = y
     } else if (x && x.x && isinstance(x.x, [common_pb.Point, spatial_pb.PointI, common_pb.Point2D])) { // if x is a proto point class
@@ -220,11 +223,22 @@ class Point extends namedtuple('Point', ['x', 'y']) {
   div() {
     return this.truediv(...arguments) //eslint-disable-line
   }
+
+  eq(pt_or_proto) {
+    if (!pt_or_proto) {
+      return false
+    }
+    if (pt_or_proto.getX) {
+      return pt_or_proto.getX() == this.x && pt_or_proto.getY() == this.y
+    }
+    return pt_or_proto.x == this.x && pt_or_proto.y == this.y
+  }
 }
 
 const origin = new Point(0.0, 0.0)
 
-class Rect extends all_collections_generated_classes.Rect {
+// class Rect extends all_collections_generated_classes.Rect {
+class Rect extends namedtuple("Rect", ["t", "l", "b", "r"]) {
   //A basic Rect class. Assumes tl <= br.//
 
   constructor() {
@@ -234,7 +248,7 @@ class Rect extends all_collections_generated_classes.Rect {
     }
     if (arg.length === 2) {
       const [p1, p2] = arg
-      if ((!isinstance(p1, Point) || !(isinstance(p2, Point)))) {
+      if (!isinstance(p1, Point) || !isinstance(p2, Point)) {
         throw new Error(`TypeError: Rect expected Points`)
       }
       super({
@@ -374,6 +388,7 @@ class Rect extends all_collections_generated_classes.Rect {
 }
 
 module.exports = {
+  origin,
   Point,
   Rect,
 }

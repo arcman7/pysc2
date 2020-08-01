@@ -631,6 +631,9 @@ class RendererHuman(object):
 
       feature_font_size = int(feature_grid_size.y * 0.09)
       feature_font = pygame.font.Font(None, feature_font_size)
+      
+      print('feature_grid_size:', feature_grid_size.round())
+      print('feature_layer_area:', feature_layer_area.round())
 
       feature_counter = itertools.count()
       def add_layer(surf_type, world_to_surf, world_to_obs, name, fn):
@@ -642,12 +645,16 @@ class RendererHuman(object):
         rect = text.get_rect()
         rect.center = grid_offset + point.Point(feature_grid_size.x / 2,
                                                 feature_font_size)
+        a  = point.Point(feature_grid_size.x / 2,
+                                                feature_font_size)
+        print('grid_offset ', grid_offset.round(), ' + ', a, ' = ', rect.center, '   i = ', i)
         feature_pane.blit(text, rect)
         surf_loc = (features_loc + grid_offset + feature_layer_padding +
                     point.Point(0, feature_font_size))
         add_surface(surf_type,
                     point.Rect(surf_loc, surf_loc + feature_layer_size).round(),
                     world_to_surf, world_to_obs, fn)
+        print('surf_loc ', surf_loc.round())
 
       raw_world_to_obs = transform.Linear()
       raw_world_to_surf = transform.Linear(feature_layer_size / self._map_size)
@@ -1632,7 +1639,6 @@ class RendererHuman(object):
 
   def draw_screen(self, surf):
     """Draw the screen area."""
-    # surf.fill(colors.black)
     if (self._render_rgb and self._obs.observation.HasField("render_data") and
         self._obs.observation.render_data.HasField("map")):
       self.draw_rendered_map(surf)
@@ -1691,7 +1697,7 @@ class RendererHuman(object):
   def render_thread(self):
     """A render loop that pulls observations off the queue to render."""
     obs = True
-    while obs:  # Send something falsy through the queue to shut down.
+    while obs:  # Send something falsy through the queuPe to shut down.
       obs = self._obs_queue.get()
       if obs:
         for alert in obs.observation.alerts:

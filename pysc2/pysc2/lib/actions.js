@@ -3,13 +3,12 @@ const s2clientprotocol = require('s2clientprotocol') //eslint-disable-line
 const Enum = require('python-enum') //eslint-disable-line
 const point = require(path.resolve(__dirname, './point.js'))
 const pythonUtils = require(path.resolve(__dirname, './pythonUtils.js'))
-const all_collections_generated_classes = require(path.resolve(__dirname, './all_collections_generated_classes.js'))
 const numpy = require(path.resolve(__dirname, './numpy.js'))
 
 const { spatial_pb, ui_pb, common_pb } = s2clientprotocol
 const sc_spatial = spatial_pb
 const sc_ui = ui_pb
-const { len, isinstance, isObject, ValueError, zip } = pythonUtils
+const { len, isinstance, isObject, namedtuple, ValueError, zip } = pythonUtils
 
 const ActionSpace = Enum.IntEnum('ActionSpace', {
   FEATURES: 1, // Act in feature layer pixel space with FUNCTIONS below.
@@ -223,7 +222,7 @@ function numpy_to_python(val) {
   throw new ValueError(`Unknown value. Type:${typeof (val)}, repr: ${val}`)
 }
 
-class ArgumentType extends all_collections_generated_classes.ArgumentType {
+class ArgumentType extends namedtuple("ArgumentType", ["id", "name", "sizes", "fn", "values", "count"]) {
   /*Represents a single argument type.
 
   Attributes:
@@ -323,7 +322,7 @@ class ArgumentType extends all_collections_generated_classes.ArgumentType {
   }
 }
 
-class Arguments extends all_collections_generated_classes.Arguments {
+class Arguments extends namedtuple("Arguments", ["screen", "minimap", "screen2", "queued", "control_group_act", "control_group_id", "select_point_act", "select_add", "select_unit_act", "select_unit_id", "select_worker", "build_queue_id", "unload_id"]) {
   /*The full list of argument types.
 
    Take a look at TYPES and FUNCTION_TYPES for more details.
@@ -347,30 +346,10 @@ class Arguments extends all_collections_generated_classes.Arguments {
   */
   constructor(kwargs) {
     if (Array.isArray(kwargs)) {
-      super(null, ...kwargs)
-      this.setIndexValues()
+      super(...kwargs)
     } else {
-      super(kwargs)
-      this.setIndexValues()
+      super(...arguments) //eslint-disable-line
     }
-  }
-
-  setIndexValues() {
-    this.constructor._fields.forEach((field, index) => {
-      this[index] = this[field]
-    })
-  }
-
-  get _stateList() {
-    return [this['screen'], this['minimap'], this['screen2'], this['queued'], this['control_group_act'], this['control_group_id'], this['select_point_act'], this['select_add'], this['select_unit_act'], this['select_unit_id'], this['select_worker'], this['build_queue_id'], this['unload_id']]
-  }
-
-  get forEach() {
-    return this._stateList.forEach.bind(this._stateList)
-  }
-
-  get map() {
-    return this._stateList.map.bind(this._stateList)
   }
 
   keys() {
@@ -387,7 +366,7 @@ class Arguments extends all_collections_generated_classes.Arguments {
   }
 }
 
-class RawArguments extends all_collections_generated_classes.RawArguments {
+class RawArguments extends namedtuple("RawArguments", ["world", "queued", "unit_tags", "target_unit_tag"]) {
   /*The full list of argument types.
 
   Take a look at TYPES and FUNCTION_TYPES for more details.
@@ -400,22 +379,10 @@ class RawArguments extends all_collections_generated_classes.RawArguments {
   */
   constructor(kwargs) {
     if (Array.isArray(kwargs)) {
-      super(null, ...kwargs)
-      return
+      super(...kwargs)
+    } else {
+      super(...arguments) //eslint-disable-line
     }
-    super(kwargs)
-  }
-
-  get _stateList() {
-    return [this['world'], this['queued'], this['unit_tags'], this['target_unit_tag']]
-  }
-
-  get forEach() {
-    return this._stateList.forEach.bind(this._stateList)
-  }
-
-  get map() {
-    return this._stateList.map.bind(this._stateList)
   }
 
   keys() {
@@ -562,7 +529,7 @@ POINT_REQUIRED_FUNCS.set(true, { cmd_screen, cmd_minimap, autocast })
 
 const always = () => true
 
-class Function extends all_collections_generated_classes.Function {
+class Function extends namedtuple("Function", ["id", "name", "ability_id", "general_id", "function_type", "args", "avail_fn", "raw"]) {
   /*Represents a function action.
 
   Attributes:
@@ -578,11 +545,16 @@ class Function extends all_collections_generated_classes.Function {
         valid.
     raw: Whether the function is raw or not.
   */
-  constructor(kwargs) {
-    super(kwargs)
+  constructor() {
+    super(...arguments) //eslint-disable-line
     const func = this.__call__.bind(this)
     return this._getProxy(func)
   }
+  // constructor(kwargs) {
+  //   super(kwargs)
+  //   const func = this.__call__.bind(this)
+  //   return this._getProxy(func)
+  // }
 
   _getProxy(thing) {
     const self = this
@@ -1374,7 +1346,6 @@ _FUNCTIONS.forEach((f) => {
 const _Functions = Enum.IntEnum('_Functions', tempDict)
 _FUNCTIONS = _FUNCTIONS.map((f) => f._replace({ id: _Functions(f.id) }))
 const FUNCTIONS = new Functions(_FUNCTIONS)
-
 // Some indexes to support features.py and action conversion.
 const ABILITY_IDS = {}
 const ABILITY_IDS_seen = new Map()
@@ -2004,18 +1975,42 @@ Object.keys(RAW_ABILITY_IDS).forEach((key) => {
   const minF = set.find((f) => f.id == minIndex)
   RAW_ABILITY_ID_TO_FUNC_ID[key] = minF
 })
-
-class FunctionCall extends all_collections_generated_classes.FunctionCall {
+// const temp_fields_ref["functionn", "argumentss"]
+class FunctionCall extends namedtuple("FunctionCall", ["functionn", "argumentss"]) {
   /*Represents a function call action.
-
   Attributes:
     function: Store the function id, eg 2 for select_point.
     arguments: The list of arguments for that function, each being a list of
         ints. For select_point this could be: [[0], [23, 38]].
   */
-  // constructor(kwargs) {
-  //   super(kwargs)
-  // }
+  constructor() {
+    //eslint-disable-next-line
+    if (typeof arguments[0] === 'object' && arguments.length === 1 && FunctionCall._fields.length > 1) {
+      const kwargs = arguments[0]  //eslint-disable-line
+      if (kwargs.arguments || kwargs.funtion) {
+        kwargs.argumentss = kwargs.arguments
+        kwargs.functionn = kwargs.function
+      }
+    }
+    super(...arguments) //eslint-disable-line
+    const self = this
+    Object.defineProperty(this, 'function', {
+      get: function() {
+        return self[0]
+      },
+      set: function(val) {
+        self[0] = val; return val
+      }
+    });
+    Object.defineProperty(this, 'arguments', {
+      get: function() {
+        return self[1]
+      },
+      set: function(val) {
+        self[1] = val; return val
+      }
+    });
+  }
 
   static init_with_validation(_function, _arguments, raw = false) {
     /*Return a `FunctionCall` given some validation for the function and args.
@@ -2069,7 +2064,7 @@ class FunctionCall extends all_collections_generated_classes.FunctionCall {
             "their numpy equivalents. Value: ${arg}`)
       }
     })
-    return this._make({ function: func.id, arguments: args })
+    return new FunctionCall(func.id, args)
   }
 
   static all_arguments(_function, _arguments, raw = false) {
@@ -2093,15 +2088,11 @@ class FunctionCall extends all_collections_generated_classes.FunctionCall {
       // both Arguments and RawArguments constructors can handle array
       _arguments = args_type(_arguments)
     }
-    return this._make({ function: _function, arguments: _arguments })
+    return new FunctionCall(_function, _arguments)
   }
 }
 
-class ValidActions extends all_collections_generated_classes.ValidActions {
-  // constructor(kwargs) {
-  //   super(kwargs)
-  // }
-}
+class ValidActions extends namedtuple("ValidActions", ["types", "functions"]) {}
 
 module.exports = {
   ActionSpace,

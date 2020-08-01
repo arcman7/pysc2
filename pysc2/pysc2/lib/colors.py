@@ -139,6 +139,28 @@ def shuffled_hue(scale):
   return np.array(palette)
 
 
+# def piece_wise_linear(scale, points):
+#   """Create a palette that is piece-wise linear given some colors at points."""
+#   assert len(points) >= 2
+#   assert points[0][0] == 0
+#   assert points[-1][0] == 1
+#   assert all(i < j for i, j in zip(points[:-1], points[1:]))
+#   out = np.zeros((scale, 3))
+#   p1, c1 = points[0]
+#   p2, c2 = points[1]
+#   next_pt = 2
+#   for i in range(1, scale):  # Leave 0 as black.
+#     v = i / scale
+#     if v > p2:
+#       p1, c1 = p2, c2
+#       p2, c2 = points[next_pt]
+#       next_pt += 1
+#     frac = (v - p1) / (p2 - p1)
+#     temp = c1 * (1 - frac) + c2 * frac
+#     out[i, :] = [temp.r, temp.g, temp.b]
+
+#   return out
+
 def piece_wise_linear(scale, points):
   """Create a palette that is piece-wise linear given some colors at points."""
   assert len(points) >= 2
@@ -149,6 +171,7 @@ def piece_wise_linear(scale, points):
   p1, c1 = points[0]
   p2, c2 = points[1]
   next_pt = 2
+
   for i in range(1, scale):  # Leave 0 as black.
     v = i / scale
     if v > p2:
@@ -156,9 +179,7 @@ def piece_wise_linear(scale, points):
       p2, c2 = points[next_pt]
       next_pt += 1
     frac = (v - p1) / (p2 - p1)
-    temp = c1 * (1 - frac) + c2 * frac
-    out[i, :] = [temp.r, temp.g, temp.b]
-
+    out[i, :] = c1 * (1 - frac) + c2 * frac
   return out
 
 

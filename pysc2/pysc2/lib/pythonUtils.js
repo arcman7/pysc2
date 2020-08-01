@@ -1,5 +1,5 @@
+const os = require('os') //eslint-disable-line
 const s2clientprotocol = require('s2clientprotocol') //eslint-disable-line
-
 const { common_pb, raw_pb, spatial_pb, ui_pb } = s2clientprotocol
 
 /*eslint-disable no-use-before-define*/
@@ -81,16 +81,22 @@ function arraySub(a, b) {
   }
   return result
 }
-//eslint-disable-next-line
-Object.defineProperty(Array.prototype, 'extend', {
-  value: Array.prototype.extend,
-  iterable: false,
-  enumerable: false,
-})
 
 function assert(cond, errMsg) {
   if (cond === false) {
     throw new Error(errMsg)
+  }
+}
+
+function clip(a, a_min, a_max) {
+  let n
+  for (let i = 0; i < a.length; i++) {
+    n = a[i]
+    if (n < a_min) {
+      a[i] = a_min
+    } else if (n > a_max) {
+      a[i] = a_max
+    }
   }
 }
 
@@ -104,12 +110,27 @@ function eq(a, b) {
   return a === b
 }
 
+function expanduser(path) {
+  const homedir = os.homedir()
+  path = path.replace(/~user/g, homedir)
+  path = path.replace(/~/g, homedir)
+  path = path.replace(/\\/g, '/')
+  return path
+}
+
 //eslint-disable-next-line
 Array.prototype.extend = function(array) {
   for (let i = 0; i < array.length; i++) {
     this.push(array[i])
   }
 }
+//eslint-disable-next-line
+Object.defineProperty(Array.prototype, 'extend', {
+  value: Array.prototype.extend,
+  iterable: false,
+  enumerable: false,
+})
+
 function getArgNames(func) {
   // First match everything inside the function argument parens.
   const args = func.toString().match(/function\s.*?\(([^)]*)\)/)[1]
@@ -135,6 +156,70 @@ getArgsArray.getArgNames = getArgNames
 //eslint-disable-next-line
 String.prototype.splitlines = function() {
   return this.split(/\r?\n/)
+}
+
+function getImageData(unit8data, [width, height], rgb = true, color, palette) {
+  const multiplier = 1
+  const bytes = new Uint8ClampedArray(width * height * 4);
+  const a = Math.round(255);
+
+  if (rgb) {
+    for (let i = 0; i < height * width; ++i) {
+      const r = unit8data[i * 3] * multiplier;
+      const g = unit8data[i * 3 + 1] * multiplier;
+      const b = unit8data[i * 3 + 2] * multiplier;
+      const j = i * 4;
+      // start craft 2 api appears to be switching the red and blue channels
+      bytes[j + 0] = b | 0;
+      bytes[j + 1] = g | 0;
+      bytes[j + 2] = r | 0;
+      bytes[j + 3] = a;
+    }
+  } else if (palette) {
+    for (let i = 0; i < height * width; ++i) {
+      const j = i * 4;
+      if (unit8data[i]) {
+        color = palette[unit8data[i]]
+        bytes[j + 0] = color[0] | 0;
+        bytes[j + 1] = color[1] | 0;
+        bytes[j + 2] = color[2] | 0;
+        bytes[j + 3] = a;
+      } else {
+        bytes[j + 0] = 0;
+        bytes[j + 1] = 0;
+        bytes[j + 2] = 0;
+        bytes[j + 3] = a;
+      }
+    }
+  } else if (color) {
+    for (let i = 0; i < height * width; ++i) {
+      const j = i * 4;
+      if (unit8data[i]) {
+        bytes[j + 0] = color[0] | 0;
+        bytes[j + 1] = color[1] | 0;
+        bytes[j + 2] = color[2] | 0;
+        bytes[j + 3] = a;
+      } else {
+        bytes[j + 0] = 0;
+        bytes[j + 1] = 0;
+        bytes[j + 2] = 0;
+        bytes[j + 3] = a;
+      }
+    }
+  } else {
+    for (let i = 0; i < height * width; ++i) {
+      const r = unit8data[i] * multiplier;
+      const g = r
+      const b = r
+      const j = i * 4;
+      bytes[j + 0] = r | 0;
+      bytes[j + 1] = g | 0;
+      bytes[j + 2] = b | 0;
+      bytes[j + 3] = a;
+    }
+  }
+
+  return new ImageData(bytes, width, height);
 }
 
 function hashCode(str) {
@@ -262,31 +347,33 @@ function map(func, collection) {
 }
 
 function namedtuple(name, fields) {
-  let consLogic = '';
   let consArgs = '';
   fields.forEach((field, i) => {
     consArgs += i < fields.length - 1 ? `${field}, ` : `${field}`;
-    consLogic += i < fields.length - 1 ? `this.${field} = ${field};\n    ` : `this.${field} = ${field};`;
   });
   const classStr = `const _fields = ${JSON.stringify(fields)}; return class ${name} extends Array {
   static get classname() { return '${name}' }
   static get _fields() { return ${JSON.stringify(fields)} }
   constructor(${consArgs}) {
+    const usedArgs = []
     if (typeof arguments[0] === 'object' && arguments.length === 1 && _fields.length > 1) {
-      const args = []
       const kwargs = arguments[0]
       _fields.forEach((field, index) => {
-        args[index] = kwargs[field]
+        usedArgs[index] = kwargs[field]
       })
-      super(...args)
+      // console.log('here! A *******************')
+      // console.log('arguments: ')
+      // console.log(usedArgs)
+      super(...usedArgs)
+    } else {
       _fields.forEach((field, index) => {
-        args[index] = kwargs[field]
-        this[field] = kwargs[field]
+        usedArgs[index] = arguments[index]
       })
-      return
+      // console.log('here! B *******************')
+      // console.log('arguments: ')
+      // console.log(usedArgs)
+      super(...usedArgs)
     }
-    super(...arguments)
-    ${consLogic}
   }
   static _make(kwargs) {
     return new this.prototype.constructor(kwargs);
@@ -721,10 +808,13 @@ module.exports = {
   arraySub,
   assert,
   Array,
+  clip,
   DefaultDict,
   eq,
+  expanduser,
   getArgsArray,
   getattr,
+  getImageData,
   hashCode,
   int,
   iter,

@@ -31,12 +31,12 @@ async function test_general_actions() {
   create.setDisableFog(false)
   const localMap = new sc_pb.LocalMap()
   localMap.setMapPath(map_inst.path)
+  localMap.setMapData(map_inst.data(run_config))
   create.setLocalMap(localMap)
 
   let playerSetup = new sc_pb.PlayerSetup()
   playerSetup.setType(sc_pb.PlayerType.PARTICIPANT)
   create.addPlayerSetup(playerSetup)
-  create.getLocalMap().setMapData(this._map_data)
   playerSetup = new sc_pb.PlayerSetup()
   playerSetup.setType(sc_pb.PlayerType.COMPUTER)
   playerSetup.setRace(sc_common.Race.RANDOM)
