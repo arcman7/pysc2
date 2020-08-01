@@ -4,7 +4,7 @@ const base_evn_wrapper = require(path.resolve(__dirname, './base_evn_wrapper.js'
 class AvailableActionsPrinter extends base_evn_wrapper.base_evn_wrapper {
   /*An env wrapper to print the available actions.*/
   constructor(env) {
-    super().__init__(env)
+    super(env)
     this._seen = new Set()
     this._action_spec = this._action_spec()[0]
   }
