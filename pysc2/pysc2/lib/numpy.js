@@ -25,6 +25,7 @@ module.exports = {
   cumsum() {
     return tf.cumsum(...arguments).dataSync() //eslint-disable-line
   },
+  gather: tf.gather,
   getValueAt(arr, index) {
     if (arr instanceof TensorMeta) {
       arr = arr.arraySync()
@@ -80,4 +81,5 @@ module.exports = {
   float64: Float64Array,
   // node utility functions
   node: tf.node,
+  tf,
 }

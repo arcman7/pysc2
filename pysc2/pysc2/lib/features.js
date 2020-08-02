@@ -234,7 +234,7 @@ class Feature extends namedtuple('Feature', ['index', 'name', 'layer_set', 'full
     // console.log('from Feature constructor: ', kwargs)
     super(kwargs)
     // javascript only set up
-    this.color = sw.decorate(this.color)
+    this.color = sw.decorate(this.color.bind(this))
   }
 
   static get dtypes() {
@@ -272,7 +272,7 @@ class Feature extends namedtuple('Feature', ['index', 'name', 'layer_set', 'full
     return Feature.unpack_layer(plane)
   }
 
-  static unpack_layer(plane) {
+  static unpack_layer(plane, asTensor = true) {
     //Return a correctly shaped numpy array given the feature layer bytes.//
     if (plane.getSize() === undefined) {
       return null
@@ -310,8 +310,9 @@ class Feature extends namedtuple('Feature', ['index', 'name', 'layer_set', 'full
       // data.shape = [size.x, size.y]
       // return data
     }
-
-    data = np.tensor(data, [size.y, size.x], 'int32')
+    if (asTensor) {
+      return np.tensor(data, [size.y, size.x], 'int32')
+    }
     return data
   }
 
@@ -364,16 +365,12 @@ class Feature extends namedtuple('Feature', ['index', 'name', 'layer_set', 'full
   }
 
   color(plane, isTensor = false) {
-    if (isTensor === false) {
-      const rgb = false
-      const color = null
-      return Feature.unpack_image_data(plane, rgb, color, this.palette)
+    if (isTensor) {
+      return this.palette.gather(plane, this.palette)
     }
-    const data = plane.dataSync()
-    if (this.clip) {
-      clip(data, 0, this.scale - 1)
-    }
-    return data.map((n) => n ? this.palette[n] : n) //eslint-disable-line
+    const rgb = false
+    const color = null
+    return Feature.unpack_image_data(plane, rgb, color, this.palette)
   }
 }
 

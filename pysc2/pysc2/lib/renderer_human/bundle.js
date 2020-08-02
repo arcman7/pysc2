@@ -3021,7 +3021,7 @@ class Feature extends namedtuple('Feature', ['index', 'name', 'layer_set', 'full
     // console.log('from Feature constructor: ', kwargs)
     super(kwargs)
     // javascript only set up
-    this.color = sw.decorate(this.color)
+    this.color = sw.decorate(this.color.bind(this))
   }
 
   static get dtypes() {
@@ -3059,7 +3059,7 @@ class Feature extends namedtuple('Feature', ['index', 'name', 'layer_set', 'full
     return Feature.unpack_layer(plane)
   }
 
-  static unpack_layer(plane) {
+  static unpack_layer(plane, asTensor = true) {
     //Return a correctly shaped numpy array given the feature layer bytes.//
     if (plane.getSize() === undefined) {
       return null
@@ -3097,8 +3097,9 @@ class Feature extends namedtuple('Feature', ['index', 'name', 'layer_set', 'full
       // data.shape = [size.x, size.y]
       // return data
     }
-
-    data = np.tensor(data, [size.y, size.x], 'int32')
+    if (asTensor) {
+      return np.tensor(data, [size.y, size.x], 'int32')
+    }
     return data
   }
 
@@ -3150,16 +3151,10 @@ class Feature extends namedtuple('Feature', ['index', 'name', 'layer_set', 'full
     return data
   }
 
-  color(plane, isTensor = false) {
-    if (this.clip) {
-      plane = np.clip(plane, 0, this.scale - 1)
-    }
-    if (isTensor === false) {
-      const rgb = false
-      const color = null
-      return Feature.unpack_image_data(plane, rgb, color, this.palette)
-    }
-    return plane.dataSync().map((n) => n ? this.palette[n] : n) //eslint-disable-line
+  color(plane) {
+    const rgb = false
+    const color = null
+    return Feature.unpack_image_data(plane, rgb, color, this.palette)
   }
 }
 
@@ -9071,13 +9066,13 @@ class RendererHuman {
     if (!np.any(hmap)) {
       hmap.add(100)
     }
-    const hmap_color = hmap_feature.color(hmap)
+    const hmap_color = hmap_feature.color(hmap.dataSync())
     let out = hmap_color.mul(0.6)
 
     const creep_feature = features.SCREEN_FEATURES.creep
     const creep = creep_feature.unpack(this._obs.getObservation())
     const creep_mask = creep.greater(0)
-    const creep_color = creep_feature.color(creep)
+    const creep_color = creep_feature.color(creep.dataSync())
     let temp1 = out.where(creep_mask, out.mul(0.4))
     let temp2 = creep_color.where(creep_mask, creep_color.mul(0.6))
     out = out.where(creep_mask, temp1.add(temp2))
@@ -9085,7 +9080,7 @@ class RendererHuman {
     const power_feature = features.SCREEN_FEATURES.power_feature
     const power = power_feature.unpack(this._obs.getObservation())
     const power_mask = power.greater(0)
-    const power_color = power_feature.color(power)
+    const power_color = power_feature.color(power.dataSync())
     temp1 = out.where(power_mask, out.mul(0.7))
     temp2 = power_color.where(power_mask, power_color.mul(0.3))
     out = out.where(power_mask, temp1.add(temp2))
@@ -9094,7 +9089,7 @@ class RendererHuman {
       const player_rel_feature = features.SCREEN_FEATURES.player_relative
       const player_rel = player_rel_feature.unpack(this._obs.getObservation())
       const player_rel_mask = player_rel.greater(0)
-      const player_rel_color = player_rel_feature.color(player_rel)
+      const player_rel_color = player_rel_feature.color(player_rel.dataSync())
       out = out.where(player_rel_mask, player_rel_color)
     }
 
