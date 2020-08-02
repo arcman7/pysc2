@@ -235,6 +235,9 @@ class Feature extends namedtuple('Feature', ['index', 'name', 'layer_set', 'full
     super(kwargs)
     // javascript only set up
     this.color = sw.decorate(this.color.bind(this))
+    if (this.palette) {
+      this._palette_tf = np.tensor(this.palette)
+    }
   }
 
   static get dtypes() {
@@ -262,9 +265,12 @@ class Feature extends namedtuple('Feature', ['index', 'name', 'layer_set', 'full
     return this.unpack_layer(plane)
   }
 
-  unpack_obs(obs) {
+  unpack_obs(obs, asTensor = false) {
     const planes = getattr(obs.getFeatureLayerData(), this.layer_set)
     const plane = getattr(planes, this.name) || new sc_pb.ImageData()
+    if (asTensor) {
+      return np.tensor(plane.getData())
+    }
     return plane
   }
 
@@ -366,7 +372,7 @@ class Feature extends namedtuple('Feature', ['index', 'name', 'layer_set', 'full
 
   color(plane, isTensor = false) {
     if (isTensor) {
-      return this.palette.gather(plane, this.palette)
+      return this._palette_tf.gather(plane, this.palette)
     }
     const rgb = false
     const color = null
