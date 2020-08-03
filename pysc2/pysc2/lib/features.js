@@ -236,7 +236,7 @@ class Feature extends namedtuple('Feature', ['index', 'name', 'layer_set', 'full
     // javascript only set up
     this.color = sw.decorate(this.color.bind(this))
     if (this.palette) {
-      this._palette_tf = np.tensor(this.palette)
+      this._palette_tf = np.tensor(this.palette, undefined, 'int32')
     }
   }
 
@@ -372,7 +372,18 @@ class Feature extends namedtuple('Feature', ['index', 'name', 'layer_set', 'full
 
   color(plane, isTensor = false) {
     if (isTensor) {
-      return this._palette_tf.gather(plane, this.palette)
+      console.log('plane:')
+      console.log(plane)
+      console.log(plane.print())
+      console.log('****** palette:')
+      console.log(this._palette_tf)
+      console.log(this._palette_tf.print())
+      console.log('scale: ', this.scale)
+      if (this.scale) {
+        np.clipByValue(plane, 0, this.scale - 1)
+      }
+      console.log('here')
+      return this._palette_tf.gather(plane)
     }
     const rgb = false
     const color = null

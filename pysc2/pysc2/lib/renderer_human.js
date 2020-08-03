@@ -2010,7 +2010,7 @@ class RendererHuman {
     const creep = creep_feature.unpack(this._obs.getObservation())
     const creep_mask = creep.greater(0)
     const creep_color = creep_feature.color(creep.dataSync())
-    const creep_color = creep_feature
+    // const creep_color = creep_feature
     // const creep_color = creep_feature.color(creep.dataSync())
     let temp1 = out.where(creep_mask, out.mul(0.4))
     let temp2 = creep_color.where(creep_mask, creep_color.mul(0.6))
