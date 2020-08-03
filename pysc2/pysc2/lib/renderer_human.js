@@ -2000,43 +2000,49 @@ class RendererHuman {
     //Draw the base map.//
     const hmap_feature = features.SCREEN_FEATURES.height_map
     let hmap = hmap_feature.unpack(this._obs.getObservation())
-    if (!np.any(hmap)) {
-      hmap.add(100)
+    if (!tf.any(tf.cast(hmap, 'bool'))) {
+      hmap = hmap.add(100)
+      console.log('A0')
     }
-    const hmap_color = hmap_feature.color(hmap.dataSync())
+    const hmap_color = hmap_feature.color(hmap, true)
     let out = hmap_color.mul(0.6)
+    console.log('A1')
 
     const creep_feature = features.SCREEN_FEATURES.creep
     const creep = creep_feature.unpack(this._obs.getObservation())
     const creep_mask = creep.greater(0)
-    const creep_color = creep_feature.color(creep.dataSync())
-    // const creep_color = creep_feature
-    // const creep_color = creep_feature.color(creep.dataSync())
+    const creep_color = creep_feature.color(creep, true)
+    // creep_color = tf.cast(creep_color, 'int32')
     let temp1 = out.where(creep_mask, out.mul(0.4))
     let temp2 = creep_color.where(creep_mask, creep_color.mul(0.6))
     out = out.where(creep_mask, temp1.add(temp2))
-    
-    const power_feature = features.SCREEN_FEATURES.power_feature
+    console.log('A2')
+
+    const power_feature = features.SCREEN_FEATURES.power
     const power = power_feature.unpack(this._obs.getObservation())
     const power_mask = power.greater(0)
-    const power_color = power_feature.color(power.dataSync())
-    // const power_color = power_feature.color(power.dataSync())
+    const power_color = power_feature.color(power, true)
+    console.log('A2.a')
     temp1 = out.where(power_mask, out.mul(0.7))
+    console.log('A2.b')
     temp2 = power_color.where(power_mask, power_color.mul(0.3))
+    console.log('A2.c')
     out = out.where(power_mask, temp1.add(temp2))
+    console.log('A3')
 
-    if (this._render_player_relative) {
+    if (true) {
       const player_rel_feature = features.SCREEN_FEATURES.player_relative
       const player_rel = player_rel_feature.unpack(this._obs.getObservation())
       const player_rel_mask = player_rel.greater(0)
-      const player_rel_color = player_rel_feature.color(player_rel.dataSync())
-      // const player_rel_color = player_rel_feature.color(player_rel.dataSync())
+      const player_rel_color = player_rel_feature.color(player_rel, true)
       out = out.where(player_rel_mask, player_rel_color)
     }
 
+    console.log('A4')
     const visibility = features.SCREEN_FEATURES.visibility_map.unpack(this._obs.getObservation())
-    const visibility_fade = np.tensor([[0.5, 0.5, 0.5], [0.75, 0.75, 0.75], [1, 1, 1]])
-    out = out.where(visibility, out.mul(visibility_fade))
+    const visibility_fade = tf.tensor([[0.5, 0.5, 0.5], [0.75, 0.75, 0.75], [1, 1, 1]])
+    //out *= visibility_fade[visibility]
+    out = out.mul(visibility_fade.gather(visibility))
 
     surf.blit_np_array(getImageData(out.dataSync(), out.shape, false))
     window.gamejs.display.getSurface().blit(surf.surf, [surf.surf_rect.left, surf.surf_rect.top])

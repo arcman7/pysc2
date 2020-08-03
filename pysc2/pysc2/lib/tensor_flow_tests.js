@@ -4,6 +4,12 @@ tf = require('@tensorflow/tfjs-node') //eslint-disable-line
 const features = require('./features.js') //eslint-disable-line
 const colors = require('./colors.js') //eslint-disable-line
 
+function clipByValue(x, min, max) {
+  const minT = tf.fill(x.shape, min, x.dtype)
+  const maxT = tf.fill(x.shape, max, x.dtype)
+  return x.where(x.greaterEqual(min), minT).where(x.lessEqual(max), maxT)
+}
+
 function sw(cb) {
   return function time_callback() {
     const start = sw.performance.now()
@@ -35,25 +41,33 @@ let draw_base_map_tf = function(data) {
   let hmap = data//hmap_feature.unpack(this._obs.getObservation())
   if (!tf.any(tf.cast(hmap, 'bool'))) {
     hmap = hmap.add(100)
+    console.log('A0')
   }
   const hmap_color = hmap_feature.color(hmap, true)
   let out = hmap_color.mul(0.6)
+  console.log('A1')
 
   const creep_feature = features.SCREEN_FEATURES.creep
   const creep = data //creep_feature.unpack(this._obs.getObservation())
   const creep_mask = creep.greater(0)
   const creep_color = creep_feature.color(creep, true)
+  // creep_color = tf.cast(creep_color, 'int32')
   let temp1 = out.where(creep_mask, out.mul(0.4))
   let temp2 = creep_color.where(creep_mask, creep_color.mul(0.6))
   out = out.where(creep_mask, temp1.add(temp2))
+  // console.log('A2')
 
-  const power_feature = features.SCREEN_FEATURES.power_feature
+  const power_feature = features.SCREEN_FEATURES.power
   const power = data //power_feature.unpack(this._obs.getObservation())
   const power_mask = power.greater(0)
   const power_color = power_feature.color(power, true)
+  // console.log('A2.a')
   temp1 = out.where(power_mask, out.mul(0.7))
+  // console.log('A2.b')
   temp2 = power_color.where(power_mask, power_color.mul(0.3))
+  // console.log('A2.c')
   out = out.where(power_mask, temp1.add(temp2))
+  // console.log('A3')
 
   if (true) {
     const player_rel_feature = features.SCREEN_FEATURES.player_relative
@@ -63,9 +77,13 @@ let draw_base_map_tf = function(data) {
     out = out.where(player_rel_mask, player_rel_color)
   }
 
-  const visibility = data //features.SCREEN_FEATURES.visibility_map.unpack(this._obs.getObservation())
+  // console.log('A4')
+  // const visibility = data //features.SCREEN_FEATURES.visibility_map.unpack(this._obs.getObservation())
+  const visibility = clipByValue(data, 0, 2)
   const visibility_fade = tf.tensor([[0.5, 0.5, 0.5], [0.75, 0.75, 0.75], [1, 1, 1]])
-  out = out.where(visibility, out.mul(visibility_fade))
+  //out *= visibility_fade[visibility]
+  out = out.mul(visibility_fade.gather(visibility))
+  // out = out.where(visibility, out.mul(visibility_fade))
   return out
 }
 
@@ -76,7 +94,7 @@ function getTestData(size = 2, Type = Uint8Array) {
   for (let i = 0; i < size; i++) {
     arr[i] = Math.floor(255 * Math.random())
   }
-  return tf.tensor(arr)//, undefined, 'float32')
+  return tf.tensor(arr, undefined, 'int32')//'float32')
 }
 
 let testData
