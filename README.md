@@ -9,3 +9,6 @@ Progress tracked [here](https://docs.google.com/spreadsheets/d/1V8KMPZJJE0mjzI4Z
 
 ### Untested code paths
 - lib/video_writer.js [see these docs for more info](https://www.npmjs.com/package/fluent-ffmpeg)
+
+### Rendering Tests
+- [Tensorflow vs Vanilla JS](https://docs.google.com/spreadsheets/d/1yGwn0pfzlgjQ76WZ7ItQjCOhIF7B2BMgumE0DzyM9-Q/edit?usp=sharing)
