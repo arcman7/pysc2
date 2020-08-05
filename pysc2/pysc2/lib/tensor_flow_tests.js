@@ -4,6 +4,7 @@ tf = require('@tensorflow/tfjs-node') //eslint-disable-line
 const features = require('./features.js') //eslint-disable-line
 const colors = require('./colors.js') //eslint-disable-line
 
+/** Vanilla JS Helper Methods **/
 //eslint-disable-next-line
 Array.prototype.mul = function (n) {
   // this[0] *= n
@@ -21,13 +22,6 @@ Array.prototype.add = function (n) {
   }
   return [this[0] + n, this[1] + n, this[2] + n]
 }
-// used on tensors
-function clipByValue(x, min, max) {
-  const minT = tf.fill(x.shape, min, x.dtype)
-  const maxT = tf.fill(x.shape, max, x.dtype)
-  return x.where(x.greaterEqual(min), minT).where(x.lessEqual(max), maxT)
-}
-
 // used on arrays
 function clip(a, a_min, a_max) {
   let n
@@ -39,6 +33,12 @@ function clip(a, a_min, a_max) {
       a[i] = a_max
     }
   }
+}
+// used on tensors
+function clipByValue(x, min, max) {
+  const minT = tf.fill(x.shape, min, x.dtype)
+  const maxT = tf.fill(x.shape, max, x.dtype)
+  return x.where(x.greaterEqual(min), minT).where(x.lessEqual(max), maxT)
 }
 
 function sw(cb, record) {
@@ -75,7 +75,6 @@ function averageRunTime(cb, argDetails, n = 100) {
       origPush(ele)
       if (times.length >= n) {
         const total = times.reduce((accum, curr) => accum + curr)
-        // console.log(`${cb.name} average runtime - ${(total / n).toFixed(2)} ms${argDetails ? `    ${argDetails}` : ''}`)
         console.log(`${cb.name} average runtime - ${(total / n).toFixed(2)} ms`)
       }
     }
@@ -93,26 +92,13 @@ function feature_color(feature, data) {
   }
   const palette = feature.palette
   const bytes = Array(data.length)
-  // const bytes = new Uint8ClampedArray(data.length * 4);
-  // const a = Math.round(255);
-  // let j
-  // console.log(data.length)
   let color
   for (let i = 0; i < data.length; i++) {
-    // j = i * 4;
     if (data[i]) {
       color = palette[data[i]]
-      bytes[i] = [color[0] | 0, color[1] | 0, color[2] | 0]//, a]
-      // bytes[j + 0] = color[0] | 0;
-      // bytes[j + 1] = color[1] | 0;
-      // bytes[j + 2] = color[2] | 0;
-      // bytes[j + 3] = a;
+      bytes[i] = [color[0] | 0, color[1] | 0, color[2] | 0]
     } else {
-      bytes[i] = [0, 0, 0]//, a]
-      // bytes[j + 0] = 0;
-      // bytes[j + 1] = 0;
-      // bytes[j + 2] = 0;
-      // bytes[j + 3] = a;
+      bytes[i] = [0, 0, 0]
     }
   }
   return bytes
@@ -347,6 +333,8 @@ let testData
 // draw_base_map_vanilla(testData)
 
 // 2 ^ 8
+testData = getTestData(2 ** 8)
+draw_base_map_tf(testData)
 testData = getTestData(2 ** 8)
 draw_base_map_tf(testData)
 testData = getTestData(2 ** 8, false)
