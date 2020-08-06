@@ -1992,7 +1992,7 @@ class RendererHuman {
             })
           }
         }
-      }
+      } 
     })
   }
 

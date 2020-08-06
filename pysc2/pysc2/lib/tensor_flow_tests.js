@@ -1,15 +1,22 @@
 let tf = require('@tensorflow/tfjs') //eslint-disable-line
-tf = require('@tensorflow/tfjs-node') //eslint-disable-line
+// tf = require('@tensorflow/tfjs-node') //eslint-disable-line
+// tf = require('@tensorflow/tfjs-backend-wasm') //eslint-disable-line
+// tf.wasm.setWasmPath('')
+// let features = require('./features.js') //eslint-disable-line
+// let colors = require('./colors.js') //eslint-disable-line
 
-const features = require('./features.js') //eslint-disable-line
-const colors = require('./colors.js') //eslint-disable-line
-
+let features
+let colors
+if (typeof window === 'undefined') {
+  features = require('./features.js') //eslint-disable-line
+  colors = require('./colors.js') //eslint-disable-line
+} else {
+  features = require('./features.js') //eslint-disable-line
+  colors = require('./colors.js') //eslint-disable-line
+}
 /** Vanilla JS Helper Methods **/
 //eslint-disable-next-line
 Array.prototype.mul = function (n) {
-  // this[0] *= n
-  // this[1] *= n
-  // this[2] *= n
   if (Array.isArray(n)) {
     return [this[0] * n[0], this[1] * n[1], this[2] * n[2]]
   }
