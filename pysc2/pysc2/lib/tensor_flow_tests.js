@@ -1,4 +1,6 @@
 let tf = require('@tensorflow/tfjs-node') //eslint-disable-line
+// let tf = require('@tensorflow/tfjs') //eslint-disable-line
+
 if (typeof window === 'undefined') {
   const tf_wasm_module = require('@tensorflow/tfjs-backend-wasm') //eslint-disable-line
   const path = require('path') //eslint-disable-line
@@ -13,9 +15,8 @@ if (typeof window === 'undefined') {
     'tfjs-backend-wasm.wasm'
   ))
 } else {
-  tf.wasm.setWasmPath('/tfjs-backend-wasm.wasm')
+  tf.wasm.setWasmPath('https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-backend-wasm/dist/tfjs-backend-wasm.wasm')
 }
-// let tf = require('@tensorflow/tfjs') //eslint-disable-line
 
 let features
 let colors
@@ -86,7 +87,7 @@ function sw(cb, record) {
   }
 }
 
-function averageRunTime(cb, argDetails, n = 100) {
+function averageRunTime(cb, argDetails, n = 25) {
   function average() {
     const times = []
     const origPush = times.push.bind(times)
@@ -334,63 +335,63 @@ function runTests() {
   // testData = getTestData(2 ** 7, false)
   // draw_base_map_vanilla(testData)
 
-  // 2 ^ 8
-  testData = getTestData(2 ** 8)
-  draw_base_map_tf(testData)
+  // // 2 ^ 8
   // testData = getTestData(2 ** 8)
   // draw_base_map_tf(testData)
-  // testData = getTestData(2 ** 8, false)
-  // draw_base_map_vanilla(testData)
+  // // testData = getTestData(2 ** 8)
+  // // draw_base_map_tf(testData)
+  // // testData = getTestData(2 ** 8, false)
+  // // draw_base_map_vanilla(testData)
 
-  // 2 ^ 9
-  testData = getTestData(2 ** 9)
-  draw_base_map_tf(testData)
-  // testData = getTestData(2 ** 9, false)
-  // draw_base_map_vanilla(testData)
+  // // 2 ^ 9
+  // testData = getTestData(2 ** 9)
+  // draw_base_map_tf(testData)
+  // // testData = getTestData(2 ** 9, false)
+  // // draw_base_map_vanilla(testData)
 
-  // 2 ^ 10
-  testData = getTestData(2 ** 10)
-  draw_base_map_tf(testData)
+  // // 2 ^ 10
   // testData = getTestData(2 ** 10)
   // draw_base_map_tf(testData)
-  // testData = getTestData(2 ** 10, false)
-  // draw_base_map_vanilla(testData)
+  // // testData = getTestData(2 ** 10)
+  // // draw_base_map_tf(testData)
+  // // testData = getTestData(2 ** 10, false)
+  // // draw_base_map_vanilla(testData)
 
-  // 2 ^ 11
-  testData = getTestData(2 ** 11)
-  draw_base_map_tf(testData)
+  // // 2 ^ 11
   // testData = getTestData(2 ** 11)
   // draw_base_map_tf(testData)
-  // testData = getTestData(2 ** 11, false)
-  // draw_base_map_vanilla(testData)
+  // // testData = getTestData(2 ** 11)
+  // // draw_base_map_tf(testData)
+  // // testData = getTestData(2 ** 11, false)
+  // // draw_base_map_vanilla(testData)
 
-  // 2 ^ 12
-  testData = getTestData(2 ** 12)
-  draw_base_map_tf(testData)
+  // // 2 ^ 12
   // testData = getTestData(2 ** 12)
   // draw_base_map_tf(testData)
-  // testData = getTestData(2 ** 12, false)
-  // draw_base_map_vanilla(testData)
+  // // testData = getTestData(2 ** 12)
+  // // draw_base_map_tf(testData)
+  // // testData = getTestData(2 ** 12, false)
+  // // draw_base_map_vanilla(testData)
 
-  // 2 ^ 13
-  testData = getTestData(2 ** 13)
-  draw_base_map_tf(testData)
+  // // 2 ^ 13
   // testData = getTestData(2 ** 13)
   // draw_base_map_tf(testData)
-  // testData = getTestData(2 ** 13, false)
-  // draw_base_map_vanilla(testData)
+  // // testData = getTestData(2 ** 13)
+  // // draw_base_map_tf(testData)
+  // // testData = getTestData(2 ** 13, false)
+  // // draw_base_map_vanilla(testData)
 
-  // 2 ^ 14
-  testData = getTestData(2 ** 14)
-  draw_base_map_tf(testData)
+  // // 2 ^ 14
   // testData = getTestData(2 ** 14)
   // draw_base_map_tf(testData)
-  // testData = getTestData(2 ** 14, false)
-  // draw_base_map_vanilla(testData)
+  // // testData = getTestData(2 ** 14) 
+  // // draw_base_map_tf(testData)
+  // // testData = getTestData(2 ** 14, false)
+  // // draw_base_map_vanilla(testData)
 
-  // 2 ^ 15
-  testData = getTestData(2 ** 15)
-  draw_base_map_tf(testData)
+  // // 2 ^ 15
+  // testData = getTestData(2 ** 15)
+  // draw_base_map_tf(testData)
   // testData = getTestData(2 ** 15)
   // draw_base_map_tf(testData)
   // testData = getTestData(2 ** 15, false)

@@ -1,8 +1,13 @@
 <html>
 <head>
-  <script id ="tensorflow" src="https://cdnjs.cloudflare.com/ajax/libs/tensorflow/2.0.1/tf.es2017.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-backend-wasm/dist/tf-backend-wasm.js"></script>
-  <!-- <script id="gamejs" src="/renderer_human/gamejs-2.0.3-pre-min.js"></script> -->
+  <!-- <script id ="tensorflow" src="https://cdnjs.cloudflare.com/ajax/libs/tensorflow/2.0.1/tf.es2017.js"></script> -->
+  <!-- <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-backend-wasm/dist/tf-backend-wasm.js"></script> -->
+  <!-- Import @tensorflow/tfjs or @tensorflow/tfjs-core -->
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+ 
+<!-- Adds the WASM backend to the global backend registry -->
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-backend-wasm/dist/tf-backend-wasm.js"></script>
+ 
   <script id="s2clientprotocol" src="/renderer_human/s2clientprotocol.js"></script>
   <script id="bundle" src="/renderer_human/bundle.js"></script>
   <script id="main">
