@@ -383,6 +383,7 @@ class Feature extends namedtuple('Feature', ['index', 'name', 'layer_set', 'full
         plane = np.clipByValue(plane, 0, this.scale - 1)
       }
       // console.log('here')
+      // console.log(plane)
       return this._palette_tf.gather(plane)
     }
     const rgb = false

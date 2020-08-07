@@ -1,9 +1,21 @@
-let tf = require('@tensorflow/tfjs') //eslint-disable-line
-// tf = require('@tensorflow/tfjs-node') //eslint-disable-line
-// tf = require('@tensorflow/tfjs-backend-wasm') //eslint-disable-line
-// tf.wasm.setWasmPath('')
-// let features = require('./features.js') //eslint-disable-line
-// let colors = require('./colors.js') //eslint-disable-line
+let tf = require('@tensorflow/tfjs-node') //eslint-disable-line
+if (typeof window === 'undefined') {
+  const tf_wasm_module = require('@tensorflow/tfjs-backend-wasm') //eslint-disable-line
+  const path = require('path') //eslint-disable-line
+  tf_wasm_module.setWasmPath(path.resolve(
+    '..',
+    '..',
+    '..',
+    'node_modules',
+    '@tensorflow',
+    'tfjs-backend-wasm',
+    'dist',
+    'tfjs-backend-wasm.wasm'
+  ))
+} else {
+  tf.wasm.setWasmPath('/tfjs-backend-wasm.wasm')
+}
+// let tf = require('@tensorflow/tfjs') //eslint-disable-line
 
 let features
 let colors
@@ -11,8 +23,8 @@ if (typeof window === 'undefined') {
   features = require('./features.js') //eslint-disable-line
   colors = require('./colors.js') //eslint-disable-line
 } else {
-  features = require('./features.js') //eslint-disable-line
-  colors = require('./colors.js') //eslint-disable-line
+  features = require('/features.js') //eslint-disable-line
+  colors = require('/colors.js') //eslint-disable-line
 }
 /** Vanilla JS Helper Methods **/
 //eslint-disable-next-line
@@ -122,15 +134,20 @@ let draw_base_map_tf = function(data) {
   //Draw the base map.//
   const hmap_feature = features.SCREEN_FEATURES.height_map
   let hmap = data//hmap_feature.unpack(this._obs.getObservation())
-  if (!tf.any(tf.cast(hmap, 'bool'))) {
-    hmap = hmap.add(100)
-  }
-  const hmap_color = hmap_feature.color(hmap, true)
-  let out = hmap_color.mul(0.6)
+  // console.log('A0')
+  // if (!tf.any(tf.cast(hmap, 'bool'))) {
+  hmap = hmap.add(100)
+  // }
+  // console.log('A1')
+  const hmap_color = hmap_feature.color(tf.cast(hmap, 'int32'), true)
+  // console.log('A1.B')
 
+  let out = hmap_color.mul(0.6)
+  // console.log('A2')
   const creep_feature = features.SCREEN_FEATURES.creep
   const creep = data //creep_feature.unpack(this._obs.getObservation())
   const creep_mask = creep.greater(0)
+  // console.log('A3')
   const creep_color = creep_feature.color(creep, true)
   let temp1 = out.where(creep_mask, out.mul(0.4))
   let temp2 = creep_color.where(creep_mask, creep_color.mul(0.6))
@@ -156,7 +173,9 @@ let draw_base_map_tf = function(data) {
   const visibility = clipByValue(data, 0, 2)
   const visibility_fade = tf.tensor([[0.5, 0.5, 0.5], [0.75, 0.75, 0.75], [1, 1, 1]])
   //out *= visibility_fade[visibility]
-  out = out.mul(visibility_fade.gather(visibility))
+  const indicies = tf.cast(visibility, 'int32')
+  // console.log(indicies)
+  out = out.mul(visibility_fade.gather(indicies))
   return out
 }
 // draw_base_map_tf = sw(draw_base_map_tf)
@@ -181,16 +200,9 @@ let draw_base_map_vanilla = function(data) {
   }
   // const hmap_color = hmap_feature.color(hmap)
   const hmap_color = feature_color(hmap_feature, hmap)
-  // console.log(hmap_color)
   const out = Array(hmap_color.length)
-  // console.log(out.length)
   for (let i = 0; i < out.length; i++) {
-    // console.log('hmap_color[', i, ']')
-    // console.log(hmap_color[i])
-    // out[i] = hmap_color[i] * 0.6
     out[i] = hmap_color[i].mul(0.6)
-    // console.log('out[', i, ']')
-    // console.log(out[i])
   }
 
   const creep_feature = features.SCREEN_FEATURES.creep
@@ -200,22 +212,15 @@ let draw_base_map_vanilla = function(data) {
     creep_mask[i] = Boolean(creep[i])
   }
   const creep_color = feature_color(creep_feature, creep)
-  // console.log(creep_color)
   // let temp1 = out.where(creep_mask, out.mul(0.4))
   // let temp2 = creep_color.where(creep_mask, creep_color.mul(0.6))
   // out = out.where(creep_mask, temp1.add(temp2))
   let temp1 = Array(out.length)
-  // console.log('temp1:')
-  // console.log(temp1)
-  // console.log('out:')
-  // console.log(out)
   for (let i = 0; i < temp1.length; i++) {
-    // temp1[i] = creep_mask[i] ? out[i] : out[i] * 0.4
     temp1[i] = creep_mask[i] ? out[i] : out[i].mul(0.4)
   }
   let temp2 = Array(creep_color.length)
   for (let i = 0; i < temp1.length; i++) {
-    // temp2[i] = creep_mask[i] ? creep_color[i] : creep_color[i] * 0.6
     temp2[i] = creep_mask[i] ? creep_color[i] : creep_color[i].mul(0.6)
   }
   for (let i = 0; i < temp1.length; i++) {
@@ -231,21 +236,15 @@ let draw_base_map_vanilla = function(data) {
   const power_color = feature_color(power_feature, power)
   temp1 = Array(out.length)
   for (let i = 0; i < temp1.length; i++) {
-    // temp1[i] = power_mask[i] ? out[i] : out[i] * 0.7
-    // console.log('out[', i, ']:  ', out[i])
-    // console.log(out[i])
     if (!out[i].mul) {
       console.log('out: ')
       console.log(out.slice(i - 50, i + 50))
       console.log('out[', i, ']:  ', out[i])
     }
     temp1[i] = power_mask[i] ? out[i] : out[i].mul(0.7)
-    // console.log('temp1[', i, ']:  ', temp1[i])
-    // console.log(temp1[i])
   }
   temp2 = Array(power_color.length)
   for (let i = 0; i < temp1.length; i++) {
-    // temp2[i] = power_mask[i] ? power_color[i] : power_color[i] * 0.3
     temp2[i] = power_mask[i] ? power_color[i] : power_color[i].mul(0.3)
   }
   for (let i = 0; i < temp1.length; i++) {
@@ -269,13 +268,8 @@ let draw_base_map_vanilla = function(data) {
   const visibility = data
   const visibility_fade = [[0.5, 0.5, 0.5], [0.75, 0.75, 0.75], [1, 1, 1]]
   let tempVal
-  // console.log('data:')
-  // console.log(data)
-  // console.log('out:')
-  // console.log(out)
   for (let i = 0; i < out.length; i++) {
     tempVal = visibility_fade[visibility[i]]
-    // console.log(visibility[i], visibility_fade[visibility[i]], 'tempVal: ', tempVal)
     out[i] = [out[i] * tempVal[0], out[i] * tempVal[1], out[i] * tempVal[2]]
   }
   return out
@@ -295,102 +289,120 @@ function getTestData(size = 2, asTensor = true, Type = Uint8Array) {
   return tf.tensor(arr, undefined, 'int32')//'float32')
 }
 
-let testData
+function runTests() {
+  let testData
 
-// // 2 ^ 1
-// testData = getTestData(2 ** 1)
-// draw_base_map_tf(testData)
-// testData = getTestData(2 ** 1, false)
-// draw_base_map_vanilla(testData)
+  // // 2 ^ 1
+  // testData = getTestData(2 ** 1)
+  // draw_base_map_tf(testData)
+  // testData = getTestData(2 ** 1, false)
+  // draw_base_map_vanilla(testData)
 
-// // 2 ^ 2
-// testData = getTestData(2 ** 2)
-// draw_base_map_tf(testData)
-// testData = getTestData(2 ** 2, false)
-// draw_base_map_vanilla(testData)
+  // // 2 ^ 2
+  // testData = getTestData(2 ** 2)
+  // draw_base_map_tf(testData)
+  // testData = getTestData(2 ** 2, false)
+  // draw_base_map_vanilla(testData)
 
-// // 2 ^ 3
-// testData = getTestData(2 ** 3)
-// draw_base_map_tf(testData)
-// testData = getTestData(2 ** 3, false)
-// draw_base_map_vanilla(testData)
+  // // 2 ^ 3
+  // testData = getTestData(2 ** 3)
+  // draw_base_map_tf(testData)
+  // testData = getTestData(2 ** 3, false)
+  // draw_base_map_vanilla(testData)
 
-// // 2 ^ 4
-// testData = getTestData(2 ** 4)
-// draw_base_map_tf(testData)
-// testData = getTestData(2 ** 4, false)
-// draw_base_map_vanilla(testData)
+  // // 2 ^ 4
+  // testData = getTestData(2 ** 4)
+  // draw_base_map_tf(testData)
+  // testData = getTestData(2 ** 4, false)
+  // draw_base_map_vanilla(testData)
 
-// // 2 ^ 5
-// testData = getTestData(2 ** 5)
-// draw_base_map_tf(testData)
-// testData = getTestData(2 ** 5, false)
-// draw_base_map_vanilla(testData)
+  // // 2 ^ 5
+  // testData = getTestData(2 ** 5)
+  // draw_base_map_tf(testData)
+  // testData = getTestData(2 ** 5, false)
+  // draw_base_map_vanilla(testData)
 
-// // 2 ^ 6
-// testData = getTestData(2 ** 6)
-// draw_base_map_tf(testData)
-// testData = getTestData(2 ** 6, false)
-// draw_base_map_vanilla(testData)
+  // // 2 ^ 6
+  // testData = getTestData(2 ** 6)
+  // draw_base_map_tf(testData)
+  // testData = getTestData(2 ** 6, false)
+  // draw_base_map_vanilla(testData)
 
-// // 2 ^ 7
-// testData = getTestData(2 ** 7)
-// draw_base_map_tf(testData)
-// testData = getTestData(2 ** 7, false)
-// draw_base_map_vanilla(testData)
+  // // 2 ^ 7
+  // testData = getTestData(2 ** 7)
+  // draw_base_map_tf(testData)
+  // testData = getTestData(2 ** 7, false)
+  // draw_base_map_vanilla(testData)
 
-// 2 ^ 8
-testData = getTestData(2 ** 8)
-draw_base_map_tf(testData)
-testData = getTestData(2 ** 8)
-draw_base_map_tf(testData)
-testData = getTestData(2 ** 8, false)
-draw_base_map_vanilla(testData)
+  // 2 ^ 8
+  testData = getTestData(2 ** 8)
+  draw_base_map_tf(testData)
+  // testData = getTestData(2 ** 8)
+  // draw_base_map_tf(testData)
+  // testData = getTestData(2 ** 8, false)
+  // draw_base_map_vanilla(testData)
 
-// 2 ^ 9
-testData = getTestData(2 ** 9)
-draw_base_map_tf(testData)
-testData = getTestData(2 ** 9, false)
-draw_base_map_vanilla(testData)
+  // 2 ^ 9
+  testData = getTestData(2 ** 9)
+  draw_base_map_tf(testData)
+  // testData = getTestData(2 ** 9, false)
+  // draw_base_map_vanilla(testData)
 
-// 2 ^ 10
-testData = getTestData(2 ** 10)
-draw_base_map_tf(testData)
-testData = getTestData(2 ** 10, false)
-draw_base_map_vanilla(testData)
+  // 2 ^ 10
+  testData = getTestData(2 ** 10)
+  draw_base_map_tf(testData)
+  // testData = getTestData(2 ** 10)
+  // draw_base_map_tf(testData)
+  // testData = getTestData(2 ** 10, false)
+  // draw_base_map_vanilla(testData)
 
-// 2 ^ 11
-testData = getTestData(2 ** 11)
-draw_base_map_tf(testData)
-testData = getTestData(2 ** 11, false)
-draw_base_map_vanilla(testData)
+  // 2 ^ 11
+  testData = getTestData(2 ** 11)
+  draw_base_map_tf(testData)
+  // testData = getTestData(2 ** 11)
+  // draw_base_map_tf(testData)
+  // testData = getTestData(2 ** 11, false)
+  // draw_base_map_vanilla(testData)
 
-// 2 ^ 12
-testData = getTestData(2 ** 12)
-draw_base_map_tf(testData)
-testData = getTestData(2 ** 12, false)
-draw_base_map_vanilla(testData)
+  // 2 ^ 12
+  testData = getTestData(2 ** 12)
+  draw_base_map_tf(testData)
+  // testData = getTestData(2 ** 12)
+  // draw_base_map_tf(testData)
+  // testData = getTestData(2 ** 12, false)
+  // draw_base_map_vanilla(testData)
 
-// 2 ^ 13
-testData = getTestData(2 ** 13)
-draw_base_map_tf(testData)
-testData = getTestData(2 ** 13, false)
-draw_base_map_vanilla(testData)
+  // 2 ^ 13
+  testData = getTestData(2 ** 13)
+  draw_base_map_tf(testData)
+  // testData = getTestData(2 ** 13)
+  // draw_base_map_tf(testData)
+  // testData = getTestData(2 ** 13, false)
+  // draw_base_map_vanilla(testData)
 
-// 2 ^ 14
-testData = getTestData(2 ** 14)
-draw_base_map_tf(testData)
-testData = getTestData(2 ** 14, false)
-draw_base_map_vanilla(testData)
+  // 2 ^ 14
+  testData = getTestData(2 ** 14)
+  draw_base_map_tf(testData)
+  // testData = getTestData(2 ** 14)
+  // draw_base_map_tf(testData)
+  // testData = getTestData(2 ** 14, false)
+  // draw_base_map_vanilla(testData)
 
-// 2 ^ 15
-testData = getTestData(2 ** 15)
-draw_base_map_tf(testData)
-testData = getTestData(2 ** 15, false)
-draw_base_map_vanilla(testData)
+  // 2 ^ 15
+  testData = getTestData(2 ** 15)
+  draw_base_map_tf(testData)
+  // testData = getTestData(2 ** 15)
+  // draw_base_map_tf(testData)
+  // testData = getTestData(2 ** 15, false)
+  // draw_base_map_vanilla(testData)
 
-// 2 ^ 16
-testData = getTestData(2 ** 16)
-draw_base_map_tf(testData)
-testData = getTestData(2 ** 16, false)
-draw_base_map_vanilla(testData)
+  // 2 ^ 16
+  testData = getTestData(2 ** 16)
+  draw_base_map_tf(testData)
+  // testData = getTestData(2 ** 16)
+  // draw_base_map_tf(testData)
+  // testData = getTestData(2 ** 16, false)
+  // draw_base_map_vanilla(testData)
+}
+
+tf.setBackend('wasm').then(runTests)
