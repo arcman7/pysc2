@@ -174,8 +174,7 @@ class _Surface {
   }
 
   write_world(font, color, world_loc, text) {
-    const rectDim = font.size(text)
-    const text_surf = this._write_screen_helper(text, color, rectDim, font)
+    const text_surf = font.render(text, color)
     const rect = text_surf.getRect()
     rect.center = this.world_to_surf.fwd_pt(world_loc)
     this.surf.blit(text_surf, rect)
@@ -757,7 +756,7 @@ class RendererHuman {
       const feature_layer_padding = feature_layer_area.div(20).floor()
       const feature_layer_size = feature_layer_area.sub(feature_layer_padding.mul(2))
 
-      const feature_font_size = Math.floor(feature_grid_size.y * 0.08)
+      const feature_font_size = Math.floor(feature_grid_size.y * 0.08) || 1
       const feature_font = new gamejs.font.Font(`${feature_font_size}px ${this._font_style}`)
       
       console.log('feature_grid_size:' + feature_grid_size.round())
@@ -1375,7 +1374,10 @@ class RendererHuman {
       units[i] = [u.getPos().getZ(), u.getOwner() != 16, -u.getRadius(), u.getTag(), u]
     })
     units = units.sorted((a, b) => a[0] - b[0])
-    return units.map((arr) => [arr[arr.length - 1], new point.Point(u.getPos())])
+    return units.map((arr) => {
+      const u = arr[arr.length - 1]
+      return [u, new point.Point(u.getPos())]
+    })
   }
 
   _units_in_area(rect) {
@@ -1451,7 +1453,7 @@ class RendererHuman {
         }
 
         function draw_arc_ratio(color, world_loc, radius, start, end, thickness) {
-          surf.draw(
+          surf.draw_arc(
             color,
             world_loc,
             radius,
@@ -1497,12 +1499,13 @@ class RendererHuman {
                          u.getRadius() - 0.25, 0.28, 0.32, thickness)
         }
 
+        const self = this
         function write_small(loc, s) {
-          surf.write_world(this._font_small, colors.white, loc, String(s))
+          surf.write_world(self._font_small, colors.white, loc, String(s))
         }
 
         const name = this.get_unit_name(
-            surf, this._static_data.units.get(u.getUnitType(), "<none>"), u.getRadius())
+            surf, this._static_data.units[u.getUnitType()] || "<none>", u.getRadius())
         if (name) {
           write_small(p, name)
         }
@@ -2002,47 +2005,56 @@ class RendererHuman {
     let hmap = hmap_feature.unpack(this._obs.getObservation())
     if (!tf.any(tf.cast(hmap, 'bool'))) {
       hmap = hmap.add(100)
-      console.log('A0')
+      // console.log('A0')
     }
     const hmap_color = hmap_feature.color(hmap, true)
     let out = hmap_color.mul(0.6)
-    console.log('A1')
+    // console.log('A1')
 
     const creep_feature = features.SCREEN_FEATURES.creep
     const creep = creep_feature.unpack(this._obs.getObservation())
     const creep_mask = creep.greater(0)
+    let creep_mask_out = creep_mask.broadcastTo([out.shape[2], out.shape[0], out.shape[1]])
+    creep_mask_out = creep_mask_out.transpose([1, 2, 0])
     const creep_color = creep_feature.color(creep, true)
-    // creep_color = tf.cast(creep_color, 'int32')
-    let temp1 = out.where(creep_mask, out.mul(0.4))
-    let temp2 = creep_color.where(creep_mask, creep_color.mul(0.6))
-    out = out.where(creep_mask, temp1.add(temp2))
-    console.log('A2')
 
+    let temp1 = out.where(creep_mask_out, out.mul(0.4))
+    let temp2 = creep_color.where(creep_mask_out, creep_color.mul(0.6))
+    out = out.where(creep_mask_out, temp1.add(temp2))
+
+    // console.log('A2')
     const power_feature = features.SCREEN_FEATURES.power
     const power = power_feature.unpack(this._obs.getObservation())
     const power_mask = power.greater(0)
+    let power_mask_out = power_mask.broadcastTo([out.shape[2], out.shape[0], out.shape[1]])
+    power_mask_out = power_mask_out.transpose([1, 2, 0])
     const power_color = power_feature.color(power, true)
-    console.log('A2.a')
-    temp1 = out.where(power_mask, out.mul(0.7))
-    console.log('A2.b')
-    temp2 = power_color.where(power_mask, power_color.mul(0.3))
-    console.log('A2.c')
-    out = out.where(power_mask, temp1.add(temp2))
-    console.log('A3')
 
-    if (true) {
+    // console.log('A2.a')
+    temp1 = out.where(power_mask_out, out.mul(0.7))
+    // console.log('A2.b')
+    temp2 = power_color.where(power_mask_out, power_color.mul(0.3))
+    // console.log('A2.c')
+    out = out.where(power_mask_out, temp1.add(temp2))
+    // console.log('A3')
+
+    if (this._render_player_relative) {
       const player_rel_feature = features.SCREEN_FEATURES.player_relative
       const player_rel = player_rel_feature.unpack(this._obs.getObservation())
       const player_rel_mask = player_rel.greater(0)
+      let player_rel_mask_out = player_rel_mask.broadcastTo([out.shape[2], out.shape[0], out.shape[1]])
+      player_rel_mask_out = player_rel_mask_out.transpose([1, 2, 0])
       const player_rel_color = player_rel_feature.color(player_rel, true)
       out = out.where(player_rel_mask, player_rel_color)
     }
 
-    console.log('A4')
-    const visibility = features.SCREEN_FEATURES.visibility_map.unpack(this._obs.getObservation())
+    // console.log('A4')
+    let visibility = features.SCREEN_FEATURES.visibility_map.unpack(this._obs.getObservation())
+    visibility = tf.cast(visibility, 'int32')
     const visibility_fade = tf.tensor([[0.5, 0.5, 0.5], [0.75, 0.75, 0.75], [1, 1, 1]])
     //out *= visibility_fade[visibility]
-    out = out.mul(visibility_fade.gather(visibility))
+    //where visibility use 
+    out = out.mul(tf.gatherND(visibility_fade, visibility))
 
     surf.blit_np_array(getImageData(out.dataSync(), out.shape, false))
     window.gamejs.display.getSurface().blit(surf.surf, [surf.surf_rect.left, surf.surf_rect.top])

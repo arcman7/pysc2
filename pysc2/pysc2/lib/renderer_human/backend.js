@@ -214,7 +214,7 @@ class GameLoop {
           await withPython(this._sw("sleep"), async () => { //eslint-disable-line
             const elapsed_time = performance.now() - frame_start_time
             // await sleep(1000)
-            await sleep(500)
+            await sleep(200)
             // console.log('sleeping', (1000 / this._fps) - elapsed_time, 'elapsed_time: ', elapsed_time)
             // await sleep(Math.max(0, (1000 / this._fps) - elapsed_time))
           })
@@ -298,7 +298,10 @@ class InitalizeServices {
           response.writeHead(200, { 'Content-Type': 'application/json' })
           const data = gfile.Open(path.resolve(__dirname, 'bundle_json.json'), { encoding: 'utf8' })
           response.end(data, 'utf-8')
-        } else {
+        } else if (reqPath === '/SDFGD') {
+          // if (this.)
+        }
+        else {
           response.end('404')
         }
       }

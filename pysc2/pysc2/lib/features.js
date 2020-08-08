@@ -274,11 +274,11 @@ class Feature extends namedtuple('Feature', ['index', 'name', 'layer_set', 'full
     return plane
   }
 
-  unpack_layer(plane) {//eslint-disable-line
-    return Feature.unpack_layer(plane)
+  unpack_layer(plane, asTensor, shape) {//eslint-disable-line
+    return Feature.unpack_layer(plane, asTensor, shape)
   }
 
-  static unpack_layer(plane, asTensor = true) {
+  static unpack_layer(plane, asTensor = true, shape) {
     //Return a correctly shaped numpy array given the feature layer bytes.//
     if (plane.getSize() === undefined) {
       return null
@@ -317,7 +317,7 @@ class Feature extends namedtuple('Feature', ['index', 'name', 'layer_set', 'full
       // return data
     }
     if (asTensor) {
-      return np.tensor(data, [size.y, size.x], 'int32')
+      return np.tensor(data, shape || [size.y, size.x], 'int32')
     }
     return data
   }
@@ -379,6 +379,7 @@ class Feature extends namedtuple('Feature', ['index', 'name', 'layer_set', 'full
       // console.log(this._palette_tf)
       // console.log(this._palette_tf.print())
       // console.log('scale: ', this.scale)
+      
       if (this.scale) {
         plane = np.clipByValue(plane, 0, this.scale - 1)
       }

@@ -1533,10 +1533,13 @@ class RendererHuman(object):
       hmap = hmap + 100  # pylint: disable=g-no-augmented-assignment
     hmap_color = hmap_feature.color(hmap)
     out = hmap_color * 0.6
-
     creep_feature = features.SCREEN_FEATURES.creep
     creep = creep_feature.unpack(self._obs.observation)
+    print('creep: ', creep)
+    print('creep shape: ', creep.shape)
     creep_mask = creep > 0
+    print('creep_mask: ', creep_mask)
+    print('creep_mask shape: ', creep_mask.shape)
     creep_color = creep_feature.color(creep)
     out[creep_mask, :] = (0.4 * out[creep_mask, :] +
                           0.6 * creep_color[creep_mask, :])

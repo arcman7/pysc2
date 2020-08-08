@@ -1,5 +1,5 @@
-let tf = require('@tensorflow/tfjs-node') //eslint-disable-line
-// let tf = require('@tensorflow/tfjs') //eslint-disable-line
+// let tf = require('@tensorflow/tfjs-node') //eslint-disable-line
+let tf = require('@tensorflow/tfjs') //eslint-disable-line
 
 if (typeof window === 'undefined') {
   const tf_wasm_module = require('@tensorflow/tfjs-backend-wasm') //eslint-disable-line
