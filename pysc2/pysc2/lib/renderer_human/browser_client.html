@@ -59,7 +59,6 @@ gamejs.getEvents = function() {
   return events
 }
 
-
 const urlParams = new URLSearchParams(window.location.search) //eslint-disable-line
 const port = urlParams.get('port');
 const host = '127.0.0.1';
@@ -235,7 +234,6 @@ class WsClient {
   }
 }
 
-
 async function main() {
   const wsClient = new WsClient(url)
   await wsClient.init()
@@ -258,8 +256,15 @@ async function main() {
     await renderer.render(obs)
   }
 }
-
-gamejs.ready(main)
+/* utilize wasm */
+if (window.useWasm) {
+  window.tf.wasm.setWasmPath('https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-backend-wasm/dist/tfjs-backend-wasm.wasm')
+  window.tf.setBackend('wasm').then(() => {
+    gamejs.ready(main)
+  })
+} else {
+  gamejs.ready(main)
+}
 </script>
 <style>
 #gjs-canvas {

@@ -119,7 +119,16 @@ class GameLoop {
       console.log(data)
       message = sc_pb.Request.deserializeBinary(data)
     })
-    if (message.hasGameInfo()) {
+    if (message.hasObservation()) {
+      console.log('backend: starting observations steam')
+      if (this._game_loop_running) {
+        return
+      }
+      this.run({ run_config: this._run_config, controller: this._controller })
+    } else if (message.hasAction()) {
+      console.log('backend: requesting action')
+      this._controller.send({ action: message.getAction() })
+    } else if (message.hasGameInfo()) {
       console.log('backend: requesting GameInfo')
       if (this._game_info) {
         this._wss.write(ws, this._game_info)

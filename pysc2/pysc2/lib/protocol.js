@@ -7,7 +7,6 @@ const { performance } = require('perf_hooks') //eslint-disable-line
 const stopwatch = require(path.resolve(__dirname, 'stopwatch.js'))
 const pythonUtils = require(path.resolve(__dirname, './pythonUtils.js'))
 
-
 /*** Protocol library to make communication easy ***
 
 All communication over the connection is based around Request and Response messages. Requests are used for controlling the state of the application, retrieving data and controlling gameplay.
@@ -27,12 +26,10 @@ flags.defineInteger('sc2_verbose_protocol', 0, `
   'packet. 20 is a good starting value.`
 ) //eslint-disable-line
 
-
 // Create a python version of the Status enum in the proto.
 const Status = Enum.Enum('Status', sc_pb.Status)
 
 const MAX_WIDTH = Number(process.env.COLUMNS) || 200 // Get your TTY width.
-
 
 class ConnectionError extends Error {
   //Failed to read/write a message, details in the error string.//

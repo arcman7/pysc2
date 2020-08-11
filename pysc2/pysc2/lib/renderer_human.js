@@ -95,6 +95,7 @@ class _Surface {
     this.world_to_surf = world_to_surf
     this.world_to_obs = world_to_obs
     this.draw = draw
+    window.gamejs.display.getSurface().blit(surf, [surf_rect.left, surf_rect.top])
   }
 
   draw_line(color, start_loc, end_loc, thickness = 1) {
@@ -517,7 +518,7 @@ class RendererHuman {
     }
 
     this._scale = Math.floor(window_size_px.y / 32)
-    this._font_size = 12
+    this._font_size = 10
     this._font_style = 'Arial'
     this._font_small = new gamejs.font.Font(`${Math.floor(this._font_size * 0.5)}px ${this._font_style}`)
     this._font_large = new gamejs.font.Font(`${this._font_size}px ${this._font_style}`)
@@ -1151,6 +1152,7 @@ class RendererHuman {
 
   select_action(pos1, pos2, ctrl, shift) {
     //Return a `sc_pb.Action` with the selection filled.//
+    console.log('here in select_action')
     assert(
       pos1.surf.surf_type == pos2.surf.surf_type,
       'pos1.surf.surf_type == pos2.surf.surf_type'
@@ -1468,7 +1470,7 @@ class RendererHuman {
         }
 
         if (u.getEnergy() && u.getEnergyMax()) {
-          draw_arc_ratio(colors.purple * 0.9, p, u.getRadius() - 0.1, 0, u.getEnergy() / u.getEnergyMax())
+          draw_arc_ratio(colors.purple.mul(0.9), p, u.getRadius() - 0.1, 0, u.getEnergy() / u.getEnergyMax())
         }
 
         if (0 < u.getBuildProgress() < 1) {
@@ -2005,11 +2007,9 @@ class RendererHuman {
     let hmap = hmap_feature.unpack(this._obs.getObservation())
     if (!tf.any(tf.cast(hmap, 'bool'))) {
       hmap = hmap.add(100)
-      // console.log('A0')
     }
     const hmap_color = hmap_feature.color(hmap, true)
     let out = hmap_color.mul(0.6)
-    // console.log('A1')
 
     const creep_feature = features.SCREEN_FEATURES.creep
     const creep = creep_feature.unpack(this._obs.getObservation())
@@ -2022,7 +2022,6 @@ class RendererHuman {
     let temp2 = creep_color.where(creep_mask_out, creep_color.mul(0.6))
     out = out.where(creep_mask_out, temp1.add(temp2))
 
-    // console.log('A2')
     const power_feature = features.SCREEN_FEATURES.power
     const power = power_feature.unpack(this._obs.getObservation())
     const power_mask = power.greater(0)
@@ -2030,13 +2029,10 @@ class RendererHuman {
     power_mask_out = power_mask_out.transpose([1, 2, 0])
     const power_color = power_feature.color(power, true)
 
-    // console.log('A2.a')
     temp1 = out.where(power_mask_out, out.mul(0.7))
-    // console.log('A2.b')
     temp2 = power_color.where(power_mask_out, power_color.mul(0.3))
-    // console.log('A2.c')
+    // 84 x 84 x color => 84 x 84 x 3
     out = out.where(power_mask_out, temp1.add(temp2))
-    // console.log('A3')
 
     if (this._render_player_relative) {
       const player_rel_feature = features.SCREEN_FEATURES.player_relative
@@ -2048,16 +2044,19 @@ class RendererHuman {
       out = out.where(player_rel_mask, player_rel_color)
     }
 
-    // console.log('A4')
+    // 84 x 84
     let visibility = features.SCREEN_FEATURES.visibility_map.unpack(this._obs.getObservation())
     visibility = tf.cast(visibility, 'int32')
+    // 3 x color => 3 x 3
     const visibility_fade = tf.tensor([[0.5, 0.5, 0.5], [0.75, 0.75, 0.75], [1, 1, 1]])
-    //out *= visibility_fade[visibility]
-    //where visibility use 
-    out = out.mul(tf.gatherND(visibility_fade, visibility))
 
-    surf.blit_np_array(getImageData(out.dataSync(), out.shape, false))
-    window.gamejs.display.getSurface().blit(surf.surf, [surf.surf_rect.left, surf.surf_rect.top])
+    // console.log('tf.gather(visibility_fade, visibility) shape: ', tf.gather(visibility_fade, visibility).print())
+    //out *= visibility_fade[visibility]
+    out = out.mul(tf.gather(visibility_fade, visibility))
+    const rgb = true
+    out = tf.cast(out, 'int32')
+    surf.blit_np_array(getImageData(out.dataSync(), out.shape, rgb))
+    // window.gamejs.display.getSurface().blit(surf.surf, [surf.surf_rect.left, surf.surf_rect.top])
   }
 
   draw_mini_map(surf) {
@@ -2187,10 +2186,12 @@ class RendererHuman {
     if (layer != null) {
       const rgb = false
       surf.blit_np_array(features.Feature.unpack_image_data(layer, rgb, null, feature.palette))
+    // window.gamejs.display.getSurface().blit_np_array(surf.surf, [surf.surf_rect.left, surf.surf_rect.top])
     } else { // Ignore layers that aren't in this version of SC2.
       surf.surf.fill(colors.black.toCSS())
     }
     window.gamejs.display.getSurface().blit(surf.surf, [surf.surf_rect.left, surf.surf_rect.top])
+
   }
 
   draw_raw_layer(surf, from_obs, name, color, palette) {
@@ -2318,11 +2319,15 @@ class RendererHuman {
 
     this.draw_actions()
 
-    withPython(sw('flip'), () => {
-      // window.gamejs.display.flip()
-    })
+    // withPython(sw('flip'), () => {
+    //   // window.gamejs.display.flip()
+    // })
 
-    this._render_times.push(performance.now() - start_time)
+    // withPython(sw('tf.tidy'), () => {
+    //   window.tf.tidy(() => {})
+    // })
+
+    this._render_times.add(performance.now() - start_time)
   }
 
 }

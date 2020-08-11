@@ -1117,11 +1117,9 @@ class RendererHuman(object):
                         thickness)
 
         if u.shield and u.shield_max:
-          draw_arc_ratio(colors.blue, p, u.radius - 0.05, 0,
-                         u.shield / u.shield_max)
+          draw_arc_ratio(colors.blue, p, u.radius - 0.05, 0, u.shield / u.shield_max)
         if u.energy and u.energy_max:
-          draw_arc_ratio(colors.purple * 0.9, p, u.radius - 0.1, 0,
-                         u.energy / u.energy_max)
+          draw_arc_ratio(colors.purple * 0.9, p, u.radius - 0.1, 0, u.energy / u.energy_max)
         if 0 < u.build_progress < 1:
           draw_arc_ratio(colors.cyan, p, u.radius - 0.15, 0, u.build_progress)
         elif u.orders and 0 < u.orders[0].progress < 1:
@@ -1532,14 +1530,13 @@ class RendererHuman(object):
     if not hmap.any():
       hmap = hmap + 100  # pylint: disable=g-no-augmented-assignment
     hmap_color = hmap_feature.color(hmap)
+    print('hmap_color: ')
+    print(hmap_color)
     out = hmap_color * 0.6
+
     creep_feature = features.SCREEN_FEATURES.creep
     creep = creep_feature.unpack(self._obs.observation)
-    print('creep: ', creep)
-    print('creep shape: ', creep.shape)
     creep_mask = creep > 0
-    print('creep_mask: ', creep_mask)
-    print('creep_mask shape: ', creep_mask.shape)
     creep_color = creep_feature.color(creep)
     out[creep_mask, :] = (0.4 * out[creep_mask, :] +
                           0.6 * creep_color[creep_mask, :])
@@ -1561,6 +1558,9 @@ class RendererHuman(object):
     visibility = features.SCREEN_FEATURES.visibility_map.unpack(
         self._obs.observation)
     visibility_fade = np.array([[0.5] * 3, [0.75]*3, [1]*3])
+    # print('visibility: ', visibility)
+    # print('visibility shape: ', visibility.shape)
+    # print('out shape: ', out.shape)
     out *= visibility_fade[visibility]
 
     surf.blit_np_array(out)

@@ -372,19 +372,11 @@ class Feature extends namedtuple('Feature', ['index', 'name', 'layer_set', 'full
 
   color(plane, isTensor = false) {
     if (isTensor) {
-      // console.log('plane:')
-      // console.log(plane)
-      // console.log(plane.print())
-      // console.log('****** palette:')
-      // console.log(this._palette_tf)
-      // console.log(this._palette_tf.print())
-      // console.log('scale: ', this.scale)
-      
       if (this.scale) {
+        // map values of plane to indexs of the palette
         plane = np.clipByValue(plane, 0, this.scale - 1)
       }
-      // console.log('here')
-      // console.log(plane)
+      // Palette tf is 1x n colors => n x 3
       return this._palette_tf.gather(plane)
     }
     const rgb = false
@@ -409,7 +401,7 @@ class ScreenFeatures extends namedtuple('ScreenFeatures', [
     let val
     Object.keys(kwargs).forEach((name) => {
       val = kwargs[name]
-      const [scale, type_, palette, clip] = val
+      const [scale, type_, palette, clip] = val //eslint-disable-line
       feats[name] = new Feature({
         index: ScreenFeatures._fields.indexOf(name),
         name,
