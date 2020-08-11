@@ -15,7 +15,7 @@ const sw = stopwatch.sw
 const { raw_pb, sc2api_pb } = s2clientprotocol
 const sc_raw = raw_pb
 const sc_pb = sc2api_pb
-const { Defaultdict, getArgsArray, getattr, int, isinstance, len, namedtuple, setUpProtoAction, sum, unpackbits, ValueError, withPython, zip } = pythonUtils
+const { clip, Defaultdict, getArgsArray, getattr, getImageData, int, isinstance, len, namedtuple, setUpProtoAction, sum, unpackbits, ValueError, withPython, zip } = pythonUtils
 const EPSILON = 1e-5
 
 const FeatureType = Enum.Enum('FeatureType', {
@@ -216,7 +216,6 @@ const ProductionQueue = Enum.IntEnum('ProductionQueue', {
   build_progress: 1,
 })
 
-// class Feature extends all_collections_generated_classes.Feature {
 class Feature extends namedtuple('Feature', ['index', 'name', 'layer_set', 'full_name', 'scale', 'type', 'palette', 'clip']) {
   /*Define properties of a feature layer.
 
@@ -232,9 +231,13 @@ class Feature extends namedtuple('Feature', ['index', 'name', 'layer_set', 'full
   */
 
   constructor(kwargs) {
+    // console.log('from Feature constructor: ', kwargs)
     super(kwargs)
     // javascript only set up
-    this.color = sw.decorate(this.color)
+    this.color = sw.decorate(this.color.bind(this))
+    if (this.palette) {
+      this._palette_tf = np.tensor(this.palette, undefined, 'float32')//'int32')
+    }
   }
 
   static get dtypes() {
@@ -259,17 +262,23 @@ class Feature extends namedtuple('Feature', ['index', 'name', 'layer_set', 'full
     //Return a correctly shaped numpy array for this feature.//
     const planes = getattr(obs.getFeatureLayerData(), this.layer_set)
     const plane = getattr(planes, this.name) || new sc_pb.ImageData()
-    if (this.name == 'unit_type') {
-      // console.log(plane.toObject())
-    }
     return this.unpack_layer(plane)
   }
 
-  unpack_layer(plane) {//eslint-disable-line
-    return Feature.unpack_layer(plane)
+  unpack_obs(obs, asTensor = false) {
+    const planes = getattr(obs.getFeatureLayerData(), this.layer_set)
+    const plane = getattr(planes, this.name) || new sc_pb.ImageData()
+    if (asTensor) {
+      return np.tensor(plane.getData())
+    }
+    return plane
   }
 
-  static unpack_layer(plane) {
+  unpack_layer(plane, asTensor, shape) {//eslint-disable-line
+    return Feature.unpack_layer(plane, asTensor, shape)
+  }
+
+  static unpack_layer(plane, asTensor = true, shape) {
     //Return a correctly shaped numpy array given the feature layer bytes.//
     if (plane.getSize() === undefined) {
       return null
@@ -289,7 +298,7 @@ class Feature extends namedtuple('Feature', ['index', 'name', 'layer_set', 'full
 
     if (plane.getBitsPerPixel() !== 8 && plane.getBitsPerPixel() !== 1) {
       data = new Feature.dtypes[plane.getBitsPerPixel()](
-        buffer.slice(data.byteOffset, data.byteOffset + data.length)
+        buffer.slice(data.byteOffset, data.byteOffset + data.byteLength)
       )
     }
 
@@ -307,9 +316,43 @@ class Feature extends namedtuple('Feature', ['index', 'name', 'layer_set', 'full
       // data.shape = [size.x, size.y]
       // return data
     }
-
-    data = np.tensor(data, [size.y, size.x], 'int32')
+    if (asTensor) {
+      return np.tensor(data, shape || [size.y, size.x], 'int32')
+    }
     return data
+  }
+
+  static unpack_image_data(plane, rgb = true, color, palette) {
+    //Return a correctly shaped ImageData given the feature layer bytes.//
+    if (plane.getSize() === undefined) {
+      return null
+    }
+    const size = { x: plane.getSize().getX(), y: plane.getSize().getY() } //point.Point.build(plane.getSize())
+    if (size[0] === 0 && size[1] === 0) {
+      // New layer that isn't implemented in this SC2 version.
+      return null
+    }
+    let data = plane.getData()
+    const buffer = data.buffer
+    if (plane.getBitsPerPixel() === 24) {
+      // rgb data, don't do anything
+    } else if (plane.getBitsPerPixel() !== 8 && plane.getBitsPerPixel() !== 1) {
+      data = new Feature.dtypes[plane.getBitsPerPixel()](
+        buffer.slice(data.byteOffset, data.byteOffset + data.byteLength)
+      )
+    } else if (plane.getBitsPerPixel() === 1) {
+      data = unpackbits(data)
+      if (data.length !== (size.x * size.y)) {
+        // This could happen if the correct length isn't a multiple of 8, leading
+        // to some padding bits at the end of the string which are incorrectly
+        // interpreted as data.
+        data = data.slice(0, size.x * size.y)
+      }
+    }
+    if (palette) {
+      clip(data, 0, palette.length - 1)
+    }
+    return getImageData(data, [size.x, size.y], rgb, color, palette)
   }
 
   unpack_rgb_image(plane) {//eslint-disable-line
@@ -327,11 +370,18 @@ class Feature extends namedtuple('Feature', ['index', 'name', 'layer_set', 'full
     return data
   }
 
-  color(plane) {
-    if (this.clip) {
-      plane = np.clip(plane, 0, this.scale - 1)
+  color(plane, isTensor = false) {
+    if (isTensor) {
+      if (this.scale) {
+        // map values of plane to indexs of the palette
+        plane = np.clipByValue(plane, 0, this.scale - 1)
+      }
+      // Palette tf is 1x n colors => n x 3
+      return this._palette_tf.gather(plane)
     }
-    return this.palette[plane]
+    const rgb = false
+    const color = null
+    return Feature.unpack_image_data(plane, rgb, color, this.palette)
   }
 }
 
@@ -351,7 +401,7 @@ class ScreenFeatures extends namedtuple('ScreenFeatures', [
     let val
     Object.keys(kwargs).forEach((name) => {
       val = kwargs[name]
-      const [scale, type_, palette, clip] = val
+      const [scale, type_, palette, clip] = val //eslint-disable-line
       feats[name] = new Feature({
         index: ScreenFeatures._fields.indexOf(name),
         name,
@@ -375,6 +425,7 @@ class MinimapFeatures extends namedtuple('MinimapFeatures', [
   constructor(kwargs) {
     const feats = {}
     let val
+    // console.log('MinimapFeatures constructor: ', kwargs)
     Object.keys(kwargs).forEach((name) => {
       val = kwargs[name]
       const [scale, type_, palette] = val
@@ -783,7 +834,7 @@ function parse_agent_interface_format({
   rgb_minimap = null,
   action_space = null,
   action_delays = null,
-  kwargs
+  kwargs,
 }) {
   /*Creates an AgentInterfaceFormat object from keyword args.
 
@@ -1876,7 +1927,6 @@ class Features {
     if (isinstance(func_call, sc_pb.Action)) {
       return func_call
     }
-
     const func_id = func_call.function
     let func
     try {

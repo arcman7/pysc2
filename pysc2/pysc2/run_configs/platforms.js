@@ -158,7 +158,7 @@ class MacOS extends LocalBase {
   }
 
   static priority() {
-    if (process.platform == 'Darwin') {
+    if (process.platform == 'darwin') {
       return 1
     }
   }
@@ -189,7 +189,7 @@ class Linux extends LocalBase {
   }
 
   static priority() {
-    if (process.platform == 'Linux') {
+    if (process.platform == 'linux') {
       return 1
     }
   }
