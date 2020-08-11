@@ -727,7 +727,7 @@ class SC2Env extends environment.Base {
 
         await self._step_to(act_game_loop, current_game_loop)
         current_game_loop = act_game_loop
-        if (self._controllers[0].status_ended) {
+        if (this._controllers[0].status_ended) {
           // We haven't observed and may have hit game end.
           resolve(current_game_loop)
           return
