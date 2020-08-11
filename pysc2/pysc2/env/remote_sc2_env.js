@@ -116,18 +116,10 @@ class RemoteSC2Env extends sc2_env.SC2Env {
     this._game_info = null
     this._num_agents = 1
     this._discount = discount
-    if (map_inst) {
-      this._step_mul = step_mul || map_inst.step_mul
-    } else {
-      this._step_mul = step_mul || 8
-    }
+    this._step_mul = step_mul || (map_inst ? map_inst.step_mul : 8)
     this._realtime = realtime
     this._last_step_time = null
-    if (replay_dir) {
-      this._save_replay_episodes = 1
-    } else {
-      this._save_replay_episodes = 0
-    }
+    this._save_replay_episodes = replay_dir ? 1 : 0
     this._replay_dir = replay_dir
     this._replay_prefix = replay_prefix
 
@@ -144,18 +136,17 @@ class RemoteSC2Env extends sc2_env.SC2Env {
 
     const required_raw = visualize
     const interface = this._get_interface(agent_interface_format, required_raw)
-    // need to be fixed from python  
-    // if isinstance(lan_port, all_collections_generated_classes.Sequence):
-    if (isinstance(lan_port, )) {
-      if (lan_port.lenth != 4) {
-        throw new ValueError('lan_port sequence must be of length 4')
-      }
-      const ports = lan_port[:]
+    let ports
+    if (Array.isArray(lan_port)) {
+        if (lan_port.lenth != 4) {
+          throw new ValueError('lan_port sequence must be of length 4')
+        }
+        ports = lan_port
     } else {
-      let ports =[]
-      for (let i = 0; i < 4; i++) {
-        ports.push(lan_port + i) // 2 * num players *in the game*.
-      }
+        ports =[]
+        for (let p = 0; p < 4; p++) {
+          ports.push(lan_port + p) // 2 * num players *in the game*.
+        }
     }
 
     this._connect_remote(host, host_port, ports, race, name, map_inst, save_map, interface, agent_interface_format)
