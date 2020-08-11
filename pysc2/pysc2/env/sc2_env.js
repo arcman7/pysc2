@@ -10,12 +10,12 @@ const actions = require(path.resolve(__dirname, '..', 'lib', 'actions.js'))
 const features = require(path.resolve(__dirname, '..', 'lib', 'features.js'))
 const metrics = require(path.resolve(__dirname, '..', 'lib', 'metrics.js'))
 const portspicker = require(path.resolve(__dirname, '..', 'lib', 'portspicker.js'))
-const renderer_human = require(path.resolve(__dirname, '..', 'lib', 'renderer_human.js'))
+const renderer_human = require(path.resolve(__dirname, '..', 'lib', 'renderer_human', 'backend.js'))
 // const run_parallel = require(path.resolve(__dirname, '..', 'lib', 'run_parallel.js'))
 const stopwatch = require(path.resolve(__dirname, '..', 'lib', 'stopwatch.js'))
 const pythonUtils = require(path.resolve(__dirname, '..', 'lib', 'pythonUtils.js'))
 
-const { any, assert, Defaultdict, isinstance, namedtuple, pythonWith, randomChoice, ValueError, zip } = pythonUtils
+const { any, assert, DefaultDict, isinstance, namedtuple, pythonWith, randomChoice, ValueError, zip } = pythonUtils
 const { common_pb, sc2api_pb } = s2clientprotocol
 const sc_common = common_pb
 const sc_pb = sc2api_pb
@@ -110,8 +110,7 @@ class SC2Env extends environment.Base {
   The implementation details of the action and observation specs are in
   lib/features.py
   */
-  constructor(
-    _only_use_kwargs = null,
+  constructor({
     map_name = null,
     battle_net_map = false,
     players = null,
@@ -131,7 +130,7 @@ class SC2Env extends environment.Base {
     disable_fog = false,
     ensure_available_actions = true,
     version = null
-  ) {
+  }, _only_use_kwargs = null) {
     /*
     Create a SC2 Env.
 
@@ -282,7 +281,11 @@ class SC2Env extends environment.Base {
     }
 
     if (agent_interface_format instanceof AgentInterfaceFormat) {
-      agent_interface_format = [agent_interface_format] * this._num_agents
+      const tempAgents = [agent_interface_format]
+      for (let i = 1; i < this._num_agents; i++) {
+        tempAgents.push(new AgentInterfaceFormat(...agent_interface_format._pickle_args))
+      }
+      agent_interface_format = tempAgents
     }
 
     if (agent_interface_format.length !== this._num_agents) {
@@ -324,10 +327,11 @@ class SC2Env extends environment.Base {
     }
 
     if (visualize) {
-      this._renderer_human = new renderer_human.RendererHuman()
-      this._renderer_human.init(
-        this._controllers[0].game_info(),
-        this._controllers[0].data()
+      // this._renderer_human = new renderer_human.RendererHuman()
+      this._renderer_human = new renderer_human.InitalizeServices()
+      this._renderer_human.setUp(
+        this._run_config,
+        this._controllers[0]
       )
     } else {
       this._renderer_human = null
@@ -723,7 +727,7 @@ class SC2Env extends environment.Base {
 
         await self._step_to(act_game_loop, current_game_loop)
         current_game_loop = act_game_loop
-        if (self._controllers[0].status_ended) {
+        if (this._controllers[0].status_ended) {
           // We haven't observed and may have hit game end.
           resolve(current_game_loop)
           return
@@ -1035,12 +1039,12 @@ function crop_and_deduplicate_names(names) {
 
   // De-duplicate.
   const deduplicated = []
-  const name_counts = new Defaultdict(0)
+  const name_counts = new DefaultDict(0)
   cropped.forEach((n) => {
     name_counts[n] += 1
   })
 
-  const name_index = new Defaultdict(1)
+  const name_index = new DefaultDict(1)
   cropped.forEach((n) => {
     if (name_counts[n] == 1) {
       deduplicated.push(n)
