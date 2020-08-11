@@ -1,7 +1,7 @@
 
 
 ALPHA STAR PAPER Notes
-========================================================================
+======================================================================================
 
 
 The policy of AlphaStar is a function πθ(at | st,z) that maps all previous
@@ -22,4 +22,18 @@ combined, and processed by a deep LSTM9, which maintains
 memory between steps.
 
 
+PYSC2 Notes
+======================================================================================
+
 /c/Users/Ryan/AppData/Local/Programs/Python/Python37-32/Lib/site-packages/s2clientprotocol
+
+python -m pysc2.bin.agent --map Simple64
+
+
+-- Rendering --
+
+Victor's approach:
+
+Concept: Write directly to the GPU (skip canvas and use open GL as done in three js)
+
+Instead of calculating the pixel data directly into a grid map of pixel values, give the gpu coordinates for various shapes and let it do the pixel calculations

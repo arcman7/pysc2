@@ -1,7 +1,13 @@
 <html>
 <head>
-  <script id ="tensorflow" src="https://cdnjs.cloudflare.com/ajax/libs/tensorflow/2.0.1/tf.es2017.js"></script>
-  <!-- <script id="gamejs" src="/renderer_human/gamejs-2.0.3-pre-min.js"></script> -->
+  <!-- <script id ="tensorflow" src="https://cdnjs.cloudflare.com/ajax/libs/tensorflow/2.0.1/tf.es2017.js"></script> -->
+  <!-- <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-backend-wasm/dist/tf-backend-wasm.js"></script> -->
+  <!-- Import @tensorflow/tfjs or @tensorflow/tfjs-core -->
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+ 
+<!-- Adds the WASM backend to the global backend registry -->
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-backend-wasm/dist/tf-backend-wasm.js"></script>
+ 
   <script id="s2clientprotocol" src="/renderer_human/s2clientprotocol.js"></script>
   <script id="bundle" src="/renderer_human/bundle.js"></script>
   <script id="main">
@@ -52,7 +58,6 @@ gamejs.getEvents = function() {
   gamejs.events = []
   return events
 }
-
 
 const urlParams = new URLSearchParams(window.location.search) //eslint-disable-line
 const port = urlParams.get('port');
@@ -229,7 +234,6 @@ class WsClient {
   }
 }
 
-
 async function main() {
   const wsClient = new WsClient(url)
   await wsClient.init()
@@ -252,8 +256,15 @@ async function main() {
     await renderer.render(obs)
   }
 }
-
-gamejs.ready(main)
+/* utilize wasm */
+if (window.useWasm) {
+  window.tf.wasm.setWasmPath('https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-backend-wasm/dist/tfjs-backend-wasm.wasm')
+  window.tf.setBackend('wasm').then(() => {
+    gamejs.ready(main)
+  })
+} else {
+  gamejs.ready(main)
+}
 </script>
 <style>
 #gjs-canvas {

@@ -2465,7 +2465,6 @@ const effects = [
   [197, 103, 99],
 ]
 
-
 // Generated with http://tools.medialab.sciences-po.fr/iwanthue/
 // 280 colors: H: 0-360, C: 0-100, L: 35-100; then shuffled.
 const distinct_colors = [
@@ -3021,7 +3020,10 @@ class Feature extends namedtuple('Feature', ['index', 'name', 'layer_set', 'full
     // console.log('from Feature constructor: ', kwargs)
     super(kwargs)
     // javascript only set up
-    this.color = sw.decorate(this.color)
+    this.color = sw.decorate(this.color.bind(this))
+    if (this.palette) {
+      this._palette_tf = np.tensor(this.palette, undefined, 'float32')//'int32')
+    }
   }
 
   static get dtypes() {
@@ -3049,17 +3051,20 @@ class Feature extends namedtuple('Feature', ['index', 'name', 'layer_set', 'full
     return this.unpack_layer(plane)
   }
 
-  unpack_obs(obs) {
+  unpack_obs(obs, asTensor = false) {
     const planes = getattr(obs.getFeatureLayerData(), this.layer_set)
     const plane = getattr(planes, this.name) || new sc_pb.ImageData()
+    if (asTensor) {
+      return np.tensor(plane.getData())
+    }
     return plane
   }
 
-  unpack_layer(plane) {//eslint-disable-line
-    return Feature.unpack_layer(plane)
+  unpack_layer(plane, asTensor, shape) {//eslint-disable-line
+    return Feature.unpack_layer(plane, asTensor, shape)
   }
 
-  static unpack_layer(plane) {
+  static unpack_layer(plane, asTensor = true, shape) {
     //Return a correctly shaped numpy array given the feature layer bytes.//
     if (plane.getSize() === undefined) {
       return null
@@ -3097,8 +3102,9 @@ class Feature extends namedtuple('Feature', ['index', 'name', 'layer_set', 'full
       // data.shape = [size.x, size.y]
       // return data
     }
-
-    data = np.tensor(data, [size.y, size.x], 'int32')
+    if (asTensor) {
+      return np.tensor(data, shape || [size.y, size.x], 'int32')
+    }
     return data
   }
 
@@ -3151,15 +3157,17 @@ class Feature extends namedtuple('Feature', ['index', 'name', 'layer_set', 'full
   }
 
   color(plane, isTensor = false) {
-    if (this.clip) {
-      plane = np.clip(plane, 0, this.scale - 1)
+    if (isTensor) {
+      if (this.scale) {
+        // map values of plane to indexs of the palette
+        plane = np.clipByValue(plane, 0, this.scale - 1)
+      }
+      // Palette tf is 1x n colors => n x 3
+      return this._palette_tf.gather(plane)
     }
-    if (isTensor === false) {
-      const rgb = false
-      const color = null
-      return Feature.unpack_image_data(plane, rgb, color, this.palette)
-    }
-    return plane.dataSync().map((n) => n ? this.palette[n] : n) //eslint-disable-line
+    const rgb = false
+    const color = null
+    return Feature.unpack_image_data(plane, rgb, color, this.palette)
   }
 }
 
@@ -3179,7 +3187,7 @@ class ScreenFeatures extends namedtuple('ScreenFeatures', [
     let val
     Object.keys(kwargs).forEach((name) => {
       val = kwargs[name]
-      const [scale, type_, palette, clip] = val
+      const [scale, type_, palette, clip] = val //eslint-disable-line
       feats[name] = new Feature({
         index: ScreenFeatures._fields.indexOf(name),
         name,
@@ -5468,8 +5476,8 @@ module.exports = {
 
 }).call(this,"/")
 },{"path":6,"python-enum":103}],"/numpy.js":[function(require,module,exports){
-let tf = require('@tensorflow/tfjs') //eslint-disable-line
-tf = require('@tensorflow/tfjs-node') //eslint-disable-line
+// let tf = require('@tensorflow/tfjs') //eslint-disable-line
+let tf = require('@tensorflow/tfjs-node') //eslint-disable-line
 const foo = tf.tensor([1])
 const TensorMeta = foo.constructor // currently unknown where else to get this value
 /*eslint-disable prefer-rest-params*/
@@ -5492,9 +5500,20 @@ module.exports = {
   argMin: tf.argMin,
   argMax: tf.argMax,
   buffer: tf.buffer,
+  // clipByValue(x, min, max) {
+  //   const minT = tf.zerosLike(x).add(tf.tensor([min], undefined, x.dtype))
+  //   const maxT = tf.zerosLike(x).add(tf.tensor([max], undefined, x.dtype))
+  //   return x.where(x.greaterEqual(min), minT).where(x.lessEqual(max), maxT)
+  // },
+  clipByValue(x, min, max) {
+    const minT = tf.fill(x.shape, min, x.dtype)
+    const maxT = tf.fill(x.shape, max, x.dtype)
+    return x.where(x.greaterEqual(min), minT).where(x.lessEqual(max), maxT)
+  },
   cumsum() {
     return tf.cumsum(...arguments).dataSync() //eslint-disable-line
   },
+  gather: tf.gather,
   getValueAt(arr, index) {
     if (arr instanceof TensorMeta) {
       arr = arr.arraySync()
@@ -5550,9 +5569,10 @@ module.exports = {
   float64: Float64Array,
   // node utility functions
   node: tf.node,
+  tf,
 }
 
-},{"@tensorflow/tfjs":"@tensorflow/tfjs","@tensorflow/tfjs-node":"@tensorflow/tfjs-node"}],"/point.js":[function(require,module,exports){
+},{"@tensorflow/tfjs-node":"@tensorflow/tfjs-node"}],"/point.js":[function(require,module,exports){
 (function (__dirname){
 const path = require('path') //eslint-disable-line
 const s2clientprotocol = require('s2clientprotocol') //eslint-disable-line
@@ -5961,7 +5981,6 @@ const { performance } = require('perf_hooks') //eslint-disable-line
 const stopwatch = require(path.resolve(__dirname, 'stopwatch.js'))
 const pythonUtils = require(path.resolve(__dirname, './pythonUtils.js'))
 
-
 /*** Protocol library to make communication easy ***
 
 All communication over the connection is based around Request and Response messages. Requests are used for controlling the state of the application, retrieving data and controlling gameplay.
@@ -5981,12 +6000,10 @@ flags.defineInteger('sc2_verbose_protocol', 0, `
   'packet. 20 is a good starting value.`
 ) //eslint-disable-line
 
-
 // Create a python version of the Status enum in the proto.
 const Status = Enum.Enum('Status', sc_pb.Status)
 
 const MAX_WIDTH = Number(process.env.COLUMNS) || 200 // Get your TTY width.
-
 
 class ConnectionError extends Error {
   //Failed to read/write a message, details in the error string.//
@@ -7163,6 +7180,7 @@ class _Surface {
     this.world_to_surf = world_to_surf
     this.world_to_obs = world_to_obs
     this.draw = draw
+    window.gamejs.display.getSurface().blit(surf, [surf_rect.left, surf_rect.top])
   }
 
   draw_line(color, start_loc, end_loc, thickness = 1) {
@@ -7242,8 +7260,7 @@ class _Surface {
   }
 
   write_world(font, color, world_loc, text) {
-    const rectDim = font.size(text)
-    const text_surf = this._write_screen_helper(text, color, rectDim, font)
+    const text_surf = font.render(text, color)
     const rect = text_surf.getRect()
     rect.center = this.world_to_surf.fwd_pt(world_loc)
     this.surf.blit(text_surf, rect)
@@ -7586,7 +7603,7 @@ class RendererHuman {
     }
 
     this._scale = Math.floor(window_size_px.y / 32)
-    this._font_size = 12
+    this._font_size = 10
     this._font_style = 'Arial'
     this._font_small = new gamejs.font.Font(`${Math.floor(this._font_size * 0.5)}px ${this._font_style}`)
     this._font_large = new gamejs.font.Font(`${this._font_size}px ${this._font_style}`)
@@ -7825,7 +7842,7 @@ class RendererHuman {
       const feature_layer_padding = feature_layer_area.div(20).floor()
       const feature_layer_size = feature_layer_area.sub(feature_layer_padding.mul(2))
 
-      const feature_font_size = Math.floor(feature_grid_size.y * 0.08)
+      const feature_font_size = Math.floor(feature_grid_size.y * 0.08) || 1
       const feature_font = new gamejs.font.Font(`${feature_font_size}px ${this._font_style}`)
       
       console.log('feature_grid_size:' + feature_grid_size.round())
@@ -8220,6 +8237,7 @@ class RendererHuman {
 
   select_action(pos1, pos2, ctrl, shift) {
     //Return a `sc_pb.Action` with the selection filled.//
+    console.log('here in select_action')
     assert(
       pos1.surf.surf_type == pos2.surf.surf_type,
       'pos1.surf.surf_type == pos2.surf.surf_type'
@@ -8443,7 +8461,10 @@ class RendererHuman {
       units[i] = [u.getPos().getZ(), u.getOwner() != 16, -u.getRadius(), u.getTag(), u]
     })
     units = units.sorted((a, b) => a[0] - b[0])
-    return units.map((arr) => [arr[arr.length - 1], new point.Point(u.getPos())])
+    return units.map((arr) => {
+      const u = arr[arr.length - 1]
+      return [u, new point.Point(u.getPos())]
+    })
   }
 
   _units_in_area(rect) {
@@ -8519,7 +8540,7 @@ class RendererHuman {
         }
 
         function draw_arc_ratio(color, world_loc, radius, start, end, thickness) {
-          surf.draw(
+          surf.draw_arc(
             color,
             world_loc,
             radius,
@@ -8534,7 +8555,7 @@ class RendererHuman {
         }
 
         if (u.getEnergy() && u.getEnergyMax()) {
-          draw_arc_ratio(colors.purple * 0.9, p, u.getRadius() - 0.1, 0, u.getEnergy() / u.getEnergyMax())
+          draw_arc_ratio(colors.purple.mul(0.9), p, u.getRadius() - 0.1, 0, u.getEnergy() / u.getEnergyMax())
         }
 
         if (0 < u.getBuildProgress() < 1) {
@@ -8565,12 +8586,13 @@ class RendererHuman {
                          u.getRadius() - 0.25, 0.28, 0.32, thickness)
         }
 
+        const self = this
         function write_small(loc, s) {
-          surf.write_world(this._font_small, colors.white, loc, String(s))
+          surf.write_world(self._font_small, colors.white, loc, String(s))
         }
 
         const name = this.get_unit_name(
-            surf, this._static_data.units.get(u.getUnitType(), "<none>"), u.getRadius())
+            surf, this._static_data.units[u.getUnitType()] || "<none>", u.getRadius())
         if (name) {
           write_small(p, name)
         }
@@ -9060,7 +9082,7 @@ class RendererHuman {
             })
           }
         }
-      }
+      } 
     })
   }
 
@@ -9068,42 +9090,58 @@ class RendererHuman {
     //Draw the base map.//
     const hmap_feature = features.SCREEN_FEATURES.height_map
     let hmap = hmap_feature.unpack(this._obs.getObservation())
-    if (!np.any(hmap)) {
-      hmap.add(100)
+    if (!tf.any(tf.cast(hmap, 'bool'))) {
+      hmap = hmap.add(100)
     }
-    const hmap_color = hmap_feature.color(hmap)
+    const hmap_color = hmap_feature.color(hmap, true)
     let out = hmap_color.mul(0.6)
 
     const creep_feature = features.SCREEN_FEATURES.creep
     const creep = creep_feature.unpack(this._obs.getObservation())
     const creep_mask = creep.greater(0)
-    const creep_color = creep_feature.color(creep)
-    let temp1 = out.where(creep_mask, out.mul(0.4))
-    let temp2 = creep_color.where(creep_mask, creep_color.mul(0.6))
-    out = out.where(creep_mask, temp1.add(temp2))
-    
-    const power_feature = features.SCREEN_FEATURES.power_feature
+    let creep_mask_out = creep_mask.broadcastTo([out.shape[2], out.shape[0], out.shape[1]])
+    creep_mask_out = creep_mask_out.transpose([1, 2, 0])
+    const creep_color = creep_feature.color(creep, true)
+
+    let temp1 = out.where(creep_mask_out, out.mul(0.4))
+    let temp2 = creep_color.where(creep_mask_out, creep_color.mul(0.6))
+    out = out.where(creep_mask_out, temp1.add(temp2))
+
+    const power_feature = features.SCREEN_FEATURES.power
     const power = power_feature.unpack(this._obs.getObservation())
     const power_mask = power.greater(0)
-    const power_color = power_feature.color(power)
-    temp1 = out.where(power_mask, out.mul(0.7))
-    temp2 = power_color.where(power_mask, power_color.mul(0.3))
-    out = out.where(power_mask, temp1.add(temp2))
+    let power_mask_out = power_mask.broadcastTo([out.shape[2], out.shape[0], out.shape[1]])
+    power_mask_out = power_mask_out.transpose([1, 2, 0])
+    const power_color = power_feature.color(power, true)
+
+    temp1 = out.where(power_mask_out, out.mul(0.7))
+    temp2 = power_color.where(power_mask_out, power_color.mul(0.3))
+    // 84 x 84 x color => 84 x 84 x 3
+    out = out.where(power_mask_out, temp1.add(temp2))
 
     if (this._render_player_relative) {
       const player_rel_feature = features.SCREEN_FEATURES.player_relative
       const player_rel = player_rel_feature.unpack(this._obs.getObservation())
       const player_rel_mask = player_rel.greater(0)
-      const player_rel_color = player_rel_feature.color(player_rel)
+      let player_rel_mask_out = player_rel_mask.broadcastTo([out.shape[2], out.shape[0], out.shape[1]])
+      player_rel_mask_out = player_rel_mask_out.transpose([1, 2, 0])
+      const player_rel_color = player_rel_feature.color(player_rel, true)
       out = out.where(player_rel_mask, player_rel_color)
     }
 
-    const visibility = features.SCREEN_FEATURES.visibility_map.unpack(this._obs.getObservation())
-    const visibility_fade = np.tensor([[0.5, 0.5, 0.5], [0.75, 0.75, 0.75], [1, 1, 1]])
-    out = out.where(visibility, out.mul(visibility_fade))
+    // 84 x 84
+    let visibility = features.SCREEN_FEATURES.visibility_map.unpack(this._obs.getObservation())
+    visibility = tf.cast(visibility, 'int32')
+    // 3 x color => 3 x 3
+    const visibility_fade = tf.tensor([[0.5, 0.5, 0.5], [0.75, 0.75, 0.75], [1, 1, 1]])
 
-    surf.blit_np_array(getImageData(out.dataSync(), out.shape, false))
-    window.gamejs.display.getSurface().blit(surf.surf, [surf.surf_rect.left, surf.surf_rect.top])
+    // console.log('tf.gather(visibility_fade, visibility) shape: ', tf.gather(visibility_fade, visibility).print())
+    //out *= visibility_fade[visibility]
+    out = out.mul(tf.gather(visibility_fade, visibility))
+    const rgb = true
+    out = tf.cast(out, 'int32')
+    surf.blit_np_array(getImageData(out.dataSync(), out.shape, rgb))
+    // window.gamejs.display.getSurface().blit(surf.surf, [surf.surf_rect.left, surf.surf_rect.top])
   }
 
   draw_mini_map(surf) {
@@ -9233,10 +9271,12 @@ class RendererHuman {
     if (layer != null) {
       const rgb = false
       surf.blit_np_array(features.Feature.unpack_image_data(layer, rgb, null, feature.palette))
+    // window.gamejs.display.getSurface().blit_np_array(surf.surf, [surf.surf_rect.left, surf.surf_rect.top])
     } else { // Ignore layers that aren't in this version of SC2.
       surf.surf.fill(colors.black.toCSS())
     }
     window.gamejs.display.getSurface().blit(surf.surf, [surf.surf_rect.left, surf.surf_rect.top])
+
   }
 
   draw_raw_layer(surf, from_obs, name, color, palette) {
@@ -9364,11 +9404,15 @@ class RendererHuman {
 
     this.draw_actions()
 
-    withPython(sw('flip'), () => {
-      // window.gamejs.display.flip()
-    })
+    // withPython(sw('flip'), () => {
+    //   // window.gamejs.display.flip()
+    // })
 
-    this._render_times.push(performance.now() - start_time)
+    // withPython(sw('tf.tidy'), () => {
+    //   window.tf.tidy(() => {})
+    // })
+
+    this._render_times.add(performance.now() - start_time)
   }
 
 }
@@ -19173,7 +19217,6 @@ exports.parse = function(opt_args, opt_ignoreUnrecognized) {
     
     // For now we only handle simple flags like --foo=bar, so fail out.
     } else {
-      console.log(args, i, 'Invalid argument "' + arg + '"')
       throwFlagParseError(args, i, 'Invalid argument "' + arg + '"');
     }
   }
@@ -24543,11 +24586,12 @@ jspb.Message.assertConsistentTypes_=function(a){if(goog.DEBUG&&a&&1<a.length){va
 jspb.Message.getFloatingPointFieldWithDefault=function(a,b,c){a=jspb.Message.getOptionalFloatingPointField(a,b);return null==a?c:a};jspb.Message.getFieldProto3=jspb.Message.getFieldWithDefault;jspb.Message.getMapField=function(a,b,c,d){a.wrappers_||(a.wrappers_={});if(b in a.wrappers_)return a.wrappers_[b];var e=jspb.Message.getField(a,b);if(!e){if(c)return;e=[];jspb.Message.setField(a,b,e)}return a.wrappers_[b]=new jspb.Map(e,d)};
 jspb.Message.setField=function(a,b,c){goog.asserts.assertInstanceof(a,jspb.Message);b<a.pivot_?a.array[jspb.Message.getIndex_(a,b)]=c:(jspb.Message.maybeInitEmptyExtensionObject_(a),a.extensionObject_[b]=c);return a};jspb.Message.setProto3IntField=function(a,b,c){return jspb.Message.setFieldIgnoringDefault_(a,b,c,0)};jspb.Message.setProto3FloatField=function(a,b,c){return jspb.Message.setFieldIgnoringDefault_(a,b,c,0)};
 jspb.Message.setProto3BooleanField=function(a,b,c){return jspb.Message.setFieldIgnoringDefault_(a,b,c,!1)};jspb.Message.setProto3StringField=function(a,b,c){return jspb.Message.setFieldIgnoringDefault_(a,b,c,"")};jspb.Message.setProto3BytesField=function(a,b,c){return jspb.Message.setFieldIgnoringDefault_(a,b,c,"")};jspb.Message.setProto3EnumField=function(a,b,c){return jspb.Message.setFieldIgnoringDefault_(a,b,c,0)};
-jspb.Message.setProto3StringIntField=function(a,b,c){return jspb.Message.setFieldIgnoringDefault_(a,b,c,"0")};jspb.Message.setFieldIgnoringDefault_=function(a,b,c,d){goog.asserts.assertInstanceof(a,jspb.Message);c!==d?jspb.Message.setField(a,b,c):a.array[jspb.Message.getIndex_(a,b)]=null;return a};jspb.Message.addToRepeatedField=function(a,b,c,d){goog.asserts.assertInstanceof(a,jspb.Message);b=jspb.Message.getRepeatedField(a,b);void 0!=d?b.splice(d,0,c):b.push(c);return a};
-jspb.Message.setOneofField=function(a,b,c,d){goog.asserts.assertInstanceof(a,jspb.Message);(c=jspb.Message.computeOneofCase(a,c))&&c!==b&&void 0!==d&&(a.wrappers_&&c in a.wrappers_&&(a.wrappers_[c]=void 0),jspb.Message.setField(a,c,void 0));return jspb.Message.setField(a,b,d)};jspb.Message.computeOneofCase=function(a,b){for(var c,d,e=0;e<b.length;e++){var f=b[e],g=jspb.Message.getField(a,f);null!=g&&(c=f,d=g,jspb.Message.setField(a,f,void 0))}return c?(jspb.Message.setField(a,c,d),c):0};
-jspb.Message.getWrapperField=function(a,b,c,d){a.wrappers_||(a.wrappers_={});if(!a.wrappers_[c]){var e=jspb.Message.getField(a,c);if(d||e)a.wrappers_[c]=new b(e)}return a.wrappers_[c]};jspb.Message.getRepeatedWrapperField=function(a,b,c){jspb.Message.wrapRepeatedField_(a,b,c);b=a.wrappers_[c];b==jspb.Message.EMPTY_LIST_SENTINEL_&&(b=a.wrappers_[c]=[]);return b};
-jspb.Message.wrapRepeatedField_=function(a,b,c){a.wrappers_||(a.wrappers_={});if(!a.wrappers_[c]){for(var d=jspb.Message.getRepeatedField(a,c),e=[],f=0;f<d.length;f++)e[f]=new b(d[f]);a.wrappers_[c]=e}};jspb.Message.setWrapperField=function(a,b,c){goog.asserts.assertInstanceof(a,jspb.Message);a.wrappers_||(a.wrappers_={});var d=c?c.toArray():c;a.wrappers_[b]=c;return jspb.Message.setField(a,b,d)};
-jspb.Message.setOneofWrapperField=function(a,b,c,d){goog.asserts.assertInstanceof(a,jspb.Message);a.wrappers_||(a.wrappers_={});var e=d?d.toArray():d;a.wrappers_[b]=d;return jspb.Message.setOneofField(a,b,c,e)};jspb.Message.setRepeatedWrapperField=function(a,b,c){goog.asserts.assertInstanceof(a,jspb.Message);a.wrappers_||(a.wrappers_={});c=c||[];for(var d=[],e=0;e<c.length;e++)d[e]=c[e].toArray();a.wrappers_[b]=c;return jspb.Message.setField(a,b,d)};
+jspb.Message.setProto3StringIntField=function(a,b,c){return jspb.Message.setFieldIgnoringDefault_(a,b,c,"0")};jspb.Message.setFieldIgnoringDefault_=function(a,b,c,d){goog.asserts.assertInstanceof(a,jspb.Message);c!==d?jspb.Message.setField(a,b,c):b<a.pivot_?a.array[jspb.Message.getIndex_(a,b)]=null:(jspb.Message.maybeInitEmptyExtensionObject_(a),delete a.extensionObject_[b]);return a};
+jspb.Message.addToRepeatedField=function(a,b,c,d){goog.asserts.assertInstanceof(a,jspb.Message);b=jspb.Message.getRepeatedField(a,b);void 0!=d?b.splice(d,0,c):b.push(c);return a};jspb.Message.setOneofField=function(a,b,c,d){goog.asserts.assertInstanceof(a,jspb.Message);(c=jspb.Message.computeOneofCase(a,c))&&c!==b&&void 0!==d&&(a.wrappers_&&c in a.wrappers_&&(a.wrappers_[c]=void 0),jspb.Message.setField(a,c,void 0));return jspb.Message.setField(a,b,d)};
+jspb.Message.computeOneofCase=function(a,b){for(var c,d,e=0;e<b.length;e++){var f=b[e],g=jspb.Message.getField(a,f);null!=g&&(c=f,d=g,jspb.Message.setField(a,f,void 0))}return c?(jspb.Message.setField(a,c,d),c):0};jspb.Message.getWrapperField=function(a,b,c,d){a.wrappers_||(a.wrappers_={});if(!a.wrappers_[c]){var e=jspb.Message.getField(a,c);if(d||e)a.wrappers_[c]=new b(e)}return a.wrappers_[c]};
+jspb.Message.getRepeatedWrapperField=function(a,b,c){jspb.Message.wrapRepeatedField_(a,b,c);b=a.wrappers_[c];b==jspb.Message.EMPTY_LIST_SENTINEL_&&(b=a.wrappers_[c]=[]);return b};jspb.Message.wrapRepeatedField_=function(a,b,c){a.wrappers_||(a.wrappers_={});if(!a.wrappers_[c]){for(var d=jspb.Message.getRepeatedField(a,c),e=[],f=0;f<d.length;f++)e[f]=new b(d[f]);a.wrappers_[c]=e}};
+jspb.Message.setWrapperField=function(a,b,c){goog.asserts.assertInstanceof(a,jspb.Message);a.wrappers_||(a.wrappers_={});var d=c?c.toArray():c;a.wrappers_[b]=c;return jspb.Message.setField(a,b,d)};jspb.Message.setOneofWrapperField=function(a,b,c,d){goog.asserts.assertInstanceof(a,jspb.Message);a.wrappers_||(a.wrappers_={});var e=d?d.toArray():d;a.wrappers_[b]=d;return jspb.Message.setOneofField(a,b,c,e)};
+jspb.Message.setRepeatedWrapperField=function(a,b,c){goog.asserts.assertInstanceof(a,jspb.Message);a.wrappers_||(a.wrappers_={});c=c||[];for(var d=[],e=0;e<c.length;e++)d[e]=c[e].toArray();a.wrappers_[b]=c;return jspb.Message.setField(a,b,d)};
 jspb.Message.addToRepeatedWrapperField=function(a,b,c,d,e){jspb.Message.wrapRepeatedField_(a,d,b);var f=a.wrappers_[b];f||(f=a.wrappers_[b]=[]);c=c?c:new d;a=jspb.Message.getRepeatedField(a,b);void 0!=e?(f.splice(e,0,c),a.splice(e,0,c.toArray())):(f.push(c),a.push(c.toArray()));return c};jspb.Message.toMap=function(a,b,c,d){for(var e={},f=0;f<a.length;f++)e[b.call(a[f])]=c?c.call(a[f],d,a[f]):a[f];return e};
 jspb.Message.prototype.syncMapFields_=function(){if(this.wrappers_)for(var a in this.wrappers_){var b=this.wrappers_[a];if(goog.isArray(b))for(var c=0;c<b.length;c++)b[c]&&b[c].toArray();else b&&b.toArray()}};jspb.Message.prototype.toArray=function(){this.syncMapFields_();return this.array};jspb.Message.GENERATE_TO_STRING&&(jspb.Message.prototype.toString=function(){this.syncMapFields_();return this.array.toString()});
 jspb.Message.prototype.getExtension=function(a){if(this.extensionObject_){this.wrappers_||(this.wrappers_={});var b=a.fieldIndex;if(a.isRepeated){if(a.isMessageType())return this.wrappers_[b]||(this.wrappers_[b]=goog.array.map(this.extensionObject_[b]||[],function(b){return new a.ctor(b)})),this.wrappers_[b]}else if(a.isMessageType())return!this.wrappers_[b]&&this.extensionObject_[b]&&(this.wrappers_[b]=new a.ctor(this.extensionObject_[b])),this.wrappers_[b];return this.extensionObject_[b]}};
@@ -25362,7 +25406,7 @@ function decoder(mtype) {
     var gen = util.codegen(["r", "l"], mtype.name + "$decode")
     ("if(!(r instanceof Reader))")
         ("r=Reader.create(r)")
-    ("var c=l===undefined?r.len:r.pos+l,m=new this.ctor" + (mtype.fieldsArray.filter(function(field) { return field.map; }).length ? ",k" : ""))
+    ("var c=l===undefined?r.len:r.pos+l,m=new this.ctor" + (mtype.fieldsArray.filter(function(field) { return field.map; }).length ? ",k,value" : ""))
     ("while(r.pos<c){")
         ("var t=r.uint32()");
     if (mtype.group) gen
@@ -25380,22 +25424,44 @@ function decoder(mtype) {
 
         // Map fields
         if (field.map) { gen
-                ("r.skip().pos++") // assumes id 1 + key wireType
                 ("if(%s===util.emptyObject)", ref)
                     ("%s={}", ref)
-                ("k=r.%s()", field.keyType)
-                ("r.pos++"); // assumes id 2 + value wireType
-            if (types.long[field.keyType] !== undefined) {
-                if (types.basic[type] === undefined) gen
-                ("%s[typeof k===\"object\"?util.longToHash(k):k]=types[%i].decode(r,r.uint32())", ref, i); // can't be groups
-                else gen
-                ("%s[typeof k===\"object\"?util.longToHash(k):k]=r.%s()", ref, type);
-            } else {
-                if (types.basic[type] === undefined) gen
-                ("%s[k]=types[%i].decode(r,r.uint32())", ref, i); // can't be groups
-                else gen
-                ("%s[k]=r.%s()", ref, type);
-            }
+                ("var c2 = r.uint32()+r.pos");
+
+            if (types.defaults[field.keyType] !== undefined) gen
+                ("k=%j", types.defaults[field.keyType]);
+            else gen
+                ("k=null");
+
+            if (types.defaults[type] !== undefined) gen
+                ("value=%j", types.defaults[type]);
+            else gen
+                ("value=null");
+
+            gen
+                ("while(r.pos<c2){")
+                    ("var tag2=r.uint32()")
+                    ("switch(tag2>>>3){")
+                        ("case 1: k=r.%s(); break", field.keyType)
+                        ("case 2:");
+
+            if (types.basic[type] === undefined) gen
+                            ("value=types[%i].decode(r,r.uint32())", i); // can't be groups
+            else gen
+                            ("value=r.%s()", type);
+
+            gen
+                            ("break")
+                        ("default:")
+                            ("r.skipType(tag2&7)")
+                            ("break")
+                    ("}")
+                ("}");
+
+            if (types.long[field.keyType] !== undefined) gen
+                ("%s[typeof k===\"object\"?util.longToHash(k):k]=value", ref);
+            else gen
+                ("%s[k]=value", ref);
 
         // Repeated fields
         } else if (field.repeated) { gen
@@ -27153,6 +27219,12 @@ function ReflectionObject(name, options) {
     this.options = options; // toJSON
 
     /**
+     * Parsed Options.
+     * @type {Array.<Object.<string,*>>|undefined}
+     */
+    this.parsedOptions = null;
+
+    /**
      * Unique name within its namespace.
      * @type {string}
      */
@@ -27289,6 +27361,43 @@ ReflectionObject.prototype.getOption = function getOption(name) {
 ReflectionObject.prototype.setOption = function setOption(name, value, ifNotSet) {
     if (!ifNotSet || !this.options || this.options[name] === undefined)
         (this.options || (this.options = {}))[name] = value;
+    return this;
+};
+
+/**
+ * Sets a parsed option.
+ * @param {string} name parsed Option name
+ * @param {*} value Option value
+ * @param {string} propName dot '.' delimited full path of property within the option to set. if undefined\empty, will add a new option with that value
+ * @returns {ReflectionObject} `this`
+ */
+ReflectionObject.prototype.setParsedOption = function setParsedOption(name, value, propName) {
+    if (!this.parsedOptions) {
+        this.parsedOptions = [];
+    }
+    var parsedOptions = this.parsedOptions;
+    if (propName) {
+        // If setting a sub property of an option then try to merge it
+        // with an existing option
+        var opt = parsedOptions.find(function (opt) {
+            return Object.prototype.hasOwnProperty.call(opt, name);
+        });
+        if (opt) {
+            // If we found an existing option - just merge the property value
+            var newValue = opt[name];
+            util.setProperty(newValue, propName, value);
+        } else {
+            // otherwise, create a new option, set it's property and add it to the list
+            opt = {};
+            opt[name] = util.setProperty({}, propName, value);
+            parsedOptions.push(opt);
+        }
+    } else {
+        // Always create a new option when setting the value of the option itself
+        var newOpt = {};
+        newOpt[name] = value;
+        parsedOptions.push(newOpt);
+    }
     return this;
 };
 
@@ -27572,6 +27681,7 @@ var base10Re    = /^[1-9][0-9]*$/,
  * @interface IParseOptions
  * @property {boolean} [keepCase=false] Keeps field casing instead of converting to camel case
  * @property {boolean} [alternateCommentMode=false] Recognize double-slash comments in addition to doc-block comments.
+ * @property {boolean} [preferTrailingComment=false] Use trailing comment when both leading comment and trailing comment exist.
  */
 
 /**
@@ -27598,6 +27708,7 @@ function parse(source, root, options) {
     if (!options)
         options = parse.defaults;
 
+    var preferTrailingComment = options.preferTrailingComment || false;
     var tn = tokenize(source, options.alternateCommentMode || false),
         next = tn.next,
         push = tn.push,
@@ -27821,8 +27932,8 @@ function parse(source, root, options) {
             if (fnElse)
                 fnElse();
             skip(";");
-            if (obj && typeof obj.comment !== "string")
-                obj.comment = cmnt(trailingLine); // try line-type comment if no block
+            if (obj && (typeof obj.comment !== "string" || preferTrailingComment))
+                obj.comment = cmnt(trailingLine) || obj.comment; // try line-type comment
         }
     }
 
@@ -28070,45 +28181,69 @@ function parse(source, root, options) {
             throw illegal(token, "name");
 
         var name = token;
+        var option = name;
+        var propName;
+
         if (isCustom) {
             skip(")");
             name = "(" + name + ")";
+            option = name;
             token = peek();
             if (fqTypeRefRe.test(token)) {
+                propName = token.substr(1); //remove '.' before property name
                 name += token;
                 next();
             }
         }
         skip("=");
-        parseOptionValue(parent, name);
+        var optionValue = parseOptionValue(parent, name);
+        setParsedOption(parent, option, optionValue, propName);
     }
 
     function parseOptionValue(parent, name) {
         if (skip("{", true)) { // { a: "foo" b { c: "bar" } }
-            do {
+            var result = {};
+            while (!skip("}", true)) {
                 /* istanbul ignore if */
                 if (!nameRe.test(token = next()))
                     throw illegal(token, "name");
 
+                var value;
+                var propName = token;
                 if (peek() === "{")
-                    parseOptionValue(parent, name + "." + token);
+                    value = parseOptionValue(parent, name + "." + token);
                 else {
                     skip(":");
                     if (peek() === "{")
-                        parseOptionValue(parent, name + "." + token);
-                    else
-                        setOption(parent, name + "." + token, readValue(true));
+                        value = parseOptionValue(parent, name + "." + token);
+                    else {
+                        value = readValue(true);
+                        setOption(parent, name + "." + token, value);
+                    }
                 }
+                var prevValue = result[propName];
+                if (prevValue)
+                    value = [].concat(prevValue).concat(value);
+                result[propName] = value;
                 skip(",", true);
-            } while (!skip("}", true));
-        } else
-            setOption(parent, name, readValue(true));
+            }
+            return result;
+        }
+
+        var simpleValue = readValue(true);
+        setOption(parent, name, simpleValue);
+        return simpleValue;
         // Does not enforce a delimiter to be universal
     }
 
     function setOption(parent, name, value) {
         if (parent.setOption)
             parent.setOption(name, value);
+    }
+
+    function setParsedOption(parent, name, value, propName) {
+        if (parent.setParsedOption)
+            parent.setParsedOption(name, value, propName);
     }
 
     function parseInlineOptions(parent) {
@@ -28820,6 +28955,16 @@ Root.fromJSON = function fromJSON(json, root) {
  */
 Root.prototype.resolvePath = util.path.resolve;
 
+/**
+ * Fetch content from file path or url
+ * This method exists so you can override it with your own logic.
+ * @function
+ * @param {string} path File path or url
+ * @param {FetchCallback} callback Callback function
+ * @returns {undefined}
+ */
+Root.prototype.fetch = util.fetch;
+
 // A symbol-like function to safely signal synchronous loading
 /* istanbul ignore next */
 function SYNC() {} // eslint-disable-line no-empty-function
@@ -28927,7 +29072,7 @@ Root.prototype.load = function load(filename, options, callback) {
             process(filename, source);
         } else {
             ++queued;
-            util.fetch(filename, function(err, source) {
+            self.fetch(filename, function(err, source) {
                 --queued;
                 /* istanbul ignore if */
                 if (!callback)
@@ -29591,7 +29736,8 @@ function tokenize(source, alternateCommentMode) {
         commentType = null,
         commentText = null,
         commentLine = 0,
-        commentLineEmpty = false;
+        commentLineEmpty = false,
+        commentIsLeading = false;
 
     var stack = [];
 
@@ -29639,13 +29785,15 @@ function tokenize(source, alternateCommentMode) {
      * Sets the current comment text.
      * @param {number} start Start offset
      * @param {number} end End offset
+     * @param {boolean} isLeading set if a leading comment
      * @returns {undefined}
      * @inner
      */
-    function setComment(start, end) {
+    function setComment(start, end, isLeading) {
         commentType = source.charAt(start++);
         commentLine = line;
         commentLineEmpty = false;
+        commentIsLeading = isLeading;
         var lookback;
         if (alternateCommentMode) {
             lookback = 2;  // alternate comment parsing: "//" or "/*"
@@ -29707,14 +29855,17 @@ function tokenize(source, alternateCommentMode) {
             prev,
             curr,
             start,
-            isDoc;
+            isDoc,
+            isLeadingComment = offset === 0;
         do {
             if (offset === length)
                 return null;
             repeat = false;
             while (whitespaceRe.test(curr = charAt(offset))) {
-                if (curr === "\n")
+                if (curr === "\n") {
+                    isLeadingComment = true;
                     ++line;
+                }
                 if (++offset === length)
                     return null;
             }
@@ -29735,7 +29886,7 @@ function tokenize(source, alternateCommentMode) {
                         }
                         ++offset;
                         if (isDoc) {
-                            setComment(start, offset - 1);
+                            setComment(start, offset - 1, isLeadingComment);
                         }
                         ++line;
                         repeat = true;
@@ -29756,7 +29907,7 @@ function tokenize(source, alternateCommentMode) {
                             offset = Math.min(length, findEndOfLine(offset) + 1);
                         }
                         if (isDoc) {
-                            setComment(start, offset);
+                            setComment(start, offset, isLeadingComment);
                         }
                         line++;
                         repeat = true;
@@ -29777,7 +29928,7 @@ function tokenize(source, alternateCommentMode) {
                     } while (prev !== "*" || curr !== "/");
                     ++offset;
                     if (isDoc) {
-                        setComment(start, offset - 2);
+                        setComment(start, offset - 2, isLeadingComment);
                     }
                     repeat = true;
                 } else {
@@ -29855,7 +30006,7 @@ function tokenize(source, alternateCommentMode) {
         var ret = null;
         if (trailingLine === undefined) {
             if (commentLine === line - 1 && (alternateCommentMode || commentType === "*" || commentLineEmpty)) {
-                ret = commentText;
+                ret = commentIsLeading ? commentText : null;
             }
         } else {
             /* istanbul ignore else */
@@ -29863,7 +30014,7 @@ function tokenize(source, alternateCommentMode) {
                 peek();
             }
             if (commentLine === trailingLine && !commentLineEmpty && (alternateCommentMode || commentType === "/")) {
-                ret = commentText;
+                ret = commentIsLeading ? null : commentText;
             }
         }
         return ret;
@@ -30838,6 +30989,37 @@ util.decorateEnum = function decorateEnum(object) {
     return enm;
 };
 
+
+/**
+ * Sets the value of a property by property path. If a value already exists, it is turned to an array
+ * @param {Object.<string,*>} dst Destination object
+ * @param {string} path dot '.' delimited path of the property to set
+ * @param {Object} value the value to set
+ * @returns {Object.<string,*>} Destination object
+ */
+util.setProperty = function setProperty(dst, path, value) {
+    function setProp(dst, path, value) {
+        var part = path.shift();
+        if (path.length > 0) {
+            dst[part] = setProp(dst[part] || {}, path, value);
+        } else {
+            var prevValue = dst[part];
+            if (prevValue)
+                value = [].concat(prevValue).concat(value);
+            dst[part] = value;
+        }
+        return dst;
+    }
+
+    if (typeof dst !== "object")
+        throw TypeError("dst must be an object");
+    if (!path)
+        throw TypeError("path must be specified");
+
+    path = path.split(".");
+    return setProp(dst, path, value);
+};
+
 /**
  * Decorator root (TypeScript).
  * @name util.decorateRoot
@@ -31081,9 +31263,24 @@ util.pool = require("@protobufjs/pool");
 // utility to work with the low and high bits of a 64 bit value
 util.LongBits = require("./longbits");
 
-// global object reference
-util.global = typeof window !== "undefined" && window
-           || typeof global !== "undefined" && global
+/**
+ * Whether running within node or not.
+ * @memberof util
+ * @type {boolean}
+ */
+util.isNode = Boolean(typeof global !== "undefined"
+                   && global
+                   && global.process
+                   && global.process.versions
+                   && global.process.versions.node);
+
+/**
+ * Global object reference.
+ * @memberof util
+ * @type {Object}
+ */
+util.global = util.isNode && global
+           || typeof window !== "undefined" && window
            || typeof self   !== "undefined" && self
            || this; // eslint-disable-line no-invalid-this
 
@@ -31101,14 +31298,6 @@ util.emptyArray = Object.freeze ? Object.freeze([]) : /* istanbul ignore next */
  * @const
  */
 util.emptyObject = Object.freeze ? Object.freeze({}) : /* istanbul ignore next */ {}; // used on prototypes
-
-/**
- * Whether running within node or not.
- * @memberof util
- * @type {boolean}
- * @const
- */
-util.isNode = Boolean(util.global.process && util.global.process.versions && util.global.process.versions.node);
 
 /**
  * Tests if the specified value is an integer.
@@ -31693,15 +31882,20 @@ wrappers[".google.protobuf.Any"] = {
 
         // unwrap value type if mapped
         if (object && object["@type"]) {
-            var type = this.lookup(object["@type"]);
+             // Only use fully qualified type name after the last '/'
+            var name = object["@type"].substring(object["@type"].lastIndexOf("/") + 1);
+            var type = this.lookup(name);
             /* istanbul ignore else */
             if (type) {
                 // type_url does not accept leading "."
                 var type_url = object["@type"].charAt(0) === "." ?
                     object["@type"].substr(1) : object["@type"];
                 // type_url prefix is optional, but path seperator is required
+                if (type_url.indexOf("/") === -1) {
+                    type_url = "/" + type_url;
+                }
                 return this.create({
-                    type_url: "/" + type_url,
+                    type_url: type_url,
                     value: type.encode(type.fromObject(object)).finish()
                 });
             }
@@ -31712,10 +31906,17 @@ wrappers[".google.protobuf.Any"] = {
 
     toObject: function(message, options) {
 
+        // Default prefix
+        var googleApi = "type.googleapis.com/";
+        var prefix = "";
+        var name = "";
+
         // decode value if requested and unmapped
         if (options && options.json && message.type_url && message.value) {
             // Only use fully qualified type name after the last '/'
-            var name = message.type_url.substring(message.type_url.lastIndexOf("/") + 1);
+            name = message.type_url.substring(message.type_url.lastIndexOf("/") + 1);
+            // Separate the prefix used
+            prefix = message.type_url.substring(0, message.type_url.lastIndexOf("/") + 1);
             var type = this.lookup(name);
             /* istanbul ignore else */
             if (type)
@@ -31725,7 +31926,14 @@ wrappers[".google.protobuf.Any"] = {
         // wrap value if unmapped
         if (!(message instanceof this.ctor) && message instanceof Message) {
             var object = message.$type.toObject(message, options);
-            object["@type"] = message.$type.fullName;
+            var messageName = message.$type.fullName[0] === "." ?
+                message.$type.fullName.substr(1) : message.$type.fullName;
+            // Default to type.googleapis.com prefix if no prefix is used
+            if (prefix === "") {
+                prefix = googleApi;
+            }
+            name = prefix + messageName;
+            object["@type"] = name;
             return object;
         }
 
@@ -76947,7 +77155,7 @@ goog.object.extend(exports, proto.SC2APIProtocol);
 },{}],115:[function(require,module,exports){
 'use strict';
 
-module.exports = function() {
+module.exports = function () {
   throw new Error(
     'ws does not work in the browser. Browser clients must use the native ' +
       'WebSocket object'

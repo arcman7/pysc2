@@ -234,7 +234,10 @@ class Feature extends namedtuple('Feature', ['index', 'name', 'layer_set', 'full
     // console.log('from Feature constructor: ', kwargs)
     super(kwargs)
     // javascript only set up
-    this.color = sw.decorate(this.color)
+    this.color = sw.decorate(this.color.bind(this))
+    if (this.palette) {
+      this._palette_tf = np.tensor(this.palette, undefined, 'float32')//'int32')
+    }
   }
 
   static get dtypes() {
@@ -262,17 +265,20 @@ class Feature extends namedtuple('Feature', ['index', 'name', 'layer_set', 'full
     return this.unpack_layer(plane)
   }
 
-  unpack_obs(obs) {
+  unpack_obs(obs, asTensor = false) {
     const planes = getattr(obs.getFeatureLayerData(), this.layer_set)
     const plane = getattr(planes, this.name) || new sc_pb.ImageData()
+    if (asTensor) {
+      return np.tensor(plane.getData())
+    }
     return plane
   }
 
-  unpack_layer(plane) {//eslint-disable-line
-    return Feature.unpack_layer(plane)
+  unpack_layer(plane, asTensor, shape) {//eslint-disable-line
+    return Feature.unpack_layer(plane, asTensor, shape)
   }
 
-  static unpack_layer(plane) {
+  static unpack_layer(plane, asTensor = true, shape) {
     //Return a correctly shaped numpy array given the feature layer bytes.//
     if (plane.getSize() === undefined) {
       return null
@@ -310,8 +316,9 @@ class Feature extends namedtuple('Feature', ['index', 'name', 'layer_set', 'full
       // data.shape = [size.x, size.y]
       // return data
     }
-
-    data = np.tensor(data, [size.y, size.x], 'int32')
+    if (asTensor) {
+      return np.tensor(data, shape || [size.y, size.x], 'int32')
+    }
     return data
   }
 
@@ -364,16 +371,17 @@ class Feature extends namedtuple('Feature', ['index', 'name', 'layer_set', 'full
   }
 
   color(plane, isTensor = false) {
-    if (isTensor === false) {
-      const rgb = false
-      const color = null
-      return Feature.unpack_image_data(plane, rgb, color, this.palette)
+    if (isTensor) {
+      if (this.scale) {
+        // map values of plane to indexs of the palette
+        plane = np.clipByValue(plane, 0, this.scale - 1)
+      }
+      // Palette tf is 1x n colors => n x 3
+      return this._palette_tf.gather(plane)
     }
-    const data = plane.dataSync()
-    if (this.clip) {
-      clip(data, 0, this.scale - 1)
-    }
-    return data.map((n) => n ? this.palette[n] : n) //eslint-disable-line
+    const rgb = false
+    const color = null
+    return Feature.unpack_image_data(plane, rgb, color, this.palette)
   }
 }
 
@@ -393,7 +401,7 @@ class ScreenFeatures extends namedtuple('ScreenFeatures', [
     let val
     Object.keys(kwargs).forEach((name) => {
       val = kwargs[name]
-      const [scale, type_, palette, clip] = val
+      const [scale, type_, palette, clip] = val //eslint-disable-line
       feats[name] = new Feature({
         index: ScreenFeatures._fields.indexOf(name),
         name,

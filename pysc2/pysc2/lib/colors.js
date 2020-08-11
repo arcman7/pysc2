@@ -303,7 +303,6 @@ const effects = [
   [197, 103, 99],
 ]
 
-
 // Generated with http://tools.medialab.sciences-po.fr/iwanthue/
 // 280 colors: H: 0-360, C: 0-100, L: 35-100; then shuffled.
 const distinct_colors = [

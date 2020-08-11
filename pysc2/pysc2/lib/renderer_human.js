@@ -95,6 +95,7 @@ class _Surface {
     this.world_to_surf = world_to_surf
     this.world_to_obs = world_to_obs
     this.draw = draw
+    window.gamejs.display.getSurface().blit(surf, [surf_rect.left, surf_rect.top])
   }
 
   draw_line(color, start_loc, end_loc, thickness = 1) {
@@ -174,8 +175,7 @@ class _Surface {
   }
 
   write_world(font, color, world_loc, text) {
-    const rectDim = font.size(text)
-    const text_surf = this._write_screen_helper(text, color, rectDim, font)
+    const text_surf = font.render(text, color)
     const rect = text_surf.getRect()
     rect.center = this.world_to_surf.fwd_pt(world_loc)
     this.surf.blit(text_surf, rect)
@@ -518,7 +518,7 @@ class RendererHuman {
     }
 
     this._scale = Math.floor(window_size_px.y / 32)
-    this._font_size = 12
+    this._font_size = 10
     this._font_style = 'Arial'
     this._font_small = new gamejs.font.Font(`${Math.floor(this._font_size * 0.5)}px ${this._font_style}`)
     this._font_large = new gamejs.font.Font(`${this._font_size}px ${this._font_style}`)
@@ -757,7 +757,7 @@ class RendererHuman {
       const feature_layer_padding = feature_layer_area.div(20).floor()
       const feature_layer_size = feature_layer_area.sub(feature_layer_padding.mul(2))
 
-      const feature_font_size = Math.floor(feature_grid_size.y * 0.08)
+      const feature_font_size = Math.floor(feature_grid_size.y * 0.08) || 1
       const feature_font = new gamejs.font.Font(`${feature_font_size}px ${this._font_style}`)
       
       console.log('feature_grid_size:' + feature_grid_size.round())
@@ -1152,6 +1152,7 @@ class RendererHuman {
 
   select_action(pos1, pos2, ctrl, shift) {
     //Return a `sc_pb.Action` with the selection filled.//
+    console.log('here in select_action')
     assert(
       pos1.surf.surf_type == pos2.surf.surf_type,
       'pos1.surf.surf_type == pos2.surf.surf_type'
@@ -1375,7 +1376,10 @@ class RendererHuman {
       units[i] = [u.getPos().getZ(), u.getOwner() != 16, -u.getRadius(), u.getTag(), u]
     })
     units = units.sorted((a, b) => a[0] - b[0])
-    return units.map((arr) => [arr[arr.length - 1], new point.Point(u.getPos())])
+    return units.map((arr) => {
+      const u = arr[arr.length - 1]
+      return [u, new point.Point(u.getPos())]
+    })
   }
 
   _units_in_area(rect) {
@@ -1451,7 +1455,7 @@ class RendererHuman {
         }
 
         function draw_arc_ratio(color, world_loc, radius, start, end, thickness) {
-          surf.draw(
+          surf.draw_arc(
             color,
             world_loc,
             radius,
@@ -1466,7 +1470,7 @@ class RendererHuman {
         }
 
         if (u.getEnergy() && u.getEnergyMax()) {
-          draw_arc_ratio(colors.purple * 0.9, p, u.getRadius() - 0.1, 0, u.getEnergy() / u.getEnergyMax())
+          draw_arc_ratio(colors.purple.mul(0.9), p, u.getRadius() - 0.1, 0, u.getEnergy() / u.getEnergyMax())
         }
 
         if (0 < u.getBuildProgress() < 1) {
@@ -1497,12 +1501,13 @@ class RendererHuman {
                          u.getRadius() - 0.25, 0.28, 0.32, thickness)
         }
 
+        const self = this
         function write_small(loc, s) {
-          surf.write_world(this._font_small, colors.white, loc, String(s))
+          surf.write_world(self._font_small, colors.white, loc, String(s))
         }
 
         const name = this.get_unit_name(
-            surf, this._static_data.units.get(u.getUnitType(), "<none>"), u.getRadius())
+            surf, this._static_data.units[u.getUnitType()] || "<none>", u.getRadius())
         if (name) {
           write_small(p, name)
         }
@@ -1992,7 +1997,7 @@ class RendererHuman {
             })
           }
         }
-      }
+      } 
     })
   }
 
@@ -2000,42 +2005,58 @@ class RendererHuman {
     //Draw the base map.//
     const hmap_feature = features.SCREEN_FEATURES.height_map
     let hmap = hmap_feature.unpack(this._obs.getObservation())
-    if (!np.any(hmap)) {
-      hmap.add(100)
+    if (!tf.any(tf.cast(hmap, 'bool'))) {
+      hmap = hmap.add(100)
     }
-    const hmap_color = hmap_feature.color(hmap)
+    const hmap_color = hmap_feature.color(hmap, true)
     let out = hmap_color.mul(0.6)
 
     const creep_feature = features.SCREEN_FEATURES.creep
     const creep = creep_feature.unpack(this._obs.getObservation())
     const creep_mask = creep.greater(0)
-    const creep_color = creep_feature.color(creep)
-    let temp1 = out.where(creep_mask, out.mul(0.4))
-    let temp2 = creep_color.where(creep_mask, creep_color.mul(0.6))
-    out = out.where(creep_mask, temp1.add(temp2))
-    
-    const power_feature = features.SCREEN_FEATURES.power_feature
+    let creep_mask_out = creep_mask.broadcastTo([out.shape[2], out.shape[0], out.shape[1]])
+    creep_mask_out = creep_mask_out.transpose([1, 2, 0])
+    const creep_color = creep_feature.color(creep, true)
+
+    let temp1 = out.where(creep_mask_out, out.mul(0.4))
+    let temp2 = creep_color.where(creep_mask_out, creep_color.mul(0.6))
+    out = out.where(creep_mask_out, temp1.add(temp2))
+
+    const power_feature = features.SCREEN_FEATURES.power
     const power = power_feature.unpack(this._obs.getObservation())
     const power_mask = power.greater(0)
-    const power_color = power_feature.color(power)
-    temp1 = out.where(power_mask, out.mul(0.7))
-    temp2 = power_color.where(power_mask, power_color.mul(0.3))
-    out = out.where(power_mask, temp1.add(temp2))
+    let power_mask_out = power_mask.broadcastTo([out.shape[2], out.shape[0], out.shape[1]])
+    power_mask_out = power_mask_out.transpose([1, 2, 0])
+    const power_color = power_feature.color(power, true)
+
+    temp1 = out.where(power_mask_out, out.mul(0.7))
+    temp2 = power_color.where(power_mask_out, power_color.mul(0.3))
+    // 84 x 84 x color => 84 x 84 x 3
+    out = out.where(power_mask_out, temp1.add(temp2))
 
     if (this._render_player_relative) {
       const player_rel_feature = features.SCREEN_FEATURES.player_relative
       const player_rel = player_rel_feature.unpack(this._obs.getObservation())
       const player_rel_mask = player_rel.greater(0)
-      const player_rel_color = player_rel_feature.color(player_rel)
+      let player_rel_mask_out = player_rel_mask.broadcastTo([out.shape[2], out.shape[0], out.shape[1]])
+      player_rel_mask_out = player_rel_mask_out.transpose([1, 2, 0])
+      const player_rel_color = player_rel_feature.color(player_rel, true)
       out = out.where(player_rel_mask, player_rel_color)
     }
 
-    const visibility = features.SCREEN_FEATURES.visibility_map.unpack(this._obs.getObservation())
-    const visibility_fade = np.tensor([[0.5, 0.5, 0.5], [0.75, 0.75, 0.75], [1, 1, 1]])
-    out = out.where(visibility, out.mul(visibility_fade))
+    // 84 x 84
+    let visibility = features.SCREEN_FEATURES.visibility_map.unpack(this._obs.getObservation())
+    visibility = tf.cast(visibility, 'int32')
+    // 3 x color => 3 x 3
+    const visibility_fade = tf.tensor([[0.5, 0.5, 0.5], [0.75, 0.75, 0.75], [1, 1, 1]])
 
-    surf.blit_np_array(getImageData(out.dataSync(), out.shape, false))
-    window.gamejs.display.getSurface().blit(surf.surf, [surf.surf_rect.left, surf.surf_rect.top])
+    // console.log('tf.gather(visibility_fade, visibility) shape: ', tf.gather(visibility_fade, visibility).print())
+    //out *= visibility_fade[visibility]
+    out = out.mul(tf.gather(visibility_fade, visibility))
+    const rgb = true
+    out = tf.cast(out, 'int32')
+    surf.blit_np_array(getImageData(out.dataSync(), out.shape, rgb))
+    // window.gamejs.display.getSurface().blit(surf.surf, [surf.surf_rect.left, surf.surf_rect.top])
   }
 
   draw_mini_map(surf) {
@@ -2165,10 +2186,12 @@ class RendererHuman {
     if (layer != null) {
       const rgb = false
       surf.blit_np_array(features.Feature.unpack_image_data(layer, rgb, null, feature.palette))
+    // window.gamejs.display.getSurface().blit_np_array(surf.surf, [surf.surf_rect.left, surf.surf_rect.top])
     } else { // Ignore layers that aren't in this version of SC2.
       surf.surf.fill(colors.black.toCSS())
     }
     window.gamejs.display.getSurface().blit(surf.surf, [surf.surf_rect.left, surf.surf_rect.top])
+
   }
 
   draw_raw_layer(surf, from_obs, name, color, palette) {
@@ -2296,11 +2319,15 @@ class RendererHuman {
 
     this.draw_actions()
 
-    withPython(sw('flip'), () => {
-      // window.gamejs.display.flip()
-    })
+    // withPython(sw('flip'), () => {
+    //   // window.gamejs.display.flip()
+    // })
 
-    this._render_times.push(performance.now() - start_time)
+    // withPython(sw('tf.tidy'), () => {
+    //   window.tf.tidy(() => {})
+    // })
+
+    this._render_times.add(performance.now() - start_time)
   }
 
 }
