@@ -135,7 +135,7 @@ class RemoteSC2Env extends sc2_env.SC2Env {
     this._action_delay_fns = [null]
 
     const required_raw = visualize
-    const interface = this._get_interface(agent_interface_format, required_raw)
+    const interfacee = this._get_interface(agent_interface_format, required_raw)
     let ports
     if (Array.isArray(lan_port)) {
         if (lan_port.lenth != 4) {
@@ -149,7 +149,7 @@ class RemoteSC2Env extends sc2_env.SC2Env {
         }
     }
 
-    this._connect_remote(host, host_port, ports, race, name, map_inst, save_map, interface, agent_interface_format)
+    this._connect_remote(host, host_port, ports, race, name, map_inst, save_map, interfacee, agent_interface_format)
     this._finalize(visualize)
   }
 
