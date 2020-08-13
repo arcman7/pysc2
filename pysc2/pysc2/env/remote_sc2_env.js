@@ -168,7 +168,7 @@ class RemoteSC2Env extends sc2_env.SC2Env {
     super.close()
   }
 
-  async _connect_remote(host, host_port, lan_port, race, name, map_inst, save_map, interface, agent_interface_format) {
+  async _connect_remote(host, host_port, lan_port, race, name, map_inst, save_map, interfacee, agent_interface_format) {
     // Make sure this stays synced with bin/agent_remote.py.
     // Connect!
     console.info('Connecting...')
@@ -181,7 +181,7 @@ class RemoteSC2Env extends sc2_env.SC2Env {
     }
     // Create the join request.
     const join = new sc_pb.RequestJoinGame()
-    join.setOptions(interface)
+    join.setOptions(interfacee)
     join.setRace(race)
     join.setPlayerName(name)
     join.setSharedPort(0) //unused
