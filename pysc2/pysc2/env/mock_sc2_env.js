@@ -157,7 +157,7 @@ class SC2TestEnv extends _TestEnvironment {
   ```
 
   See base class for more details. */
-  constructor(_only_use_kwargs = null,
+  constructor({
     map_name = null,
     players = null,
     agent_interface_format = null,
@@ -174,7 +174,8 @@ class SC2TestEnv extends _TestEnvironment {
     random_seed = null,
     disable_fog = false,
     ensure_available_actions = true,
-    version = null) {
+    version = null
+  }, _only_use_kwargs = null) {
   /* nitializes an SC2TestEnv.
 
     Args:
