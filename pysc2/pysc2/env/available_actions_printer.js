@@ -1,4 +1,4 @@
-const path = require('path')
+const path = require('path') //eslint-disable-line
 const base_evn_wrapper = require(path.resolve(__dirname, './base_evn_wrapper.js'))
 /*An env wrapper to print the available actions.*/
 class AvailableActionsPrinter extends base_evn_wrapper.base_evn_wrapper {
