@@ -243,7 +243,7 @@ class SC2TestEnv extends _TestEnvironment {
     }
 
     if (isinstance(agent_interface_format, sc2_env.AgentInterfaceFormat)) {
-      agent_interface_format = Array(num_agents).fill([agent_interface_format])
+      agent_interface_format = Array(num_agents).fill(agent_interface_format)
     }
 
     if (agent_interface_format.length != num_agents) {
