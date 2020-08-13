@@ -57,7 +57,7 @@ class _TestEnvironment extends environment.Base {
     this._episode_steps = 0
     this.next_timestep = []
 
-    observation_spec.forEach((agent_index, obs_spec) => {
+    observation_spec.forEach((obs_spec, agent_index) => {
       const env = new environment.TimeStep({
         step_type: environment.StepType.MID,
         reward: 0.0,
@@ -78,8 +78,6 @@ class _TestEnvironment extends environment.Base {
 
   step(actions, step_mul = null) {
     /* Returns `next_observation` modifying its `step_type` if necessary. */
-    step_mul = null // ignored currently
-    // del step_mul
 
     if (actions.length !== this._num_agents) {
       throw new ValueError(`Expected ${this._num_agents} actions, received ${actions.length}.`)
@@ -129,7 +127,7 @@ class _TestEnvironment extends environment.Base {
     return this._observation_spec
   }
 
-  _default_observation(obs_spec, agent_index) {
+  _default_observation(obs_spec, agent_index) { //eslint-disable-line
     // Returns an observation based on the observation spec.
     const observation = {}
     obs_spec.forEach((key, spec) => {
@@ -249,31 +247,31 @@ class SC2TestEnv extends _TestEnvironment {
     if (agent_interface_format.length != num_agents) {
       throw new ValueError("The number of entries in agent_interface_format should correspond 1-1 with the number of agents.")
     }
-    super()
-    this._agent_interface_formats = agent_interface_format
-    this._features = Object.keys(agent_interface_format).map((key) => {
+    const _features = Object.keys(agent_interface_format).map((key) => {
       const interface_format = agent_interface_format[key]
       return features.Features({ interface_format, map_size: DUMMY_MAP_SIZE })
     })
     // ===== This part needs to be verified
-    this.num_agents = num_agents
-    let tuple1 = []
-    Object.keys(this._features).forEach((key) => {
-      const f = this._features[key]
-      tuple1.push(f.actionspec())
+    const action_spec = []
+    Object.keys(_features).forEach((key) => {
+      const f = _features[key]
+      action_spec.push(f.action_spec())
     })
-    this.action_spec = tuple1
-    let tuple2 = []
-    Object.keys(this._features).forEach((key) => {
-      const f = this._features[key]
-      tuple2.push(f.observation_spec())
+    // this.action_spec = tuple1
+    const observation_spec = []
+    Object.keys(_features).forEach((key) => {
+      const f = _features[key]
+      observation_spec.push(f.observation_spec())
     })
-    this.observation_spec = tuple2
+    super(num_agents, action_spec, observation_spec)
+    this._features = _features
     this.episode_length = 10
+    this._agent_interface_formats = agent_interface_format
+
     // =====
   }
 
-  save_replay() {
+  save_replay() { //eslint-disable-line
     // Does nothing.
   }
 
