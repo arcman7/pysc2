@@ -165,7 +165,7 @@ class RemoteSC2Env extends sc2_env.SC2Env {
     // We don't own the SC2 process, we shouldn't call quit in the super class.
     this._controller = null
     this._game_info = null
-    super().close()
+    super.close()
   }
 
   async _connect_remote(host, host_port, lan_port, race, name, map_inst, save_map, interface, agent_interface_format) {
