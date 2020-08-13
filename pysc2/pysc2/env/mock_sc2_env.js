@@ -2,15 +2,16 @@
 
 const s2clientprotocol = require('s2clientprotocol')
 const path = require('path')
-const environment = require(path.resolve(__dirname, 'environment.js'))
-const sc2_env = require(path.resolve(__dirname, 'sc2_env.js'))
+const environment = require(path.resolve(__dirname, './environment.js'))
+const sc2_env = require(path.resolve(__dirname, './sc2_env.js'))
 const features = require(path.resolve(__dirname, '..', 'lib', 'features.js'))
 const point = require(path.resolve(__dirname, '..', 'lib', 'point.js'))
 const units = require(path.resolve(__dirname, '..', 'lib', 'units.js'))
 const dummy_observation = require(path.resolve(__dirname, '..', 'tests', 'dummy_observation.js'))
 const np = require(path.resolve(__dirname, '..', 'lib', 'numpy.js'))
-const { common_pb } = s2clientprotocol
-
+const pythonUtils = require(path.resolve(__dirname, '..', 'lib', 'pythonUtils.js'))
+const common_pb = s2clientprotocol.common_pb
+const { isinstance, ValueError } = pythonUtils
 const DUMMY_MAP_SIZE = point.Point(256, 256)
 
 class _TestEnvironment extends environment.Base {
@@ -49,20 +50,22 @@ class _TestEnvironment extends environment.Base {
       observation_spec: The observation specs for each player.
       action_spec: The action specs for each player.
     */
+    super()
     this._num_agents = num_agents
     this._observation_spec = observation_spec
     this._action_spec = action_spec
     this._episode_steps = 0
     this.next_timestep = []
 
-    for ( let [agent_index, obs_spec] of Object.entries(observation_spec)) {
-      this.next_timestep.push(environment.TimeStep({
+    observation_spec.forEach((agent_index, obs_spec) => {
+      const env = new environment.TimeStep({
         step_type: environment.StepType.MID,
         reward: 0.0,
         discount: 1.0,
         observation: this._default_observation(obs_spec, agent_index)
-      }))
-    }
+      })
+      this.next_timestep.push(env)
+    })
 
     this.episode_length = Infinity
   }
@@ -70,16 +73,16 @@ class _TestEnvironment extends environment.Base {
   reset() {
     /* Restarts episode and returns `next_observation` with `StepType.FIRST`. */
     this._episode_steps = 0
-    return this.step([null] * this._num_agents)
+    return this.step(Array(this._num_agents).fill(null))
   }
 
   step(actions, step_mul = null) {
     /* Returns `next_observation` modifying its `step_type` if necessary. */
     step_mul = null // ignored currently
-    // del step_mul 
+    // del step_mul
 
     if (actions.length !== this._num_agents) {
-      throw new Error("ValueError: Expected ${this._num_agents} actions, received ${actions.length}.")
+      throw new ValueError(`Expected ${this._num_agents} actions, received ${actions.length}.`)
     }
 
     let step_type
@@ -92,19 +95,16 @@ class _TestEnvironment extends environment.Base {
     }
 
     const timesteps = []
-    Object.keys(this.next_timestep).forEach((key) => {
-      const timestep = this.next_timestep[key]
+    this.next_timestep.forEach((timestep) => {
       if (step_type === environment.StepType.FIRST) {
-        timesteps.push(timestep._replace({
-          step_type,
-          reward: 0.0,
-          discount: 0.0
-        }))
+        timestep.step_type = step_type
+        timestep.reward = 0.0
+        timestep.discount = 0.0
+        timesteps.push(timestep)
       } else if (step_type === environment.StepType.LAST) {
-        timesteps.push(timestep._replace({
-          step_type,
-          discount: 0.0
-        }))
+        timestep.step_type = step_type
+        timestep.discount = 0.0
+        timesteps.push(timestep)
       } else {
         timesteps.push(timestep)
       }
@@ -132,12 +132,10 @@ class _TestEnvironment extends environment.Base {
   _default_observation(obs_spec, agent_index) {
     // Returns an observation based on the observation spec.
     const observation = {}
-    Object.keys(obs_spec.items()).forEach((key) => {
-      const spec = obs_spec.items()[key]
-      observation[key] = np.zeros({
-        shape: spec,
-        dytpe: int32
-      })
+    obs_spec.forEach((key, spec) => {
+      const shape = spec
+      const dtype = np.int32
+      observation[key] = np.zeros(shape, dtype)
     })
     return observation
   }
@@ -179,7 +177,7 @@ class SC2TestEnv extends _TestEnvironment {
     disable_fog = false,
     ensure_available_actions = true,
     version = null) {
-        /* nitializes an SC2TestEnv.
+  /* nitializes an SC2TestEnv.
 
     Args:
       _only_use_kwargs: Don't pass args, only kwargs.
@@ -221,43 +219,43 @@ class SC2TestEnv extends _TestEnvironment {
     version = null
 
     if (_only_use_kwargs) {
-      throw Error("ValueError: All arguments must be passed as keyword arguments.")
+      throw new ValueError("All arguments must be passed as keyword arguments.")
     }
 
     if (realtime) {
-      throw Error("ValueError: realtime mode is not supported by the mock env.")
+      throw new ValueError("realtime mode is not supported by the mock env.")
     }
+
     let num_agents
     if (!(players)) {
       num_agents = 1
     } else {
       num_agents = 0
-      Object.keys(players).forEach((key) => {
-        const p = players[key]
-        if (p instanceof sc2_env.Agent) {
+      players.forEach((p) => {
+        if (isinstance(p, sc2_env.Agent)) {
           num_agents += 1
         }
       })
     }
 
     if (agent_interface_format === null) {
-      throw Error("ValueError: Please specify agent_interface_format.")
+      throw new ValueError("Please specify agent_interface_format.")
     }
 
-    if (agent_interface_format instanceof sc2_env.AgentInterfaceFormat) {
-      agent_interface_format = [agent_interface_format] * num_agents
+    if (isinstance(agent_interface_format, sc2_env.AgentInterfaceFormat)) {
+      agent_interface_format = Array(num_agents).fill([agent_interface_format])
     }
 
     if (agent_interface_format.length != num_agents) {
-      throw Error("ValueError: The number of entries in agent_interface_format should correspond 1-1 with the number of agents.")
+      throw new ValueError("The number of entries in agent_interface_format should correspond 1-1 with the number of agents.")
     }
-
+    super()
     this._agent_interface_formats = agent_interface_format
     this._features = Object.keys(agent_interface_format).map((key) => {
       const interface_format = agent_interface_format[key]
       return features.Features({ interface_format, map_size: DUMMY_MAP_SIZE })
     })
-    super()
+    // ===== This part needs to be verified
     this.num_agents = num_agents
     let tuple1 = []
     Object.keys(this._features).forEach((key) => {
@@ -271,8 +269,8 @@ class SC2TestEnv extends _TestEnvironment {
       tuple2.push(f.observation_spec())
     })
     this.observation_spec = tuple2
-
     this.episode_length = 10
+    // =====
   }
 
   save_replay() {
@@ -281,16 +279,23 @@ class SC2TestEnv extends _TestEnvironment {
 
   _default_observation(obs_spec, agent_index) {
     // Returns a mock observation from an SC2Env.
+
     const builder = dummy_observation.Builder(obs_spec).game_loop(0)
     const aif = this._agent_interface_formats[agent_index]
     if (aif.use_feature_units || aif.use_raw_units) {
+      const unit_type = units.Neutral.LabBot
+      const alliance = features.PlayerRelative.NEUTRAL
+      const pos = new common_pb.Point()
+      pos.setX(10)
+      pos.setY(10)
+      pos.setZ(10)
       const feature_units = [
         dummy_observation.FeatureUnit({
-          units.Neutral.LabBot, 
-          features.PlayerRelative.NEUTRAL,
+          unit_type,
+          alliance,
           owner: 16,
-          pos: common_pb.Point(x = 10, y = 10, z = 0),
-          radius:  1.0,
+          pos,
+          radius: 1.0,
           health: 5,
           health_max: 5,
           is_on_screen: true,
@@ -304,16 +309,21 @@ class SC2TestEnv extends _TestEnvironment {
     const observation = features_.transform_obs(response_observation)
 
     // Add bounding box for the minimap camera in top left of feature screen.
-    if ("feature_minimap" in observation) {
+    if (observation.includes("feature_minimap")) {
       const minimap_camera = observation.feature_minimap.camera
-      minimap_camera.fill(0)
-      Object.keys(minimap_camera.shape).forEach((key) => {
-        const dim = minimap_camera.shape[key]
-        const [height, width] = [Math.floor(dim / 2)]
-      })
-      minimap_camera.slice(0, height).map(i => i.slice(0, width)).fill(1)
+      const h = minimap_camera.length
+      const w = minimap_camera[0].length
+      for (let i = 0; i < h; i++) {
+        for (let j = 0; j < w; j++) {
+          minimap_camera[i][j] = 0
+        }
+      }
+      for (let i = 0; i < Math.floor(h / 2); i++) {
+        for (let j = 0; j < Math.floor(w / 2); j++) {
+          minimap_camera[i][j] = 1
+        }
+      }
     }
-
     return observation
   }
 }
