@@ -176,7 +176,7 @@ class SC2TestEnv extends _TestEnvironment {
     ensure_available_actions = true,
     version = null
   }, _only_use_kwargs = null) {
-  /* nitializes an SC2TestEnv.
+  /* intializes an SC2TestEnv.
 
     Args:
       _only_use_kwargs: Don't pass args, only kwargs.
@@ -252,13 +252,11 @@ class SC2TestEnv extends _TestEnvironment {
       const interface_format = agent_interface_format[key]
       return features.Features({ interface_format, map_size: DUMMY_MAP_SIZE })
     })
-    // ===== This part needs to be verified
     const action_spec = []
     Object.keys(_features).forEach((key) => {
       const f = _features[key]
       action_spec.push(f.action_spec())
     })
-    // this.action_spec = tuple1
     const observation_spec = []
     Object.keys(_features).forEach((key) => {
       const f = _features[key]
@@ -268,8 +266,6 @@ class SC2TestEnv extends _TestEnvironment {
     this._features = _features
     this.episode_length = 10
     this._agent_interface_formats = agent_interface_format
-
-    // =====
   }
 
   save_replay() { //eslint-disable-line
