@@ -227,7 +227,6 @@ class SC2Env extends environment.Base {
     to_list(map_name).forEach((name) => {
       this._maps.push(maps.get(name))
     })
-    this._maps = maps
     const playercollect = []
     this._maps.forEach((m) => {
       playercollect.push(m.players)
