@@ -46,7 +46,8 @@ function udp_server(addr) {
   return prom
 }
 
-function tcp_server(tcp_addr, settings) {
+const window = this
+async function tcp_server(tcp_addr, settings) {
   //Start up the tcp server, send the settings.
 
   // node determines whether or not to use ipv4 vs ipv6
@@ -61,14 +62,37 @@ function tcp_server(tcp_addr, settings) {
     // c.write('hello\r\n')
     // c.pipe(c)
   })
-
   const prom = new Promise((resolve) => {
     sock.listen({
       port: tcp_addr.port,
       host: tcp_addr.ip,
-    }, resolve)
+    }, (connection) => {
+      console.log('from sock.listen callback')
+      console.log(connection)
+      window.test = connection
+      resolve(connection)
+    })
   })
-  return prom
+  const conn = await prom
+  const { address } = conn._socket.address()
+  console.log(`Accepted connection from $${address}`)
+  // Send map_data independently
+  await write_tcp(conn, settings['map_data'])
+  const send_settings = {}
+  Object.keys(settings).forEach((k) => {
+    if (k === 'map_data') {
+      return
+    }
+    send_settings[k] = settings[k]
+  })
+  console.log(`settings: ${send_settings}`)
+  write_tcp(conn, JSON.stringify(send_settings))
+  return conn
+}
+
+function tcp_client(tcp_addr) {
+  //Connect to the tcp server, and return the settings.//
+  
 }
 
 module.exports = {
@@ -76,4 +100,5 @@ module.exports = {
   // deamon_thread,
   udp_server,
   tcp_server,
+  tcp_client
 }

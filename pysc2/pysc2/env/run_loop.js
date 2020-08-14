@@ -1,6 +1,6 @@
 // A run loop for agent/environment interaction.
-const path = require('path')
-const { performance } = require('perf_hooks')
+const path = require('path') //eslint-disable-line
+const { performance } = require('perf_hooks') //eslint-disable-line
 const pythonUtils = require(path.resolve(__dirname, '..', 'lib', 'pythonUtils.js'))
 const { zip } = pythonUtils
 
@@ -30,7 +30,7 @@ function run_loop(agents, env, max_frames = 0, max_episodes = 0) {
       })
       while (true) {
         total_frames += 1
-        const actions = []
+        const actions = zip(agents, timesteps).map((agent, timestep) => agent.step(timestep))
         if (max_frames && total_frames >= max_frames) {
           return
         }
@@ -41,7 +41,7 @@ function run_loop(agents, env, max_frames = 0, max_episodes = 0) {
       }
     }
   } catch (KeyboardInterrupt) {
-    return
+    //do nothing
   } finally {
     const elapsed_time = performance.now() * 1000 - start_time
     const frame_ratio = total_frames / elapsed_time
