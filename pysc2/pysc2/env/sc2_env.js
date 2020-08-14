@@ -296,9 +296,10 @@ class SC2Env extends environment.Base {
     this._interface_formats = agent_interface_format
 
     this._interface_options = []
+    const self = this
     agent_interface_format.forEach((interface_format, i) => {
       const require_raw = visualize && i === 0
-      this._interface_options.push(this._get_interface(interface_format, require_raw))
+      self._interface_options.push(self._get_interface(interface_format, require_raw))
     })
 
     // apply @sw.decorate
@@ -379,6 +380,10 @@ class SC2Env extends environment.Base {
     }
 
     return interfacee
+  }
+
+  _get_interface(agent_interface_format, require_raw) { //eslint-disable-line
+    return SC2Env._get_interface(agent_interface_format, require_raw)
   }
 
   async _launch_game() {
