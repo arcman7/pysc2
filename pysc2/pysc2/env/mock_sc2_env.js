@@ -12,7 +12,7 @@ const np = require(path.resolve(__dirname, '..', 'lib', 'numpy.js'))
 const pythonUtils = require(path.resolve(__dirname, '..', 'lib', 'pythonUtils.js'))
 const common_pb = s2clientprotocol.common_pb
 const { isinstance, ValueError } = pythonUtils
-const DUMMY_MAP_SIZE = point.Point(256, 256)
+const DUMMY_MAP_SIZE = new point.Point(256, 256)
 
 class _TestEnvironment extends environment.Base {
   /*
