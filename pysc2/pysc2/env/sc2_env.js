@@ -24,13 +24,11 @@ const actions_lib = actions
 
 /* A Starcraft II environment. */
 
-
 const possible_results = {}
 possible_results[sc_pb.Result.VICTORY] = 1
 possible_results[sc_pb.Result.DEFEAT] = -1
 possible_results[sc_pb.Result.TIE] = 0
 possible_results[sc_pb.Result.UNDECIDED] = 0
-
 
 const Race = Enum.IntEnum('Race', {
   random: sc_common.Race.RANDOM,
@@ -229,7 +227,6 @@ class SC2Env extends environment.Base {
     to_list(map_name).forEach((name) => {
       this._maps.push(maps.get(name))
     })
-    this._maps = maps
     const playercollect = []
     this._maps.forEach((m) => {
       playercollect.push(m.players)
@@ -1063,8 +1060,17 @@ function crop_and_deduplicate_names(names) {
 }
 
 module.exports = {
+  possible_results,
+  Race,
+  BotBuild,
+  ActionSpace,
+  Dimensions,
+  AgentInterfaceFormat,
+  parse_agent_interface_format,
   crop_and_deduplicate_names,
   Difficulty,
+  Agent,
+  Bot,
   MAX_STEP_COUNT,
   NUM_ACTION_DELAY_BUCKETS,
   REALTIME_GAME_LOOP_SECONDS,
