@@ -62,7 +62,9 @@ class _TestEnvironment extends environment.Base {
     observation_spec.forEach((obs_spec, agent_index) => {
       // console.log('obs_spec: ', obs_spec)
       // console.log('super._default_observation: ', super._default_observation)
-      console.log('observation_spec.forEach')
+      console.log('   observation_spec.forEach  ', agent_index)
+      console.log('obs_spec **********************************')
+      console.log(obs_spec)
       const env = new environment.TimeStep({
         step_type: environment.StepType.MID,
         reward: 0.0,
@@ -149,9 +151,7 @@ class _TestEnvironment extends environment.Base {
     // Returns an observation based on the observation spec.
     const observation = {}
     obs_spec.forEach((spec, key) => {
-      console.log('key:', key)
       const shape = spec
-      console.log('*************** spec:', spec)
       // const dtype = np.int32
       observation[key] = np.zeros(shape, 'int32')
     })
@@ -302,12 +302,11 @@ class SC2TestEnv extends _TestEnvironment {
 
   _default_observation(obs_spec, agent_index, _agent_interface_formats) {
     // Returns a mock observation from an SC2Env.
-    // console.log('this: ', this)
     const builder = new dummy_observation.Builder(obs_spec).game_loop(0)
-    if (!(_agent_interface_formats || this._agent_interface_formats))  {
-      console.log('bad aif: -> this: ', this)
-      console.log('aif: ', (_agent_interface_formats || this._agent_interface_formats))
-    }
+    // if (!(_agent_interface_formats || this._agent_interface_formats)) {
+    //   console.log('bad aif: -> this: ', this)
+    //   console.log('aif: ', (_agent_interface_formats || this._agent_interface_formats))
+    // }
     const aif = (_agent_interface_formats || this._agent_interface_formats)[agent_index]
     if (aif.use_feature_units || aif.use_raw_units) {
       const unit_type = units.Neutral.LabBot
@@ -330,16 +329,17 @@ class SC2TestEnv extends _TestEnvironment {
       ]
       builder.feature_units(feature_units)
     }
-
     const response_observation = builder.build()
-    console.log('_default_observation this: ', this)
+    // console.log('_default_observation this: ', this)
     const features_ = this._features[agent_index]
+    console.log('response_observation:\n', response_observation.toObject())
     const observation = features_.transform_obs(response_observation)
+    // console.log('observation:\n', observation)
 
     // Add bounding box for the minimap camera in top left of feature screen.
     if (observation.includes("feature_minimap")) {
       const minimap_camera = observation.feature_minimap.camera
-      console.log( '  observation:\n    ', observation)
+      console.log('  observation:\n    ', observation)
       const h = minimap_camera.length
       const w = minimap_camera[0].length
       for (let i = 0; i < h; i++) {

@@ -18,8 +18,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import  collections
-from pysc2.env import all_collections_generated_classes
+import collections
 from absl import logging
 import random
 import time
@@ -123,8 +122,7 @@ def get_default(a, b):
   return b if a is None else a
 
 
-# class Agent(collections.namedtuple("Agent", ["race", "name"])):
-class Agent(all_collections_generated_classes.Agent):
+class Agent(collections.namedtuple("Agent", ["race", "name"])):
   """Define an Agent. It can have a single race or a list of races."""
 
   def __new__(cls, race, name=None):
@@ -132,8 +130,7 @@ class Agent(all_collections_generated_classes.Agent):
     return super().__new__(cls, to_list(race), name or "<unknown>")
 
 
-# class Bot(collections.namedtuple("Bot", ["race", "difficulty", "build"])):
-class Bot(all_collections_generated_classes.Bot):
+class Bot(collections.namedtuple("Bot", ["race", "difficulty", "build"])):
   """Define a Bot. It can have a single or list of races or builds."""
 
   def __new__(cls, race, difficulty, build=None):
@@ -143,10 +140,9 @@ class Bot(all_collections_generated_classes.Bot):
         cls, to_list(race), difficulty, to_list(build or BotBuild.random))
 
 
-# _DelayedAction = collections.namedtuple(
-    # "DelayedAction", ["game_loop", "action"])
+_DelayedAction = collections.namedtuple(
+    "DelayedAction", ["game_loop", "action"])
 
-_DelayedAction = all_collections_generated_classes.DelayedAction
 
 REALTIME_GAME_LOOP_SECONDS = 1 / 22.4
 MAX_STEP_COUNT = 524000  # The game fails above 2^19=524288 steps.
@@ -840,7 +836,7 @@ def crop_and_deduplicate_names(names):
 
   # De-duplicate.
   deduplicated = []
-  name_counts = all_collections_generated_classes.Counter(n for n in cropped)
+  name_counts = collections.Counter(n for n in cropped)
   # name_index = collections.defaultdict(lambda: 1)
   name_index = defaultdict(default=lambda key: 1)
   for n in cropped:
