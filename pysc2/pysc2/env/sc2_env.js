@@ -2,7 +2,7 @@ const path = require('path') //eslint-disable-line
 const { performance } = require('perf_hooks') //eslint-disable-line
 const s2clientprotocol = require('s2clientprotocol') //eslint-disable-line
 const Enum = require('python-enum') //eslint-disable-line
-const deque = require('collections/deque') //eslint-disable-line
+const Deque = require('double-ended-queue') //eslint-disable-line
 const maps = require(path.resolve(__dirname, '..', 'maps')) //eslint-disable-line
 const run_configs = require(path.resolve(__dirname, '..', 'run_configs')) //eslint-disable-line
 const environment = require(path.resolve(__dirname, 'environment.js'))
@@ -320,8 +320,9 @@ class SC2Env extends environment.Base {
   }
 
   _finalize(visualize) {
+    this._delayed_actions = []
     for (let i = 0; i < this._action_delay_fns.length; i++) {
-      this._delayed_actions = [deque(undefined, 200)]
+      this._delayed_actions.push(new Deque(200))
     }
 
     if (visualize) {
