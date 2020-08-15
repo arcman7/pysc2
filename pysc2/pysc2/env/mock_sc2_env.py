@@ -134,6 +134,7 @@ class _TestEnvironment(environment.Base):
     """Returns an observation based on the observation spec."""
     observation = {}
     for key, spec in obs_spec.items():
+      print('spec-shape:', spec)
       observation[key] = np.zeros(shape=spec, dtype=np.int32)
     return observation
 
@@ -259,6 +260,7 @@ class SC2TestEnv(_TestEnvironment):
 
     builder = dummy_observation.Builder(obs_spec).game_loop(0)
     aif = self._agent_interface_formats[agent_index]
+    print('after self._agent_interface_formats[agent_index]')
     if aif.use_feature_units or aif.use_raw_units:
       feature_units = [
           dummy_observation.FeatureUnit(

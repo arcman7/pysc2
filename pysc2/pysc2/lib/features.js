@@ -360,7 +360,10 @@ class Feature extends namedtuple('Feature', ['index', 'name', 'layer_set', 'full
   }
 
   static unpack_rgb_image(plane) {
-    //Return a correctly shaped numpy array given the image bytes.//
+    //Return a correctly shaped numpy array given the image bytes.//]
+    if (!plane || plane.getBitsPerPixel) {
+      console.log('static unpack_rgb_image:\n   ', plane)
+    }
     if (plane.getBitsPerPixel() !== 24) {
       throw new ValueError(`plane.bits_per_pixel ${plane.getBitsPerPixel()} !== 24`)
     }
