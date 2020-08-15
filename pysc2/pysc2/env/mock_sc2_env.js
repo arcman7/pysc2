@@ -13,7 +13,6 @@ const pythonUtils = require(path.resolve(__dirname, '..', 'lib', 'pythonUtils.js
 const common_pb = s2clientprotocol.common_pb
 const { isinstance, ValueError } = pythonUtils
 const DUMMY_MAP_SIZE = new point.Point(256, 256)
-
 class _TestEnvironment extends environment.Base {
   /*
    simple generic test environment.
@@ -254,7 +253,6 @@ class SC2TestEnv extends _TestEnvironment {
     // })
     const _features = Object.keys(agent_interface_format).map((key) => {
       const interface_format = agent_interface_format[key]
-      console.log(DUMMY_MAP_SIZE.toObject())
       return new features.Features(interface_format, DUMMY_MAP_SIZE)
     })
     const action_spec = []
@@ -271,6 +269,7 @@ class SC2TestEnv extends _TestEnvironment {
     this._features = _features
     this.episode_length = 10
     this._agent_interface_formats = agent_interface_format
+    console.log('this.*** : ', this._agent_interface_formats)
   }
 
   save_replay() { //eslint-disable-line
@@ -279,8 +278,8 @@ class SC2TestEnv extends _TestEnvironment {
 
   _default_observation(obs_spec, agent_index) {
     // Returns a mock observation from an SC2Env.
-
-    const builder = dummy_observation.Builder(obs_spec).game_loop(0)
+    console.log('this: ', this)
+    const builder = new dummy_observation.Builder(obs_spec).game_loop(0)
     const aif = this._agent_interface_formats[agent_index]
     if (aif.use_feature_units || aif.use_raw_units) {
       const unit_type = units.Neutral.LabBot
