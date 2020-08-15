@@ -1,5 +1,7 @@
 const net = require('net') //eslint-disable-line
 const dgram = require('dgram') //eslint-disable-line
+const crypto = require('crypto') //eslint-disable-line
+const binascii = require('binascii') //eslint-disable-line
 const s2clientprotocol = require('s2clientprotocol') //eslint-disable-line
 const path = require('path') //eslint-disable-line
 const run_config = require(path.resolve(__dirname, '..')) //eslint-disable-line
@@ -55,9 +57,9 @@ async function tcp_server(tcp_addr, settings) {
   // options to the listen method
   const sock = net.createServer((c) => {
     // 'connection' listener.
-    console.log('client connected')
+    console.info('client connected')
     c.on('end', () => {
-      console.log('client disconnected')
+      console.info('client disconnected')
     })
     // c.write('hello\r\n')
     // c.pipe(c)
@@ -75,7 +77,7 @@ async function tcp_server(tcp_addr, settings) {
   })
   const conn = await prom
   const { address } = conn._socket.address()
-  console.log(`Accepted connection from $${address}`)
+  console.info(`Accepted connection from $${address}`)
   // Send map_data independently
   await write_tcp(conn, settings['map_data'])
   const send_settings = {}
@@ -85,18 +87,47 @@ async function tcp_server(tcp_addr, settings) {
     }
     send_settings[k] = settings[k]
   })
-  console.log(`settings: ${send_settings}`)
-  write_tcp(conn, JSON.stringify(send_settings))
+  console.debug(`settings: ${send_settings}`)
+  await write_tcp(conn, JSON.stringify(send_settings))
   return conn
 }
 
-function tcp_client(tcp_addr) {
+async function tcp_client(tcp_addr) {
   //Connect to the tcp server, and return the settings.//
-  
+  console.info(`Connecting to :${tcp_addr}, ${0}`)
+  let sock
+  const prom = new Promise((resolve) => {
+    sock = net.connect(tcp_addr.port, tcp_addr.host, resolve)
+  })
+  await prom
+  console.info('Connected')
+  const map_data = await read_tcp(sock)
+  const settings_str = await read_tcp(sock)
+  if (!settings_str) {
+    throw new Error('Failed to read socket.')
+  }
+  const settings = JSON.parse(settings_str)
+  console.debug(`Got settings. map_name: ${settings['map_name']}`)
+  settings['map_data'] = map_data
+  return { sock, settings }
+}
+
+function log_msg(prefix, msg) {
+  const md5sum = crypto.createHash('md5')
+  md5sum.update(new Buffer(msg, 'utf8')) //eslint-disable-line
+  const md5val = md5sum.digest('hex');
+  console.debug(`${prefix}: len: ${msg.length}, hash: ${md5val.slice(0, 6)}, ${binascii.hexlify(msg.slice(0, 25))}`)
+}
+
+function udp_to_tcp(udp_sock, tcp_conn) {
+  // while (true) {
+    
+  // }
 }
 
 module.exports = {
   Addr,
+  log_msg,
   // deamon_thread,
   udp_server,
   tcp_server,
