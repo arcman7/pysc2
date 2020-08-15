@@ -361,22 +361,29 @@ class SC2Env extends environment.Base {
     interfacee.setRawAffectsSelection(true)
     interfacee.setRawCropToPlayableArea(aif.raw_crop_to_playable_area)
     interfacee.setScore(true)
-
     if (aif.feature_dimensions) {
-      interfacee.getFeatureLayer().setWidth(aif.camera_width_world_units)
+      const feature_layer = new sc_pb.SpatialCameraSetup()
+      interfacee.setFeatureLayer(feature_layer)
+      feature_layer.setWidth(aif.camera_width_world_units)
+      feature_layer.setResolution(new sc_pb.Size2DI())
+      feature_layer.setMinimapResolution(new sc_pb.Size2DI())
       aif.feature_dimensions.screen.assign_to(
-        interfacee.getFeatureLayer().getResolution()
+        feature_layer.getResolution()
       )
       aif.feature_dimensions.minimap.assign_to(
-        interfacee.getFeatureLayer().getMinimapResolution()
+        feature_layer.getMinimapResolution()
       )
-      interfacee.getFeatureLayer().setCropToPlayableArea(aif.crop_to_playable_area)
-      interfacee.getFeatureLayer().setAllowCheatingLayers(aif.allow_cheating_layers)
+      feature_layer.setCropToPlayableArea(aif.crop_to_playable_area)
+      feature_layer.setAllowCheatingLayers(aif.allow_cheating_layers)
     }
 
     if (aif.rgb_dimensions) {
-      aif.rgb_dimensions.screen.assign_to(interfacee.getRender().getResolution())
-      aif.rgb_dimensions.minimap.assign_to(interfacee.getRender().getMinimapResolution())
+      const render = new sc_pb.SpatialCameraSetup()
+      interfacee.setRender(render)
+      render.setResolution(new sc_pb.Size2DI())
+      render.setMinimapResolution(new sc_pb.Size2DI())
+      aif.rgb_dimensions.screen.assign_to(render.getResolution())
+      aif.rgb_dimensions.minimap.assign_to(render.getMinimapResolution())
     }
 
     return interfacee
