@@ -691,7 +691,7 @@ class SC2Env extends environment.Base {
     zip(actionss, this._action_delay_fns, this._delayed_actions)
       .forEach(([actions_for_player, delay_fn, delayed_actions]) => {
         const actions_now_for_player = []
-        actions_for_player.forEach((action) => {
+        actions_for_player.toArray().forEach((action) => {
           const delay = delay_fn ? delay_fn() : 1
           if (delay > 1 && Object.keys(action.toObject()).length) { //action.ListFields() //Skip no-ops
             let game_loop = this._episode_steps + delay - 1
