@@ -248,9 +248,14 @@ class SC2TestEnv extends _TestEnvironment {
     if (agent_interface_format.length != num_agents) {
       throw new ValueError("The number of entries in agent_interface_format should correspond 1-1 with the number of agents.")
     }
+    // console.log(agent_interface_format)
+    // const _features = agent_interface_format.map((interface_format) => {
+    //   return new features.Features({ interface_format, map_size: DUMMY_MAP_SIZE })
+    // })
     const _features = Object.keys(agent_interface_format).map((key) => {
       const interface_format = agent_interface_format[key]
-      return features.Features({ interface_format, map_size: DUMMY_MAP_SIZE })
+      console.log(DUMMY_MAP_SIZE.toObject())
+      return new features.Features(interface_format, DUMMY_MAP_SIZE)
     })
     const action_spec = []
     Object.keys(_features).forEach((key) => {
