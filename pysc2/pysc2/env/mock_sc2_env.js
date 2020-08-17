@@ -49,7 +49,6 @@ class _TestEnvironment extends environment.Base {
       observation_spec: The observation specs for each player.
       action_spec: The action specs for each player.
     */
-    console.log('from: _TestEnvironment construcor')
     super()
     this._num_agents = num_agents
     this._observation_spec = observation_spec
@@ -58,13 +57,7 @@ class _TestEnvironment extends environment.Base {
     this.next_timestep = []
     this._agent_interface_format = agent_interface_format
     this._features = _features
-    console.log('   after super')
     observation_spec.forEach((obs_spec, agent_index) => {
-      // console.log('obs_spec: ', obs_spec)
-      // console.log('super._default_observation: ', super._default_observation)
-      console.log('   observation_spec.forEach  ', agent_index)
-      console.log('obs_spec **********************************')
-      console.log(obs_spec)
       const env = new environment.TimeStep({
         step_type: environment.StepType.MID,
         reward: 0.0,
@@ -74,7 +67,6 @@ class _TestEnvironment extends environment.Base {
       this.next_timestep.push(env)
     })
     this.episode_length = Infinity
-    console.log('end of _TestEnvironment construcor')
   }
 
   reset() {
@@ -269,31 +261,26 @@ class SC2TestEnv extends _TestEnvironment {
     if (agent_interface_format.length != num_agents) {
       throw new ValueError("The number of entries in agent_interface_format should correspond 1-1 with the number of agents.")
     }
-    console.log('SC2TestEnv constructor _agent_interface_formats *** : ', agent_interface_format)
     const _features = Object.keys(agent_interface_format).map((key) => {
       const interface_format = agent_interface_format[key]
       return new features.Features(interface_format, DUMMY_MAP_SIZE)
     })
     const action_spec = []
-    console.log('here')
     Object.keys(_features).forEach((key) => {
       const f = _features[key]
       action_spec.push(f.action_spec())
     })
-    console.log('here 1.2')
     const observation_spec = []
     Object.keys(_features).forEach((key) => {
       const f = _features[key]
       observation_spec.push(f.observation_spec())
     })
-    console.log('here 1.5')
-    super(num_agents, action_spec, observation_spec, agent_interface_format, _features)
+    super(num_agents, observation_spec, action_spec, agent_interface_format, _features)
     console.log('here 2')
 
     this._features = _features
     this.episode_length = 10
     this._agent_interface_formats = agent_interface_format
-    console.log('this *************** : ', this._agent_interface_formats)
   }
 
   save_replay() { //eslint-disable-line
@@ -303,10 +290,6 @@ class SC2TestEnv extends _TestEnvironment {
   _default_observation(obs_spec, agent_index, _agent_interface_formats) {
     // Returns a mock observation from an SC2Env.
     const builder = new dummy_observation.Builder(obs_spec).game_loop(0)
-    // if (!(_agent_interface_formats || this._agent_interface_formats)) {
-    //   console.log('bad aif: -> this: ', this)
-    //   console.log('aif: ', (_agent_interface_formats || this._agent_interface_formats))
-    // }
     const aif = (_agent_interface_formats || this._agent_interface_formats)[agent_index]
     if (aif.use_feature_units || aif.use_raw_units) {
       const unit_type = units.Neutral.LabBot
@@ -332,14 +315,13 @@ class SC2TestEnv extends _TestEnvironment {
     const response_observation = builder.build()
     // console.log('_default_observation this: ', this)
     const features_ = this._features[agent_index]
-    console.log('response_observation:\n', response_observation.toObject())
+    // console.log('response_observation:\n', response_observation.toObject())
     const observation = features_.transform_obs(response_observation)
-    // console.log('observation:\n', observation)
+    console.log('observation:\n', observation)
 
     // Add bounding box for the minimap camera in top left of feature screen.
     if (observation.includes("feature_minimap")) {
       const minimap_camera = observation.feature_minimap.camera
-      console.log('  observation:\n    ', observation)
       const h = minimap_camera.length
       const w = minimap_camera[0].length
       for (let i = 0; i < h; i++) {

@@ -231,7 +231,6 @@ class Feature extends namedtuple('Feature', ['index', 'name', 'layer_set', 'full
   */
 
   constructor(kwargs) {
-    // console.log('from Feature constructor: ', kwargs)
     super(kwargs)
     // javascript only set up
     this.color = sw.decorate(this.color.bind(this))
@@ -361,9 +360,6 @@ class Feature extends namedtuple('Feature', ['index', 'name', 'layer_set', 'full
 
   static unpack_rgb_image(plane) {
     //Return a correctly shaped numpy array given the image bytes.//]
-    if (!plane || plane.getBitsPerPixel) {
-      console.log('static unpack_rgb_image:\n   ', plane)
-    }
     if (plane.getBitsPerPixel() !== 24) {
       throw new ValueError(`plane.bits_per_pixel ${plane.getBitsPerPixel()} !== 24`)
     }
@@ -428,7 +424,6 @@ class MinimapFeatures extends namedtuple('MinimapFeatures', [
   constructor(kwargs) {
     const feats = {}
     let val
-    // console.log('MinimapFeatures constructor: ', kwargs)
     Object.keys(kwargs).forEach((name) => {
       val = kwargs[name]
       const [scale, type_, palette] = val
@@ -1242,7 +1237,6 @@ class Features {
     }
 
     const aif = this._agent_interface_format
-
     if (aif.feature_dimensions) {
       obs_spec["feature_screen"] = [
         SCREEN_FEATURES.length,
@@ -1669,11 +1663,9 @@ class Features {
             ])
           })
         })
-        // console.log('--------------------------------- here at raw_effects ---------------------------------')
         out['raw_effects'] = named_array.NamedNumpyArray(
           raw_effects, [null, EffectPos]
         )
-        // console.log('after raw effects')
       })
     }
     out['upgrades'] = np.array(raw.getPlayer().getUpgradeIdsList())

@@ -216,6 +216,8 @@ class Builder {
     sc.setTotalHealed(new sc_pb.VitalScoreDetails())
 
     this._obs_spec = obs_spec
+    console.log('obs_spec')
+    console.log(obs_spec)
     this._single_select = null
     this._multi_select = null
     this._build_queue = null

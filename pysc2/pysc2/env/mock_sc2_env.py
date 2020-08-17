@@ -260,7 +260,6 @@ class SC2TestEnv(_TestEnvironment):
 
     builder = dummy_observation.Builder(obs_spec).game_loop(0)
     aif = self._agent_interface_formats[agent_index]
-    print('after self._agent_interface_formats[agent_index]')
     if aif.use_feature_units or aif.use_raw_units:
       feature_units = [
           dummy_observation.FeatureUnit(
@@ -278,7 +277,7 @@ class SC2TestEnv(_TestEnvironment):
       builder.feature_units(feature_units)
 
     response_observation = builder.build()
-    print('response_observation: ', response_observation)
+    # print('response_observation: ', response_observation)
     features_ = self._features[agent_index]
     observation = features_.transform_obs(response_observation)
 
