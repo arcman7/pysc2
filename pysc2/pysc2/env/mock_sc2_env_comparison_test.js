@@ -13,7 +13,7 @@ async function tearDown() {
 }
 
 async function TestCompareEnvironments() {
-  function setUpEnv() {
+  async function setUpEnv() {
     const players = [
       new sc2_env.Agent(sc2_env.Race.terran),
       new sc2_env.Agent(sc2_env.Race.protoss),
@@ -40,11 +40,12 @@ async function TestCompareEnvironments() {
     }
 
     env = new sc2_env.SC2Env(kwargs)
+    await env._setUpGame()
     mock_env = new mock_sc2_env.SC2TestEnv(kwargs)
   }
 
   async function test_observation_spec() {
-    setUpEnv()
+    await setUpEnv()
     assert(env.observation_spec(), mock_env.observation_spec())
   }
   await test_observation_spec()

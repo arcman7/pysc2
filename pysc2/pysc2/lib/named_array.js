@@ -72,7 +72,7 @@ function assign(values, name, keyPathArray) {
   }
   Object.defineProperty(parent, name, {
     get: function() { return parent[lookUpIndex] },
-    set: function(val) { parent[lookUpIndex] = val; return val }
+    set: function(val) { parent[lookUpIndex] = val; return val || true }
   })
 }
 function unpack(values, names, nameIndex = 0, keyPathArray = []) {
@@ -346,7 +346,7 @@ function getNamedNumpyArray(values, names) {
       },
       set(target, key, value) {
         target[key] = value
-        return value
+        return value || true
       },
       // ownKeys: (target) => Object.keys(target).concat(['length']),
       getOwnPropertyDescriptor: function(target, key) {

@@ -276,7 +276,6 @@ class SC2TestEnv extends _TestEnvironment {
       observation_spec.push(f.observation_spec())
     })
     super(num_agents, observation_spec, action_spec, agent_interface_format, _features)
-    console.log('here 2')
 
     this._features = _features
     this.episode_length = 10
@@ -313,14 +312,12 @@ class SC2TestEnv extends _TestEnvironment {
       builder.feature_units(feature_units)
     }
     const response_observation = builder.build()
-    // console.log('_default_observation this: ', this)
     const features_ = this._features[agent_index]
     // console.log('response_observation:\n', response_observation.toObject())
     const observation = features_.transform_obs(response_observation)
-    console.log('observation:\n', observation)
 
     // Add bounding box for the minimap camera in top left of feature screen.
-    if (observation.includes("feature_minimap")) {
+    if (observation.hasOwnProperty("feature_minimap")) {
       const minimap_camera = observation.feature_minimap.camera
       const h = minimap_camera.length
       const w = minimap_camera[0].length

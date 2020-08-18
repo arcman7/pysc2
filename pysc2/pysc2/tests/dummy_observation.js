@@ -216,8 +216,6 @@ class Builder {
     sc.setTotalHealed(new sc_pb.VitalScoreDetails())
 
     this._obs_spec = obs_spec
-    console.log('obs_spec')
-    console.log(obs_spec)
     this._single_select = null
     this._multi_select = null
     this._build_queue = null
@@ -372,7 +370,6 @@ class Builder {
       setattr(minimapRendersProto, field, new sc_pb.ImageData())
     })
     obs.getFeatureLayerData().setMinimapRenders(minimapRendersProto)
-    console.log('this._obs_spec.feature_screen: ', this._obs_spec.feature_screen)
     if (this._obs_spec.hasOwnProperty('feature_screen')) {
       features.SCREEN_FEATURES.forEach((feature) => {
         const renders = obs.getFeatureLayerData().getRenders()

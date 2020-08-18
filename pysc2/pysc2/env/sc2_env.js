@@ -552,6 +552,7 @@ class SC2Env extends environment.Base {
 
   observation_spec() {
     // Look at Features for full specs.//
+    console.log('observation_spec this: ', this)
     return this._features.map((f) => f.observation_spec())
   }
 
