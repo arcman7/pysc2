@@ -1,7 +1,5 @@
-
-// A Starcraft II environment for playing using remote SC2 instances.
-const path = require('path')
-const sc2clientprotocol = require('sc2clientprotocol')
+const path = require('path') //eslint-disable-line
+const sc2clientprotocol = require('sc2clientprotocol') //eslint-disable-line
 const maps = require(path.resolve(__dirname, '..', 'maps'))
 const run_configs = require(path.resolve(__dirname, '..', 'run_configs'))
 const sc2_env = require(path.resolve(__dirname, './sc2_env.js'))
@@ -9,8 +7,10 @@ const features = require(path.resolve(__dirname, '..', 'lib', 'features.js'))
 const remote_controller = require(path.resolve(__dirname, '..', 'lib', 'remote_controller.js'))
 const run_parallel = require(path.resolve(__dirname, '..', 'lib', 'run_parallel.js'))
 const pythonUtils = require(path.resolve(__dirname, '..', 'lib', 'pythonUtils.js'))
-const { isinstance, ValueError } = pythonUtils
+const { ValueError } = pythonUtils
 const sc_pb = sc2clientprotocol.sc2api_pb
+
+// A Starcraft II environment for playing using remote SC2 instances.
 
 class RestartError extends Error {
   constructor(msg) {
@@ -149,8 +149,13 @@ class RemoteSC2Env extends sc2_env.SC2Env {
       }
     }
 
-    this._connect_remote(host, host_port, ports, race, name, map_inst, save_map, interfacee, agent_interface_format)
-    this._finalize(visualize)
+    // call in factory method _setup
+    // this._connect_remote(host, host_port, ports, race, name, map_inst, save_map, interfacee, agent_interface_format)
+    // this._finalize(visualize)
+    this._setup = async () => {
+      await this._connect_remote(host, host_port, ports, race, name, map_inst, save_map, interfacee, agent_interface_format)
+      await this._finalize(visualize)
+    }
   }
 
   async close() {
@@ -218,3 +223,13 @@ class RemoteSC2Env extends sc2_env.SC2Env {
   }
 }
 
+async function RemoteSC2EnvFactory() {
+  const rse = new RemoteSC2Env(...arguments) //eslint-disable-line
+  await rse._setup()
+  return rse
+}
+
+module.exports = {
+  RemoteSC2Env,
+  RemoteSC2EnvFactory,
+}
