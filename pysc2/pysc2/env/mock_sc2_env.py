@@ -134,7 +134,6 @@ class _TestEnvironment(environment.Base):
     """Returns an observation based on the observation spec."""
     observation = {}
     for key, spec in obs_spec.items():
-      print('spec-shape:', spec)
       observation[key] = np.zeros(shape=spec, dtype=np.int32)
     return observation
 
@@ -277,7 +276,6 @@ class SC2TestEnv(_TestEnvironment):
       builder.feature_units(feature_units)
 
     response_observation = builder.build()
-    # print('response_observation: ', response_observation)
     features_ = self._features[agent_index]
     observation = features_.transform_obs(response_observation)
 

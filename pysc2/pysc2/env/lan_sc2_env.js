@@ -150,7 +150,7 @@ async function tcp_to_udp(tcp_conn, udp_sock, udp_to_addr) {
       return
     }
     log_msg('write_udp', msg)
-    udp_sock.send(msg, null, null, udp_to_addr.port, upd)
+    udp_sock.send(msg, 0, msg.length, udp_to_addr.port, udp_to_addr.host)
   }
 }
 

@@ -180,8 +180,6 @@ class Builder(object):
     )
 
     self._obs_spec = obs_spec
-    print('obs_spec')
-    print(obs_spec)
     self._single_select = None
     self._multi_select = None
     self._build_queue = None

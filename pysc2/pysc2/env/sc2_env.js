@@ -15,7 +15,7 @@ const renderer_human = require(path.resolve(__dirname, '..', 'lib', 'renderer_hu
 const stopwatch = require(path.resolve(__dirname, '..', 'lib', 'stopwatch.js'))
 const pythonUtils = require(path.resolve(__dirname, '..', 'lib', 'pythonUtils.js'))
 
-const { any, assert, DefaultDict, isinstance, namedtuple, pythonWith, randomChoice, ValueError, zip } = pythonUtils
+const { any, assert, DefaultDict, isinstance, namedtuple, pythonWith, randomChoice, sequentialTaskQueue, ValueError, zip } = pythonUtils
 const { common_pb, sc2api_pb } = s2clientprotocol
 const sc_common = common_pb
 const sc_pb = sc2api_pb
@@ -326,7 +326,6 @@ class SC2Env extends environment.Base {
     }
 
     if (visualize) {
-      // this._renderer_human = new renderer_human.RendererHuman()
       this._renderer_human = new renderer_human.InitalizeServices()
       this._renderer_human.setUp(
         this._run_config,
@@ -504,14 +503,10 @@ class SC2Env extends environment.Base {
           join.setSharedPort(0)
           join.getServerPorts().setGamePort(this._ports[0])
           join.getServerPorts().setBasePort(this._ports[1])
-          // console.log(this._ports)
           for (let i = 0; i < this._num_agents; i++) {
             const ports = new sc_pb.PortSet()
             ports.setGamePort(this._ports[i * 2 + 2])
             ports.setBasePort(this._ports[i * 2 + 3])
-            // console.log('using ports:')
-            // console.log(this._ports[i * 2 + 2])
-            // console.log(this._ports[i * 2 + 3])
             join.addClientPorts(ports)
           }
           join_reqs.push(join)
@@ -644,7 +639,7 @@ class SC2Env extends environment.Base {
       return this.reset()
     }
 
-    const skip = !(this._ensure_available_actions)
+    const skip = !this._ensure_available_actions
     let actionsss = []
     zip(this._features, this._obs, actionss).forEach(([f, o, acts]) => {
       to_list(acts).forEach((a) => {
@@ -684,7 +679,7 @@ class SC2Env extends environment.Base {
         this._episode_steps, //current game_loop
       )
       const game_loop = target_game_loop
-      this._step_to(
+      await this._step_to(
         game_loop,
         current_game_loop,
       )
@@ -985,7 +980,8 @@ class SC2Env extends environment.Base {
   }
 }
 
-async function SC2EnvFactory({
+async function SC2EnvFactory(
+  _only_use_kwargs,
   map_name,
   battle_net_map,
   players,
@@ -1005,8 +1001,9 @@ async function SC2EnvFactory({
   disable_fog,
   ensure_available_actions,
   version
-}, _only_use_kwargs) {
-  const sc2Env = new SC2Env({
+) {
+  const sc2Env = new SC2Env(
+    _only_use_kwargs,
     map_name,
     battle_net_map,
     players,
@@ -1026,7 +1023,7 @@ async function SC2EnvFactory({
     disable_fog,
     ensure_available_actions,
     version
-  })
+  )
   await sc2Env._setUpGame()
   return sc2Env
 }
