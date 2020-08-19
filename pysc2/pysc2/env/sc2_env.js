@@ -985,8 +985,7 @@ class SC2Env extends environment.Base {
   }
 }
 
-async function SC2EnvFactory(
-  _only_use_kwargs,
+async function SC2EnvFactory({
   map_name,
   battle_net_map,
   players,
@@ -1006,9 +1005,8 @@ async function SC2EnvFactory(
   disable_fog,
   ensure_available_actions,
   version
-) {
-  const sc2Env = new SC2Env(
-    _only_use_kwargs,
+}, _only_use_kwargs) {
+  const sc2Env = new SC2Env({
     map_name,
     battle_net_map,
     players,
@@ -1028,7 +1026,7 @@ async function SC2EnvFactory(
     disable_fog,
     ensure_available_actions,
     version
-  )
+  })
   await sc2Env._setUpGame()
   return sc2Env
 }
