@@ -30,14 +30,14 @@ describe('mock_sc2_env.js', () => {
     expected.step_type = environment.StepType.FIRST
     expected.reward = 0
     expected.discount = 0
-    const timestep = env.step(***) //[mockobj]
+    const timestep = env.step([1]) //[mockobj]
     expect(timestep).toEqual([expected])
   }
 
   function assert_mid_step(env) {
     const expected = env.next_timestep[0]
     expected.step_type = environment.StepType.MID
-    const timestep = env.step(***) //[mockobj]
+    const timestep = env.step([1]) //[mockobj]
     expect(timestep).toEqual([expected])
   }
 
@@ -45,7 +45,7 @@ describe('mock_sc2_env.js', () => {
     const expected = env.next_timestep[0]
     expected.step_type = environment.StepType.LAST
     expected.discount = 0.0
-    const timestep = env.step(***) // [mockobj]
+    const timestep = env.step([1]) // [mockobj]
     expect(timestep).toEqual([expected])
   }
 
@@ -58,7 +58,7 @@ describe('mock_sc2_env.js', () => {
     for (let step = 1; step < 10; step += 1) {
       testenv = env.next_timestep[0]
       testenv.reward = step
-      testenv.discount = step / 10 
+      testenv.discount = step / 10
       env.next_timestep = [testenv]
       assert_mid_step(env)
     }
@@ -81,25 +81,23 @@ describe('mock_sc2_env.js', () => {
     assert_first_step(env)
     for (let i = 0; i < length - 1; i += 1) {
       assert_mid_step(env)
-    } 
+    }
     assert_last_step(env)
   }
 
   describe('  TestEnvironment', () => {
-
-    const env = new mock_sc2_env._TestEnvironment(1, [{ 'mock': [10, 1] }, ], *** ) //[mockobj, ]
-    
+    const env = new mock_sc2_env._TestEnvironment(1, [{ 'mock': [10, 1] }, undefined], [1]) //[mockobj, ]
     test('test_observation_spec', () => {
-      expect(env.observation_spec()).toMatchObject([{ 'mock': [10, 1] }, ])
+      expect(env.observation_spec()).toMatchObject([{ 'mock': [10, 1] }, undefined])
     })
 
     test('test_action_spec', () => {
-      expect(env.action_sepc()).toMatchObject(***) //[mockobj, ]
+      expect(env.action_sepc()).toMatchObject([1]) //[mockobj, ]
     })
 
     test('test_default_obsercation', () => {
       const observation = env._default_observation(env.obsercation_spec()[0], 0)
-      expect(observation).toMatchObject({ 'mock': np.zeros([10, 1], 'int32' })
+      expect(observation).toMatchObject({ 'mock': np.zeros([10, 1], 'int32') })
     })
 
     test('test_episode', () => {
@@ -143,7 +141,7 @@ describe('mock_sc2_env.js', () => {
     })
 
     test('test_screen_minimap_size', () => {
-      const env =  new mock_sc2_env.SC2TestEnv({
+      const env = new mock_sc2_env.SC2TestEnv({
         map_name: 'nonexistant',
         agent_interface_format: new features.AgentInterfaceFormat({
           feature_dimensions: new features.Dimensions([84, 87], [64, 67])
