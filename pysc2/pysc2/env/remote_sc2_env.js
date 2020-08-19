@@ -153,15 +153,15 @@ class RemoteSC2Env extends sc2_env.SC2Env {
     this._finalize(visualize)
   }
 
-  close() {
+  async close() {
     // Leave the game so that another may be created in the same SC2 process.
     if (this._in_game) {
       console.info('Leaving game.')
-      this._controllers[0].leave()
+      await this._controllers[0].leave()
       this._in_game = false
       console.info('Left game.')
     }
-    this._controllers[0].close()
+    await this._controllers[0].close()
     // We don't own the SC2 process, we shouldn't call quit in the super class.
     this._controller = null
     this._game_info = null
