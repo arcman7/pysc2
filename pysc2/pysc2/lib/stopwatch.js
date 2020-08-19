@@ -6,8 +6,8 @@ const { performance } = require('perf_hooks') //eslint-disable-line
 const pythonUtils = require(path.resolve(__dirname, './pythonUtils.js'))
 
 const { DefaultDict, withPython, zip } = pythonUtils
-String = pythonUtils.String //eslint-disable-line
-Array = pythonUtils.Array //eslint-disable-line
+// String = pythonUtils.String //eslint-disable-line
+// Array = pythonUtils.Array //eslint-disable-line
 const msToS = 1 / 1000
 
 class Stat {
@@ -144,7 +144,6 @@ class TracingStopWatchContext extends StopWatchContext {
     process.stderr.write(s + '\n')
   }
 }
-
 
 class FakeStopWatchContext {
   constructor() {} //eslint-disable-line
@@ -313,14 +312,18 @@ class StopWatch {
 
   static parse(s) {
     //Parse the output below to create a new StopWatch.//
+    console.log('parse, s:\n', s)
     const stopwatch = new StopWatchRef()
     s.splitlines().forEach((line) => {
       if (line.trim()) {
         const parts = line.match(/\S+/g)
         const name = parts[0]
+        console.log('name: ', name)
         if (name !== '%') { // ie not the header line
           const rest = parts.slice(2, parts.length).map((v) => Number(v))
+          console.log('rest: ', rest)
           stopwatch.times[parts[0]].merge(Stat.build(...rest))
+          console.log(stopwatch.times)
         }
       }
     })

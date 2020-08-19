@@ -664,7 +664,7 @@ class SC2Env extends environment.Base {
     return this._step(step_mul)
   }
 
-  _step(step_mul = null) {
+  async _step(step_mul = null) {
     step_mul = step_mul || this._step_mul
     if (step_mul <= 0) {
       throw new ValueError(`step_mul should be positive, got ${step_mul}`)
