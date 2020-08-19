@@ -15,6 +15,9 @@ A Starcraft II environment for playing LAN games vs humans.
 Check pysc2/bin/play_vs_agent.py for documentation.
 */
 
+/*eslint-disable no-await-in-loop*/
+/*eslint-disable no-use-before-define*/
+
 const { namedtuple } = pythonUtils
 const { sc2api_pb } = s2clientprotocol
 const sc_pb = sc2api_pb
@@ -26,13 +29,20 @@ class Addr extends namedtuple("Addr", ["ip", "port"]) {
   }
 }
 
-// function deamon_thread(target) {
-//   // t = threading.Thread(target=target, args=args)
-//   const t = threading.Thread(target = target, args = args)
-//   t.deamon = true
-//   t.start()
-//   return t
-// }
+async function read_socket(socket) {
+  const prom = new Promise((resolve, reject) => {
+    // we dont know what type of socket it is so we
+    // listen for both types of events
+    socket.addEventListener('data', (data) => {
+      resolve(data)
+    })
+    socket.addEventListener('message', (msg) => {
+      resolve(msg)
+    })
+    socket.addEventListener('error', reject)
+  })
+  return prom
+}
 
 //returns promise that resolves in a bound udp socket
 function udp_server(addr) {
@@ -119,17 +129,62 @@ function log_msg(prefix, msg) {
   console.debug(`${prefix}: len: ${msg.length}, hash: ${md5val.slice(0, 6)}, ${binascii.hexlify(msg.slice(0, 25))}`)
 }
 
-function udp_to_tcp(udp_sock, tcp_conn) {
-  // while (true) {
-    
-  // }
+async function udp_to_tcp(udp_sock, tcp_conn) {
+  let msg
+  while (true) {
+    msg = await read_socket(udp_sock)
+    console.log('udp_to_tcp: msg = ', msg)
+    log_msg('read_udp', msg)
+    if (!msg) {
+      return
+    }
+    await write_tcp(tcp_conn, msg)
+  }
+}
+
+async function tcp_to_udp(tcp_conn, udp_sock, udp_to_addr) {
+  let msg
+  while (true) {
+    msg = await read_tcp(tcp_conn)
+    if (!msg) {
+      return
+    }
+    log_msg('write_udp', msg)
+    udp_sock.send(msg, null, null, udp_to_addr.port, upd)
+  }
+}
+
+function read_tcp(conn) {
+  //Read `size` number of bytes from `conn`, retrying as needed.//
+  const chunks = []
+  const bytes_read = 0
+  let chunk
+  while (bytes_read < size) {
+    chunk = conn.re
+  }
+}
+
+function read_tcp_size(conn, size) {
+
+}
+
+function write_tcp(conn, msg) {
+
+}
+
+function forward_ports(remote_host, local_host, local_listen_ports, remote_listen_ports) {
+
 }
 
 module.exports = {
   Addr,
+  forward_ports,
   log_msg,
-  // deamon_thread,
-  udp_server,
+  read_tcp,
+  read_tcp_size,
   tcp_server,
-  tcp_client
+  tcp_client,
+  write_tcp,
+  udp_server,
+  udp_to_tcp,
 }
