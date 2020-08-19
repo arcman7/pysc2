@@ -1,7 +1,5 @@
-/* Mocking the Starcraft II environment. */
-
-const s2clientprotocol = require('s2clientprotocol')
-const path = require('path')
+const s2clientprotocol = require('s2clientprotocol')  //eslint-disable-line
+const path = require('path') //eslint-disable-line
 const environment = require(path.resolve(__dirname, './environment.js'))
 const sc2_env = require(path.resolve(__dirname, './sc2_env.js'))
 const features = require(path.resolve(__dirname, '..', 'lib', 'features.js'))
@@ -12,7 +10,11 @@ const np = require(path.resolve(__dirname, '..', 'lib', 'numpy.js'))
 const pythonUtils = require(path.resolve(__dirname, '..', 'lib', 'pythonUtils.js'))
 const common_pb = s2clientprotocol.common_pb
 const { isinstance, ValueError } = pythonUtils
+
+/* Mocking the Starcraft II environment. */
+
 const DUMMY_MAP_SIZE = new point.Point(256, 256)
+
 class _TestEnvironment extends environment.Base {
   /*
    simple generic test environment.
@@ -126,29 +128,14 @@ class _TestEnvironment extends environment.Base {
     return this._observation_spec
   }
 
-  // static _default_observation(obs_spec, agent_index) { //eslint-disable-line
-  //   // Returns an observation based on the observation spec.
-  //   const observation = {}
-  //   obs_spec.forEach((spec, key) => {
-  //     console.log('key:', key)
-  //     const shape = spec
-  //     console.log('*************** spec:', spec)
-  //     // const dtype = np.int32
-  //     observation[key] = np.zeros(shape, 'int32')
-  //   })
-  //   return observation
-  // }
-
   _default_observation(obs_spec, agent_index) { //eslint-disable-line
     // Returns an observation based on the observation spec.
     const observation = {}
     obs_spec.forEach((spec, key) => {
       const shape = spec
-      // const dtype = np.int32
       observation[key] = np.zeros(shape, 'int32')
     })
     return observation
-    // return _TestEnvironment._default_observation(obs_spec, agent_index)
   }
 }
 
