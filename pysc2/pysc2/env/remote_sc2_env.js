@@ -43,7 +43,7 @@ class RemoteSC2Env extends sc2_env.SC2Env {
     realtime = false,
     replay_dir = null,
     replay_prefix = null
-    }, _only_use_kwargs = null) {
+  }, _only_use_kwargs = null) {
     /*
     Create a SC2 Env that connects to a remote instance of the game.
 
@@ -138,15 +138,15 @@ class RemoteSC2Env extends sc2_env.SC2Env {
     const interfacee = this._get_interface(agent_interface_format, required_raw)
     let ports
     if (Array.isArray(lan_port)) {
-        if (lan_port.lenth != 4) {
-          throw new ValueError('lan_port sequence must be of length 4')
-        }
-        ports = lan_port
+      if (lan_port.lenth != 4) {
+        throw new ValueError('lan_port sequence must be of length 4')
+      }
+      ports = lan_port
     } else {
-        ports =[]
-        for (let p = 0; p < 4; p++) {
-          ports.push(lan_port + p) // 2 * num players *in the game*.
-        }
+      ports = []
+      for (let p = 0; p < 4; p++) {
+        ports.push(lan_port + p) // 2 * num players *in the game*.
+      }
     }
 
     this._connect_remote(host, host_port, ports, race, name, map_inst, save_map, interfacee, agent_interface_format)
@@ -159,7 +159,7 @@ class RemoteSC2Env extends sc2_env.SC2Env {
       console.info('Leaving game.')
       this._controllers[0].leave()
       this._in_game = false
-      console.info('Left game.')      
+      console.info('Left game.')
     }
     this._controllers[0].close()
     // We don't own the SC2 process, we shouldn't call quit in the super class.
@@ -168,16 +168,16 @@ class RemoteSC2Env extends sc2_env.SC2Env {
     super.close()
   }
 
-  async _connect_remote(host, host_port, lan_port, race, name, map_inst, save_map, interfacee, agent_interface_format) {
+  async _connect_remote(host, host_port, lan_ports, race, name, map_inst, save_map, interfacee, agent_interface_format) {
     // Make sure this stays synced with bin/agent_remote.py.
     // Connect!
     console.info('Connecting...')
-    this._controllers = [remote_controller.RemoteController(host, host_port)]
+    this._controllers = [await remote_controller.RemoteControllerFactory(host, host_port)]
     console.info('Connected')
 
     if (map_inst && save_map) {
       const run_config = run_configs.get()
-      this._controllers[0].save_map(map_inst.path, map_inst.data(run_config))
+      await this._controllers[0].save_map(map_inst.path, map_inst.data(run_config))
     }
     // Create the join request.
     const join = new sc_pb.RequestJoinGame()
@@ -197,19 +197,22 @@ class RemoteSC2Env extends sc2_env.SC2Env {
     console.log('Joining game.')
     await this._controllers[0].join_game(join)
 
-    this._game_info [this._controllers[0].game_info()]
+    this._game_info = [await this._controllers[0].game_info()]
 
     if (!this._map_name) {
       this._map_name = this._game_info[0].map_name
     }
 
-    this._features = [features.features_from_game_info({game_info = this._game_info[0], agent_interface_format = agent_interface_format})]
+    this._features = [features.features_from_game_info({
+      game_info: this._game_info[0],
+      agent_interface_format,
+    })]
 
     this._in_game = true
     console.info('Game joined.')
   }
 
-  _restart() {
+  _restart() { //eslint-disable-line
     // Can't restart since it's not clear how you'd coordinate that with the other players.
     throw new RestartError("Can't restart")
   }

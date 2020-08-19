@@ -313,7 +313,6 @@ class SC2TestEnv extends _TestEnvironment {
     }
     const response_observation = builder.build()
     const features_ = this._features[agent_index]
-    // console.log('response_observation:\n', response_observation.toObject())
     const observation = features_.transform_obs(response_observation)
 
     // Add bounding box for the minimap camera in top left of feature screen.

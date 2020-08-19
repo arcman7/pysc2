@@ -397,7 +397,7 @@ class SC2Env extends environment.Base {
   async _launch_game() {
     // Reserve a whole bunch of ports for the weird multiplayer implementation.
     if (this._num_agents > 1) {
-      this._ports = await portspicker.pick_unused_ports(this._num_agents * 2)
+      this._ports = await portspicker.pick_unused_ports(this._num_agents * 4)
       console.info(`Ports used for multiplayer: ${this._ports}`)
     } else {
       this._ports = []
@@ -407,7 +407,7 @@ class SC2Env extends environment.Base {
     this._sc2_procs = []
     this._interface_options.forEach((interfacee) => {
       this._sc2_procs.push(this._run_config.start({
-        extra_ports: this._ports,
+        port: this._ports.pop(),
         want_rgb: interfacee.hasRender()
       }))
     })
@@ -449,10 +449,11 @@ class SC2Env extends environment.Base {
     const create = new sc_pb.RequestCreateGame()
     create.setDisableFog(this._disable_fog)
     create.setRealtime(this._realtime)
-
     if (this._battle_net_map) {
       create.setBattlenetMapName(map_inst.battle_net)
     } else {
+      const localMap = new sc_pb.LocalMap()
+      create.setLocalMap(localMap)
       create.getLocalMap().setMapPath(map_inst.path)
       const map_data = map_inst.data(this._run_config)
       if (this._num_agents === 1) {
@@ -461,9 +462,12 @@ class SC2Env extends environment.Base {
         // Save the maps so they can access it. Don't do it in parallel since SC2
         // doesn't respect tmpdir on windows, which leads to a race condition:
         // https://github.com/Blizzard/s2client-proto/issues/102
-        this._controllers.forEach((c) => {
-          c.save_map(map_inst.path, map_data)
-        })
+        try {
+          await Promise.all(this._controllers.map((c) => c.save_map(map_inst.path, map_data)))
+        } catch (err) {
+          console.error('bad map data: ', map_data, 'using map_inst: ', map_inst)
+          throw err
+        }
       }
     }
 
@@ -472,46 +476,51 @@ class SC2Env extends environment.Base {
     }
 
     this._players.forEach((p) => {
+      const playerSetup = new sc_pb.PlayerSetup()
       if (p instanceof Agent) {
-        const playerSetup = new sc_pb.PlayerSetup()
         playerSetup.setType(sc_pb.PlayerType.PARTICIPANT)
         create.addPlayerSetup(playerSetup)
       } else {
-        const playerSetup = new sc_pb.PlayerSetup()
         playerSetup.setType(sc_pb.PlayerType.COMPUTER)
         playerSetup.setDifficutly(p.difficulty)
         playerSetup.setAiBuild(randomChoice(p.build))
         create.addPlayerSetup(playerSetup)
       }
     })
-    this._controllers[0].create_game(create)
+    await this._controllers[0].create_game(create)
 
     // Create the join requests.
     const agent_players = this._players.filter((p) => p instanceof Agent)
     const sanitized_names = crop_and_deduplicate_names(agent_players.map((p) => p.name))
     const join_reqs = []
-    zip(agent_players, sanitized_names, this._interface_options).forEach(([p, name, interfacee]) => {
-      const join = new sc_pb.RequestJoinGame()
-      join.setOptions(interfacee)
-      join.setRace(randomChoice(p.race))
-      join.setPlayerName(name)
-      if (this._ports) {
-        join.setSharedPort(0)
-        join.getServerPorts().setGamePort(this._ports[0])
-        join.getServerPorts().setBasePort(this._ports[1])
-        for (let i = 0; i < this._num_agents; i++) {
-          const ports = new sc_pb.PortSet()
-          ports.setGamePort(this._ports[i * 2 + 2])
-          ports.setBasePort(this._ports[i * 2 + 3])
-          join.addClientPorts(ports)
+    zip(agent_players, sanitized_names, this._interface_options)
+      .forEach(([p, name, interfacee]) => {
+        const join = new sc_pb.RequestJoinGame()
+        join.setOptions(interfacee)
+        join.setRace(Array.isArray(p.race) ? Number(randomChoice(p.race)) : Number(p.race))
+        join.setPlayerName(name)
+        if (this._ports) {
+          join.setServerPorts(new sc_pb.PortSet())
+          join.setSharedPort(0)
+          join.getServerPorts().setGamePort(this._ports[0])
+          join.getServerPorts().setBasePort(this._ports[1])
+          // console.log(this._ports)
+          for (let i = 0; i < this._num_agents; i++) {
+            const ports = new sc_pb.PortSet()
+            ports.setGamePort(this._ports[i * 2 + 2])
+            ports.setBasePort(this._ports[i * 2 + 3])
+            // console.log('using ports:')
+            // console.log(this._ports[i * 2 + 2])
+            // console.log(this._ports[i * 2 + 3])
+            join.addClientPorts(ports)
+          }
+          join_reqs.push(join)
         }
-      }
-      join_reqs.push(join)
-    })
+      })
+    await Promise.all(zip(this._controllers, join_reqs).map(([c, join]) => c.join_game(join)))
 
     // #python_problems lol
     // Join the game. This must be run in parallel because Join is a blocking call to the game that waits until all clients have joined.
-    await Promise.all(zip(this._controllers, join_reqs).map(([c, join]) => c.join_game(join)))
 
     this._game_info = await Promise.all(this._controllers.map((c) => c.game_info()))
 
@@ -529,11 +538,11 @@ class SC2Env extends environment.Base {
         const game_info = g
         const agent_interface_format = aif
         const map_name = this._map_name
-        return features.features_from_game_info(
+        return features.features_from_game_info({
           game_info,
           agent_interface_format,
           map_name,
-        )
+        })
       })
   }
 
@@ -552,7 +561,6 @@ class SC2Env extends environment.Base {
 
   observation_spec() {
     // Look at Features for full specs.//
-    console.log('observation_spec this: ', this)
     return this._features.map((f) => f.observation_spec())
   }
 
@@ -952,24 +960,24 @@ class SC2Env extends environment.Base {
 
   async close() {
     console.info('Environment Close')
-    if (this.hasOwnProperty('_metrics') && this._metrics) {
+    if (this._metrics) {
       this._metrics.close()
       this._metrics = null
     }
-    if (this.hasOwnProperty('_renderer_human') && this._renderer_human) {
+    if (this._renderer_human) {
       this._renderer_human.close()
       this._renderer_human = null
     }
     // Don't use parallel since it might be broken by an exception.
-    if (this.hasOwnProperty('_controllers') && this._controllers) {
+    if (this._controllers) {
       await Promise.all(this._controllers.map((c) => c.quit()))
       this._controllers = null
     }
-    if (this.hasOwnProperty('_sc2_procs') && this._sc2_procs) {
+    if (this._sc2_procs) {
       await Promise.all(this._sc2_procs.map((p) => p.close()))
       this._sc2_procs = null
     }
-    if (this.hasOwnProperty('_ports') && this._ports) {
+    if (this._ports) {
       // portspicker.return_ports(this._ports) // can't do this yet
       this._ports = null
     }
