@@ -1,6 +1,6 @@
 // Tests of the StarCraft2 mock environment.
 const path = require('path')
-const s2cleintprotocol = require('s2cleintprotocol')
+const s2clientprotocol = require('s2clientprotocol')
 const environment = require(path.resolve(__dirname, './environment.js'))
 const mock_sc2_env = require(path.resolve(__dirname, './mock_sc2_env.js'))
 const features = require(path.resolve(__dirname, '..', 'lib', 'features.js'))
@@ -117,7 +117,7 @@ describe('mock_sc2_env.js', () => {
     })
   })
 
-  describe('TestSC2TestEnv', () => {
+  describe('  TestSC2TestEnv', () => {
     test('test_episode', () => {
       const env = new mock_sc2_env.SC2TestEnv({
         map_name: 'nonexistant map',
