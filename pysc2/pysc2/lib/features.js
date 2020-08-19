@@ -549,17 +549,17 @@ class Dimensions {
     return this._minimap
   }
 
-  __repr__() {
+  toString() {
     return `Dimensions(screen=${this.screen}, minimap=${this.minimap})`
   }
 
-  __eq__(other) {
-    return (isinstance(other, Dimensions) && this.screen === other.screen
-      && this.minimap === other.minimap)
+  eq(other) {
+    return other instanceof Dimensions && this.screen.eq(other.screen)
+      && this.minimap.eq(other.minimap)
   }
 
-  __ne__(other) {
-    return !(this.__eq__(other))
+  ne(other) {
+    return !(this.eq(other))
   }
 }
 
@@ -909,8 +909,8 @@ function parse_agent_interface_format({
     action_delay_fn: _action_delay_fn(action_delays),
     kwargs,
   }
-  Object.keys(arguments[0]).forEach((key) => {
-    usedArgs[key] = usedArgs[key] || arguments[0][key]
+  Object.keys(arguments[0]).forEach((key) => { //eslint-disable-line prefer-rest-params
+    usedArgs[key] = usedArgs[key] || arguments[0][key] //eslint-disable-line prefer-rest-params
   })
   return new AgentInterfaceFormat(usedArgs)
 }
@@ -976,14 +976,18 @@ function features_from_game_info({ game_info, agent_interface_format = null, map
       throw new ValueError(' Either give an agent_interface_format or kwargs, not both.')
     }
     const aif = agent_interface_format
-    if (aif.rgb_dimensions !== rgb_dimensions
-      || aif.feature_dimensions !== feature_dimensions
+    if (!(aif.rgb_dimensions ? aif.rgb_dimensions.eq(rgb_dimensions) : true)
+      || !(aif.feature_dimensions ? aif.feature_dimensions.eq(feature_dimensions) : true)
       || (feature_dimensions
       && aif.camera_width_world_units !== camera_width_world_units)) {
-      throw new Error(`The supplied agent_interface_format doesn't match the resolutions computed from the game_info:
-  rgb_dimensions: ${aif.rgb_dimensions} !== ${rgb_dimensions}
-  feature_dimensions: ${aif.feature_dimensions} !== ${feature_dimensions}
-  camera_width_world_units: ${aif.camera_width_world_units} !== ${camera_width_world_units}`)
+      console.error('aif.rgb_dimensions !== rgb_dimensions')
+      console.error(aif.rgb_dimensions, '   ', rgb_dimensions)
+      console.error('aif.feature_dimensions !== feature_dimensions')
+      console.error(aif.feature_dimensions, '   ', feature_dimensions)
+      throw new Error('The supplied agent_interface_format doesn\'t match the resolutions computed from the game_info')
+      // rgb_dimensions: ${aif.rgb_dimensions} !== ${rgb_dimensions}
+      // feature_dimensions: ${aif.feature_dimensions} !== ${feature_dimensions}
+      // camera_width_world_units: ${aif.camera_width_world_units} !== ${camera_width_world_units}`)
     }
   } else {
     const args = {

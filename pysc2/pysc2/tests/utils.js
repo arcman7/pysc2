@@ -252,7 +252,6 @@ class GameReplayTestCase extends TestCase {
     // must be done in tandem
     await Promise.all(this._controllers.map((c) => c.join_game(join)))
 
-    // await sequentialTaskQueue(this._controllers.map((c) => () => c.join_game(join)))
     this._info = await this._controllers[0].game_info()
     this._features = features.features_from_game_info({
       game_info: this._info,

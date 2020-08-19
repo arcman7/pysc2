@@ -65,6 +65,7 @@ function decorate_check_error(error_class_name, error_enum_dict) {
     async function _check_error() {
       return check_error(await func(...arguments), error_enum) //eslint-disable-line
     }
+    _check_error.name = func.name
     return _check_error
   }
   return decorator
@@ -297,9 +298,7 @@ class RemoteController {
 
         ws.on('close', clear)
         ws.on('error', clear)
-        // console.log('start waiting')
         returnedConnection = await pendingConnection //eslint-disable-line no-await-in-loop
-        // console.log('done waiting')
         if (returnedConnection !== null) {
           return returnedConnection
         }
@@ -320,7 +319,6 @@ class RemoteController {
     }
     throw new ConnectError('Failed to connect to the SC2 websocket. Is it up?')
   }
-
 
   close() {
     this._client.close()

@@ -126,6 +126,57 @@ function clip(a, a_min, a_max) {
   }
 }
 
+function compareKey(a, b, key) {
+  if (Array.isArray(a)) {
+    return arrayCompare(a, b)
+  }
+  return a[key] === b[key]
+}
+
+function compareAIF(a, b) {
+  assert(compareKey(a, b, 'feature_dimensions'), "compareKey(a, b, 'feature_dimensions'")
+  assert(compareKey(a, b, 'rgb_dimensions'), "compareKey(a, b, 'rgb_dimensions')")
+  assert(compareKey(a, b, 'raw_resolution'), "compareKey(a, b, 'raw_resolution')")
+  assert(compareKey(a, b, 'action_space'), "compareKey(a, b, 'action_space')")
+  assert(compareKey(a, b, 'camera_width_world_units'), "compareKey(a, b, 'camera_width_world_units')")
+  assert(compareKey(a, b, 'use_feature_units'), "compareKey(a, b, 'use_feature_units')")
+  assert(compareKey(a, b, 'use_raw_units'), "compareKey(a, b, 'use_raw_units')")
+  assert(compareKey(a, b, 'use_raw_actions'), "compareKey(a, b, 'use_raw_actions')")
+  assert(compareKey(a, b, 'max_raw_actions'), "compareKey(a, b, 'max_raw_actions')")
+  assert(compareKey(a, b, 'max_selected_units'), "compareKey(a, b, 'max_selected_units')")
+  assert(compareKey(a, b, 'use_unit_counts'), "compareKey(a, b, 'use_unit_counts')")
+  assert(compareKey(a, b, 'use_camera_position'), "compareKey(a, b, 'use_camera_position')")
+  assert(compareKey(a, b, 'show_cloaked'), "compareKey(a, b, 'show_cloaked')")
+  assert(compareKey(a, b, 'show_burrowed_shadows'), "compareKey(a, b, 'show_burrowed_shadows')")
+  assert(compareKey(a, b, 'show_placeholders'), "compareKey(a, b, 'show_placeholders')")
+  assert(compareKey(a, b, 'hide_specific_actions'), "compareKey(a, b, 'hide_specific_actions')")
+  assert(compareKey(a, b, 'action_delay_fn'), "compareKey(a, b, 'action_delay_fn')")
+  assert(compareKey(a, b, 'send_observation_proto'), "compareKey(a, b, 'send_observation_proto')")
+  assert(compareKey(a, b, 'crop_to_playable_area'), "compareKey(a, b, 'crop_to_playable_area')")
+  assert(compareKey(a, b, 'raw_crop_to_playable_area'), "compareKey(a, b, 'raw_crop_to_playable_area')")
+  assert(compareKey(a, b, 'allow_cheating_layers'), "compareKey(a, b, 'allow_cheating_layers')")
+  assert(compareKey(a, b, 'add_cargo_to_units'), "compareKey(a, b, 'add_cargo_to_units')")
+}
+
+function compareObsSpec(a, b) {
+  assert(compareKey(a, b, "action_result"))
+  assert(compareKey(a, b, "alerts"))
+  assert(compareKey(a, b, "build_queue"))
+  assert(compareKey(a, b, "cargo"))
+  assert(compareKey(a, b, "cargo_slots_available"))
+  assert(compareKey(a, b, "control_groups"))
+  assert(compareKey(a, b, "game_loop"))
+  assert(compareKey(a, b, "last_actions"))
+  assert(compareKey(a, b, "map_name"))
+  assert(compareKey(a, b, "multi_select"))
+  assert(compareKey(a, b, "player"))
+  assert(compareKey(a, b, "production_queue"))
+  assert(compareKey(a, b, "score_cumulative"))
+  assert(compareKey(a, b, "score_by_category"))
+  assert(compareKey(a, b, "score_by_vital"))
+  assert(compareKey(a, b, "single_select"))
+}
+
 function eq(a, b) {
   if (a.__eq__) {
     return a.__eq__(b)
@@ -467,9 +518,6 @@ function nonZero(arr) {
 
 function randomChoice(arr) {
   // This function does not support "size" of output shape.
-  if (Array.isArray(arr)) {
-    arr = [Array(arr).key()]
-  }
   return arr[Math.floor(Math.random() * arr.length)]
 }
 
@@ -836,6 +884,8 @@ module.exports = {
   arraySub,
   assert,
   clip,
+  compareObsSpec,
+  compareAIF,
   DefaultDict,
   eq,
   expanduser,
