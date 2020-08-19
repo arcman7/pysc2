@@ -57,6 +57,32 @@ function arrayCompare(a, b, sameOrder = false) {
   return true
 }
 
+function arrayDtype(array) {
+  if (array.length == null) {
+    return typeof (array)
+  }
+  return arrayDtype(array[0])
+}
+
+function arrayShape(array) {
+  let shape = []
+  let keepgoing = true
+  let count = 0
+  while (keepgoing) {
+    if (array.length > 0) {
+      count += 1
+      shape.push(array.length)
+      array = array[0]
+    } else {
+      keepgoing = false
+      if (count == 1) {
+        shape = [1]
+      }
+    }
+  }
+  return shape
+}
+
 function arraySub(a, b) {
   // This function operates subtraction with 1D or 2d array
   const result = []
@@ -853,9 +879,10 @@ module.exports = {
   ABCMeta,
   any,
   arrayCompare,
+  arrayDtype,
+  arrayShape,
   arraySub,
   assert,
-  Array,
   clip,
   compareObsSpec,
   compareAIF,
