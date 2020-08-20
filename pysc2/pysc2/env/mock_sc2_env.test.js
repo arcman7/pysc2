@@ -7,7 +7,7 @@ const features = require(path.resolve(__dirname, '..', 'lib', 'features.js'))
 const pythonUtils = require(path.resolve(__dirname, '..', 'lib', 'pythonUtils.js'))
 const { arrayShape, arrayDtype } = pythonUtils
 const np = require(path.resolve(__dirname, '..', 'lib', 'numpy.js'))
-const mock = [1]  // arbitrary mock object (no mocked method calls or property access)
+const mock = {}//[1]  // arbitrary mock object (no mocked method calls or property access)
 
 describe('mock_sc2_env.js', () => {
   function assert_spec(array, shape, dtype) {
@@ -29,14 +29,14 @@ describe('mock_sc2_env.js', () => {
     expected.step_type = environment.StepType.FIRST
     expected.reward = 0
     expected.discount = 0
-    const timestep = env.step(mock)
+    const timestep = env.step([mock])
     expect(timestep).toEqual([expected])
   }
 
   function assert_mid_step(env) {
     const expected = env.next_timestep[0]
     expected.step_type = environment.StepType.MID
-    const timestep = env.step(mock)
+    const timestep = env.step([mock])
     expect(timestep).toEqual([expected])
   }
 
@@ -44,7 +44,7 @@ describe('mock_sc2_env.js', () => {
     const expected = env.next_timestep[0]
     expected.step_type = environment.StepType.LAST
     expected.discount = 0.0
-    const timestep = env.step(mock)
+    const timestep = env.step([mock])
     expect(timestep).toEqual([expected])
   }
 
@@ -85,18 +85,21 @@ describe('mock_sc2_env.js', () => {
   }
 
   describe('  TestEnvironment', () => {
-    const env = new mock_sc2_env._TestEnvironment(1, [{ 'mock': [10, 1] }], mock)
+    const env = new mock_sc2_env._TestEnvironment(1, [{ 'mock': [10, 1] }], [mock])
     test('test_observation_spec', () => {
       expect(env.observation_spec()).toMatchObject([{ 'mock': [10, 1] }])
     })
 
     test('test_action_spec', () => {
-      expect(env.action_spec()).toMatchObject(mock)
+      expect(env.action_spec()).toMatchObject([mock])
     })
 
     test('test_default_obsercation', () => {
       const observation = env._default_observation(env.observation_spec()[0], 0)
-      expect(observation).toMatchObject({ 'mock': np.zeros([10, 1], 'int32') })
+      delete observation.mock.id
+      const mock_observation = { 'mock': np.zeros([10, 1], 'int32') }
+      delete mock_observation.mock.id
+      expect(observation).toMatchObject(mock_observation)
     })
 
     test('test_episode', () => {
