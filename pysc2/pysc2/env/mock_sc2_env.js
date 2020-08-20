@@ -131,8 +131,8 @@ class _TestEnvironment extends environment.Base {
   _default_observation(obs_spec, agent_index) { //eslint-disable-line
     // Returns an observation based on the observation spec.
     const observation = {}
-    obs_spec.forEach((spec, key) => {
-      const shape = spec
+    Object.keys(obs_spec).forEach((key) => {
+      const shape = obs_spec[key]
       observation[key] = np.zeros(shape, 'int32')
     })
     return observation
@@ -285,7 +285,7 @@ class SC2TestEnv extends _TestEnvironment {
       pos.setY(10)
       pos.setZ(10)
       const feature_units = [
-        dummy_observation.FeatureUnit({
+        new dummy_observation.FeatureUnit({
           unit_type,
           alliance,
           owner: 16,
