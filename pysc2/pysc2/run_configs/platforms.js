@@ -13,7 +13,6 @@ const { expanduser, ValueError } = pythonUtils
 flags.defineInteger("sc2_version", null, `Which version of the game to use.\nchoices:\n ${Object.keys(lib.VERSIONS).map((game_version, index) => `${game_version} -> ${index}`).sort().join('\n')}`)
 flags.defineBoolean("sc2_dev_build", false, "Use a dev build. Mostly useful for testing by Blizzard.")
 
-
 function _read_execute_info(path_arg, parents) {
   //Read the ExecuteInfo.txt file and return the base directory.//
   path_arg = path.join(path_arg, "StarCraft II/ExecuteInfo.txt")

@@ -2,7 +2,7 @@ const path = require('path') //eslint-disable-line
 const { performance } = require('perf_hooks') //eslint-disable-line
 const s2clientprotocol = require('s2clientprotocol') //eslint-disable-line
 const Enum = require('python-enum') //eslint-disable-line
-const deque = require('collections/deque') //eslint-disable-line
+const Deque = require('double-ended-queue') //eslint-disable-line
 const maps = require(path.resolve(__dirname, '..', 'maps')) //eslint-disable-line
 const run_configs = require(path.resolve(__dirname, '..', 'run_configs')) //eslint-disable-line
 const environment = require(path.resolve(__dirname, 'environment.js'))
@@ -15,7 +15,7 @@ const renderer_human = require(path.resolve(__dirname, '..', 'lib', 'renderer_hu
 const stopwatch = require(path.resolve(__dirname, '..', 'lib', 'stopwatch.js'))
 const pythonUtils = require(path.resolve(__dirname, '..', 'lib', 'pythonUtils.js'))
 
-const { any, assert, DefaultDict, isinstance, namedtuple, pythonWith, randomChoice, ValueError, zip } = pythonUtils
+const { any, assert, DefaultDict, isinstance, namedtuple, pythonWith, randomChoice, sequentialTaskQueue, ValueError, zip } = pythonUtils
 const { common_pb, sc2api_pb } = s2clientprotocol
 const sc_common = common_pb
 const sc_pb = sc2api_pb
@@ -24,13 +24,11 @@ const actions_lib = actions
 
 /* A Starcraft II environment. */
 
-
 const possible_results = {}
 possible_results[sc_pb.Result.VICTORY] = 1
 possible_results[sc_pb.Result.DEFEAT] = -1
 possible_results[sc_pb.Result.TIE] = 0
 possible_results[sc_pb.Result.UNDECIDED] = 0
-
 
 const Race = Enum.IntEnum('Race', {
   random: sc_common.Race.RANDOM,
@@ -229,7 +227,6 @@ class SC2Env extends environment.Base {
     to_list(map_name).forEach((name) => {
       this._maps.push(maps.get(name))
     })
-    this._maps = maps
     const playercollect = []
     this._maps.forEach((m) => {
       playercollect.push(m.players)
@@ -299,9 +296,10 @@ class SC2Env extends environment.Base {
     this._interface_formats = agent_interface_format
 
     this._interface_options = []
+    const self = this
     agent_interface_format.forEach((interface_format, i) => {
       const require_raw = visualize && i === 0
-      this._interface_options.push(this._get_interface(interface_format, require_raw))
+      self._interface_options.push(self._get_interface(interface_format, require_raw))
     })
 
     // apply @sw.decorate
@@ -322,12 +320,12 @@ class SC2Env extends environment.Base {
   }
 
   _finalize(visualize) {
+    this._delayed_actions = []
     for (let i = 0; i < this._action_delay_fns.length; i++) {
-      this._delayed_actions = [deque(undefined, 200)]
+      this._delayed_actions.push(new Deque(200))
     }
 
     if (visualize) {
-      // this._renderer_human = new renderer_human.RendererHuman()
       this._renderer_human = new renderer_human.InitalizeServices()
       this._renderer_human.setUp(
         this._run_config,
@@ -363,31 +361,42 @@ class SC2Env extends environment.Base {
     interfacee.setRawAffectsSelection(true)
     interfacee.setRawCropToPlayableArea(aif.raw_crop_to_playable_area)
     interfacee.setScore(true)
-
     if (aif.feature_dimensions) {
-      interfacee.getFeatureLayer().setWidth(aif.camera_width_world_units)
+      const feature_layer = new sc_pb.SpatialCameraSetup()
+      interfacee.setFeatureLayer(feature_layer)
+      feature_layer.setWidth(aif.camera_width_world_units)
+      feature_layer.setResolution(new sc_pb.Size2DI())
+      feature_layer.setMinimapResolution(new sc_pb.Size2DI())
       aif.feature_dimensions.screen.assign_to(
-        interfacee.getFeatureLayer().getResolution()
+        feature_layer.getResolution()
       )
       aif.feature_dimensions.minimap.assign_to(
-        interfacee.getFeatureLayer().getMinimapResolution()
+        feature_layer.getMinimapResolution()
       )
-      interfacee.getFeatureLayer().setCropToPlayableArea(aif.crop_to_playable_area)
-      interfacee.getFeatureLayer().setAllowCheatingLayers(aif.allow_cheating_layers)
+      feature_layer.setCropToPlayableArea(aif.crop_to_playable_area)
+      feature_layer.setAllowCheatingLayers(aif.allow_cheating_layers)
     }
 
     if (aif.rgb_dimensions) {
-      aif.rgb_dimensions.screen.assign_to(interfacee.getRender().getResolution())
-      aif.rgb_dimensions.minimap.assign_to(interfacee.getRender().getMinimapResolution())
+      const render = new sc_pb.SpatialCameraSetup()
+      interfacee.setRender(render)
+      render.setResolution(new sc_pb.Size2DI())
+      render.setMinimapResolution(new sc_pb.Size2DI())
+      aif.rgb_dimensions.screen.assign_to(render.getResolution())
+      aif.rgb_dimensions.minimap.assign_to(render.getMinimapResolution())
     }
 
     return interfacee
   }
 
+  _get_interface(agent_interface_format, require_raw) { //eslint-disable-line
+    return SC2Env._get_interface(agent_interface_format, require_raw)
+  }
+
   async _launch_game() {
     // Reserve a whole bunch of ports for the weird multiplayer implementation.
     if (this._num_agents > 1) {
-      this._ports = await portspicker.pick_unused_ports(this._num_agents * 2)
+      this._ports = await portspicker.pick_unused_ports(this._num_agents * 4)
       console.info(`Ports used for multiplayer: ${this._ports}`)
     } else {
       this._ports = []
@@ -397,7 +406,7 @@ class SC2Env extends environment.Base {
     this._sc2_procs = []
     this._interface_options.forEach((interfacee) => {
       this._sc2_procs.push(this._run_config.start({
-        extra_ports: this._ports,
+        port: this._ports.pop(),
         want_rgb: interfacee.hasRender()
       }))
     })
@@ -439,10 +448,11 @@ class SC2Env extends environment.Base {
     const create = new sc_pb.RequestCreateGame()
     create.setDisableFog(this._disable_fog)
     create.setRealtime(this._realtime)
-
     if (this._battle_net_map) {
       create.setBattlenetMapName(map_inst.battle_net)
     } else {
+      const localMap = new sc_pb.LocalMap()
+      create.setLocalMap(localMap)
       create.getLocalMap().setMapPath(map_inst.path)
       const map_data = map_inst.data(this._run_config)
       if (this._num_agents === 1) {
@@ -451,9 +461,12 @@ class SC2Env extends environment.Base {
         // Save the maps so they can access it. Don't do it in parallel since SC2
         // doesn't respect tmpdir on windows, which leads to a race condition:
         // https://github.com/Blizzard/s2client-proto/issues/102
-        this._controllers.forEach((c) => {
-          c.save_map(map_inst.path, map_data)
-        })
+        try {
+          await Promise.all(this._controllers.map((c) => c.save_map(map_inst.path, map_data)))
+        } catch (err) {
+          console.error('bad map data: ', map_data, 'using map_inst: ', map_inst)
+          throw err
+        }
       }
     }
 
@@ -462,46 +475,47 @@ class SC2Env extends environment.Base {
     }
 
     this._players.forEach((p) => {
+      const playerSetup = new sc_pb.PlayerSetup()
       if (p instanceof Agent) {
-        const playerSetup = new sc_pb.PlayerSetup()
         playerSetup.setType(sc_pb.PlayerType.PARTICIPANT)
         create.addPlayerSetup(playerSetup)
       } else {
-        const playerSetup = new sc_pb.PlayerSetup()
         playerSetup.setType(sc_pb.PlayerType.COMPUTER)
         playerSetup.setDifficutly(p.difficulty)
         playerSetup.setAiBuild(randomChoice(p.build))
         create.addPlayerSetup(playerSetup)
       }
     })
-    this._controllers[0].create_game(create)
+    await this._controllers[0].create_game(create)
 
     // Create the join requests.
     const agent_players = this._players.filter((p) => p instanceof Agent)
     const sanitized_names = crop_and_deduplicate_names(agent_players.map((p) => p.name))
     const join_reqs = []
-    zip(agent_players, sanitized_names, this._interface_options).forEach(([p, name, interfacee]) => {
-      const join = new sc_pb.RequestJoinGame()
-      join.setOptions(interfacee)
-      join.setRace(randomChoice(p.race))
-      join.setPlayerName(name)
-      if (this._ports) {
-        join.setSharedPort(0)
-        join.getServerPorts().setGamePort(this._ports[0])
-        join.getServerPorts().setBasePort(this._ports[1])
-        for (let i = 0; i < this._num_agents; i++) {
-          const ports = new sc_pb.PortSet()
-          ports.setGamePort(this._ports[i * 2 + 2])
-          ports.setBasePort(this._ports[i * 2 + 3])
-          join.addClientPorts(ports)
+    zip(agent_players, sanitized_names, this._interface_options)
+      .forEach(([p, name, interfacee]) => {
+        const join = new sc_pb.RequestJoinGame()
+        join.setOptions(interfacee)
+        join.setRace(Array.isArray(p.race) ? Number(randomChoice(p.race)) : Number(p.race))
+        join.setPlayerName(name)
+        if (this._ports) {
+          join.setServerPorts(new sc_pb.PortSet())
+          join.setSharedPort(0)
+          join.getServerPorts().setGamePort(this._ports[0])
+          join.getServerPorts().setBasePort(this._ports[1])
+          for (let i = 0; i < this._num_agents; i++) {
+            const ports = new sc_pb.PortSet()
+            ports.setGamePort(this._ports[i * 2 + 2])
+            ports.setBasePort(this._ports[i * 2 + 3])
+            join.addClientPorts(ports)
+          }
+          join_reqs.push(join)
         }
-      }
-      join_reqs.push(join)
-    })
+      })
+    await Promise.all(zip(this._controllers, join_reqs).map(([c, join]) => c.join_game(join)))
 
     // #python_problems lol
     // Join the game. This must be run in parallel because Join is a blocking call to the game that waits until all clients have joined.
-    await Promise.all(zip(this._controllers, join_reqs).map(([c, join]) => c.join_game(join)))
 
     this._game_info = await Promise.all(this._controllers.map((c) => c.game_info()))
 
@@ -519,11 +533,11 @@ class SC2Env extends environment.Base {
         const game_info = g
         const agent_interface_format = aif
         const map_name = this._map_name
-        return features.features_from_game_info(
+        return features.features_from_game_info({
           game_info,
           agent_interface_format,
           map_name,
-        )
+        })
       })
   }
 
@@ -625,7 +639,7 @@ class SC2Env extends environment.Base {
       return this.reset()
     }
 
-    const skip = !(this._ensure_available_actions)
+    const skip = !this._ensure_available_actions
     let actionsss = []
     zip(this._features, this._obs, actionss).forEach(([f, o, acts]) => {
       to_list(acts).forEach((a) => {
@@ -650,7 +664,7 @@ class SC2Env extends environment.Base {
     return this._step(step_mul)
   }
 
-  _step(step_mul = null) {
+  async _step(step_mul = null) {
     step_mul = step_mul || this._step_mul
     if (step_mul <= 0) {
       throw new ValueError(`step_mul should be positive, got ${step_mul}`)
@@ -665,7 +679,7 @@ class SC2Env extends environment.Base {
         this._episode_steps, //current game_loop
       )
       const game_loop = target_game_loop
-      this._step_to(
+      await this._step_to(
         game_loop,
         current_game_loop,
       )
@@ -681,7 +695,7 @@ class SC2Env extends environment.Base {
     zip(actionss, this._action_delay_fns, this._delayed_actions)
       .forEach(([actions_for_player, delay_fn, delayed_actions]) => {
         const actions_now_for_player = []
-        actions_for_player.forEach((action) => {
+        actions_for_player.toArray().forEach((action) => {
           const delay = delay_fn ? delay_fn() : 1
           if (delay > 1 && Object.keys(action.toObject()).length) { //action.ListFields() //Skip no-ops
             let game_loop = this._episode_steps + delay - 1
@@ -727,7 +741,7 @@ class SC2Env extends environment.Base {
 
         await self._step_to(act_game_loop, current_game_loop)
         current_game_loop = act_game_loop
-        if (this._controllers[0].status_ended) {
+        if (self._controllers[0].status_ended) {
           // We haven't observed and may have hit game end.
           resolve(current_game_loop)
           return
@@ -941,24 +955,24 @@ class SC2Env extends environment.Base {
 
   async close() {
     console.info('Environment Close')
-    if (this.hasOwnProperty('_metrics') && this._metrics) {
+    if (this._metrics) {
       this._metrics.close()
       this._metrics = null
     }
-    if (this.hasOwnProperty('_renderer_human') && this._renderer_human) {
+    if (this._renderer_human) {
       this._renderer_human.close()
       this._renderer_human = null
     }
     // Don't use parallel since it might be broken by an exception.
-    if (this.hasOwnProperty('_controllers') && this._controllers) {
+    if (this._controllers) {
       await Promise.all(this._controllers.map((c) => c.quit()))
       this._controllers = null
     }
-    if (this.hasOwnProperty('_sc2_procs') && this._sc2_procs) {
+    if (this._sc2_procs) {
       await Promise.all(this._sc2_procs.map((p) => p.close()))
       this._sc2_procs = null
     }
-    if (this.hasOwnProperty('_ports') && this._ports) {
+    if (this._ports) {
       // portspicker.return_ports(this._ports) // can't do this yet
       this._ports = null
     }
@@ -1063,8 +1077,17 @@ function crop_and_deduplicate_names(names) {
 }
 
 module.exports = {
+  possible_results,
+  Race,
+  BotBuild,
+  ActionSpace,
+  Dimensions,
+  AgentInterfaceFormat,
+  parse_agent_interface_format,
   crop_and_deduplicate_names,
   Difficulty,
+  Agent,
+  Bot,
   MAX_STEP_COUNT,
   NUM_ACTION_DELAY_BUCKETS,
   REALTIME_GAME_LOOP_SECONDS,

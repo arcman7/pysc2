@@ -307,10 +307,9 @@ class InitalizeServices {
           response.writeHead(200, { 'Content-Type': 'application/json' })
           const data = gfile.Open(path.resolve(__dirname, 'bundle_json.json'), { encoding: 'utf8' })
           response.end(data, 'utf-8')
-        } else if (reqPath === '/SDFGD') {
-          // if (this.)
-        }
-        else {
+        } else if (reqPath === '/tensorflow-wasm.wasm') {
+          // TODO: serve tensorflow wasm binary
+        } else {
           response.end('404')
         }
       }

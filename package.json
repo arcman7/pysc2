@@ -31,9 +31,12 @@
     "@tensorflow/tfjs-node": "^2.0.1",
     "@tensorflow/tfjs-node-gpu": "^1.7.4",
     "acorn": "^6.4.1",
+    "binascii": "0.0.2",
     "collections": "^5.1.11",
+    "crypto": "^1.0.1",
     "deep-diff": "^1.0.2",
     "dev-dependencies": "^1.0.0",
+    "double-ended-queue": "^2.1.0-0",
     "empeeku": "^1.0.2",
     "flags": "^0.1.3",
     "fluent-ffmpeg": "^2.1.2",
@@ -60,7 +63,6 @@
     "modulePathIgnorePatterns": [
       ".git",
       "/tests/",
-      "/env/",
       "renderer_human"
     ]
   }
