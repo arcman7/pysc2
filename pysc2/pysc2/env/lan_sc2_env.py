@@ -44,7 +44,6 @@ from s2clientprotocol import sc2api_pb2 as sc_pb
 
 
 class Addr(collections.namedtuple("Addr", ["ip", "port"])):
-# class Addr(all_collections_generated_classes.Addr):
 
   def __str__(self):
     ip = "[%s]" % self.ip if ":" in self.ip else self.ip

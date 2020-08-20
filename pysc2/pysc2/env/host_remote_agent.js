@@ -66,10 +66,6 @@ class VsAgent {
     return this.close()
   }
 
-  // __del__() {
-  //   this.close()
-  // }
-
   async create_game(map_name) {
     /*
     Create a game for the agents to join.
@@ -195,10 +191,6 @@ class VsBot {
   __exit__() {
     return this.close()
   }
-
-  // __del__() {
-  //   this.close()
-  // }
 
   async create_game(
     map_name,

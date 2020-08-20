@@ -3,10 +3,6 @@ const stopwatch = require(path.resolve(__dirname, './stopwatch.js'))
 const pythonUtils = require(path.resolve(__dirname, './pythonUtils.js'))
 
 const { withPython } = pythonUtils
-// const { Stat, StopWatchContext, TracingStopWatchContext, FakeStopWatchContext, fake_context, StopWatch, StopWatchRef } = stopwatch
-
-jest.mock('perf_hooks')
-const perf_hooks = require('perf_hooks') //eslint-disable-line
 
 function ham_dist(str1, str2) {
   //Hamming distance. Count the number of differences between str1 and str2.//
@@ -23,7 +19,6 @@ function ham_dist(str1, str2) {
   return sum
 }
 
-// const jsConv = (10 ** -3)
 const jsConv = 1000
 
 describe('stopwatch.js:', () => {
@@ -53,13 +48,14 @@ describe('stopwatch.js:', () => {
   describe('StopwatchTest', () => {
     let sw
     beforeEach(() => {
-      perf_hooks.useRealish = false
       sw = new stopwatch.StopWatch()
     })
     afterEach(() => {
       delete process.env['SC2_NO_STOPWATCH']
     })
-    test('StopWatch', () => {
+    test('StopWatch', async () => {
+      sw = new stopwatch.StopWatch(true, false, true)
+      const perf_hooks = sw._perf_hooks_mock
       perf_hooks.return_val = 0
       withPython(sw('one'), () => { perf_hooks.return_val += 0.002 * jsConv })
       withPython(sw('one'), () => { perf_hooks.return_val += 0.004 * jsConv })
@@ -92,10 +88,13 @@ describe('stopwatch.js:', () => {
       // Can't test the rest since they'll be flaky.
 
       // Allow a few small rounding errors for the round trip.
-      const round_trip = (stopwatch.StopWatch.parse(out)).toString()
+      const val = stopwatch.StopWatch.parse(out)
+      const round_trip = (val).toString()
       expect(ham_dist(out, round_trip) < 15).toBe(true)
     })
     test('Divide zero', () => {
+      sw = new stopwatch.StopWatch(true, false, true)
+      const perf_hooks = sw._perf_hooks_mock
       perf_hooks.return_val = 0
       withPython(sw('zero'), () => {})
       // Just make sure this doesn't have a divide by 0 for when the total is 0.
@@ -111,8 +110,6 @@ describe('stopwatch.js:', () => {
       expect(sw.decorate('name')(Math.round)).not.toBe(Math.round)
     })
     test('Speed', () => {
-      perf_hooks.useRealish = true
-
       const count = 100
       function run() {
         for (let _ = 0; _ < count; _++) {

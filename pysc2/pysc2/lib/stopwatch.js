@@ -6,9 +6,28 @@ const { performance } = require('perf_hooks') //eslint-disable-line
 const pythonUtils = require(path.resolve(__dirname, './pythonUtils.js'))
 
 const { DefaultDict, withPython, zip } = pythonUtils
-String = pythonUtils.String //eslint-disable-line
-Array = pythonUtils.Array //eslint-disable-line
+// String = pythonUtils.String //eslint-disable-line
+// Array = pythonUtils.Array //eslint-disable-line
 const msToS = 1 / 1000
+const usedVal = { val: 0 }
+const perf_hooks_mock = {
+  usedVal,
+  useRealish: false,
+  set return_val(val) {
+    usedVal.val = val
+  },
+  get return_val() {
+    return usedVal.val
+  },
+  performance: {
+    now() {
+      if (perf_hooks_mock.useRealish) {
+        return Date.now()
+      }
+      return usedVal.val
+    },
+  },
+}
 
 class Stat {
   static get _fields() { return ["num", "min", "max", "sum", "sum_sq"] }
@@ -94,39 +113,40 @@ class StopWatchContext {
   //Time an individual call.//
   static get _fields() { return ['_sw', '_start'] }
 
-  constructor(stopwatch, name) {
+  constructor(stopwatch, name, mock_time = false) {
     this._sw = stopwatch
     this._sw.push(name)
     this.__enter__ = this.__enter__.bind(this)
     this.__exit__ = this.__exit__.bind(this)
-    if (typeof window === 'undefined') {
-      this.performance = performance
+    if (mock_time) {
+      this.performance = perf_hooks_mock.performance
+      // NOTE: Jest will define a window object
+    } else if (typeof window === 'undefined') {
+      // this.performance = performance
+      this.performance = Date
     } else {
-      this.performance = window.performance
+      // this.performance = window.performance
+      this.performance = Date
     }
   }
 
   // performance.now() => measured in milliseconds.
   __enter__() {
-    this._start = this.performance.now() * msToS
+    this._start = this.performance.now()
   }
 
   __exit__() {
-    this._sw.add(this._sw.pop(), (this.performance.now() * msToS) - this._start)
+    // this._sw.add(this._sw.pop(), (this.performance.now() * msToS) - this._start)
+    this._sw.add(this._sw.pop(), (this.performance.now() - this._start) * msToS)
   }
 }
 
 class TracingStopWatchContext extends StopWatchContext {
   //Time an individual call, but also output all the enter/exit calls.//
-  constructor(stopwatch, name) {
-    super(stopwatch, name)
+  constructor(stopwatch, name, mock_time = false) {
+    super(stopwatch, name, mock_time)
     this.__enter__ = this.__enter__.bind(this)
     this.__exit__ = this.__exit__.bind(this)
-    if (typeof window === 'undefined') {
-      this.performance = performance
-    } else {
-      this.performance = window.performance
-    }
   }
 
   __enter__() {
@@ -144,7 +164,6 @@ class TracingStopWatchContext extends StopWatchContext {
     process.stderr.write(s + '\n')
   }
 }
-
 
 class FakeStopWatchContext {
   constructor() {} //eslint-disable-line
@@ -179,11 +198,11 @@ class StopWatch {
     return new this.prototype.constructor(kwargs);
   }
 
-  constructor(enabled = true, trace = false) {
+  constructor(enabled = true, trace = false, mock_time = false) {
     this._times = new DefaultDict(Stat)
     // we dont need to declare anything as being local to the context
     // of the thread since by default node js worker threads are local
-    this._local = {}//threading.local()
+    this._local = {}
     if (trace) {
       this.trace()
     } else if (enabled) {
@@ -206,6 +225,10 @@ class StopWatch {
     stopwatchProxy._times = this._times
     stopwatchProxy.parse = this.constructor.parse
     stopwatchProxy.instanceRef = this
+    this._mock_time = mock_time
+    if (this._mock_time) {
+      stopwatchProxy._perf_hooks_mock = perf_hooks_mock
+    }
     this._funcProxy = stopwatchProxy
     return stopwatchProxy
   }
@@ -215,11 +238,11 @@ class StopWatch {
   }
 
   enable() {
-    this._factory = (name) => new StopWatchContext(this, name)
+    this._factory = (name) => new StopWatchContext(this, name, this._mock_time)
   }
 
   trace() {
-    this._factory = (name) => new TracingStopWatchContext(this, name)
+    this._factory = (name) => new TracingStopWatchContext(this, name, this._mock_time)
   }
 
   custom(factory) {

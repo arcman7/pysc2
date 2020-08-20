@@ -303,7 +303,6 @@ class Builder {
     })
   }
 
-
   single_select(unit) {
     this._single_select = unit
     return this
@@ -371,7 +370,6 @@ class Builder {
       setattr(minimapRendersProto, field, new sc_pb.ImageData())
     })
     obs.getFeatureLayerData().setMinimapRenders(minimapRendersProto)
-
     if (this._obs_spec.hasOwnProperty('feature_screen')) {
       features.SCREEN_FEATURES.forEach((feature) => {
         const renders = obs.getFeatureLayerData().getRenders()

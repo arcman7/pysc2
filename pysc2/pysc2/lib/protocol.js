@@ -58,6 +58,7 @@ class StarcraftProtocol {
     this._status = Status.LAUNCHED
     this._sock = ws._socket
     this._port = this._sock.address().port
+    // console.log('********************** _sock.address():', this._sock.address())
     this._ws = ws
     this._count = 1
     // apply @decoraters
