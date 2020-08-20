@@ -94,7 +94,7 @@ describe('mock_sc2_env.js', () => {
       expect(env.action_spec()).toMatchObject([mock])
     })
 
-    test('test_default_obsercation', () => {
+    test('test_default_observation', () => {
       const observation = env._default_observation(env.observation_spec()[0], 0)
       delete observation.mock.id
       const mock_observation = { 'mock': np.zeros([10, 1], 'int32') }
