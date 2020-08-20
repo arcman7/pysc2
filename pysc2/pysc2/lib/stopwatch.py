@@ -94,8 +94,6 @@ class Stat(object):
   @staticmethod
   def build(summation, average, standard_deviation, minimum, maximum, number):
     stat = Stat()
-    print('stat.build:')
-    print(summation, average, standard_deviation, minimum, maximum, number)
     if number > 0:
       stat.num = number
       stat.min = minimum
@@ -315,7 +313,6 @@ class StopWatch(object):
       out += "  ".join(
           val.rjust(width) for val, width in zip(row[1:], col_widths[1:]))
       out += "\n"
-
     return out
 
   def __str__(self):
