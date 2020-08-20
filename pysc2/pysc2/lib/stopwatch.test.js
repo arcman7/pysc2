@@ -92,9 +92,11 @@ describe('stopwatch.js:', () => {
       // Can't test the rest since they'll be flaky.
 
       // Allow a few small rounding errors for the round trip.
-      const round_trip = (stopwatch.StopWatch.parse(out)).toString()
-      console.log('round_trip: ', round_trip)
-      console.log('out: ', out)
+      const val = stopwatch.StopWatch.parse(out)
+      const round_trip = (val).toString()
+      // console.log(val.times)
+      // console.log('round_trip: ', round_trip)
+      // console.log('out: ', out)
       expect(ham_dist(out, round_trip) < 15).toBe(true)
     })
     test('Divide zero', () => {

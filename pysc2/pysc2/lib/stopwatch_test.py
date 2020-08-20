@@ -91,6 +91,7 @@ class StopwatchTest(absltest.TestCase):
     # Can't test the rest since they'll be flaky.
 
     # Allow a few small rounding errors for the round trip.
+    print('here in test')
     round_trip = str(stopwatch.StopWatch.parse(out))
     self.assertLess(ham_dist(out, round_trip), 15,
                     "%s != %s" % (out, round_trip))

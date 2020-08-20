@@ -94,6 +94,8 @@ class Stat(object):
   @staticmethod
   def build(summation, average, standard_deviation, minimum, maximum, number):
     stat = Stat()
+    print('stat.build:')
+    print(summation, average, standard_deviation, minimum, maximum, number)
     if number > 0:
       stat.num = number
       stat.min = minimum

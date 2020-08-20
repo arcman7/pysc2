@@ -312,18 +312,17 @@ class StopWatch {
 
   static parse(s) {
     //Parse the output below to create a new StopWatch.//
-    console.log('parse, s:\n', s)
     const stopwatch = new StopWatchRef()
+    console.log('s:\n', s)
     s.splitlines().forEach((line) => {
+      
       if (line.trim()) {
         const parts = line.match(/\S+/g)
         const name = parts[0]
-        console.log('name: ', name)
         if (name !== '%') { // ie not the header line
           const rest = parts.slice(2, parts.length).map((v) => Number(v))
-          console.log('rest: ', rest)
+          console.log(name, '  - merging ', parts[0], Stat.build(...rest), 'from rest: ', rest)
           stopwatch.times[parts[0]].merge(Stat.build(...rest))
-          console.log(stopwatch.times)
         }
       }
     })
@@ -343,9 +342,12 @@ class StopWatch {
     const table = [['', '% total', 'sum', 'avg', 'dev', 'min', 'max', 'num']]
     let percent
     let v
+    // console.log('*********** str:')
+    // console.log(this._times, Object.keys(this._times))
     Object.keys(this._times).sort().forEach((key) => {
       v = this._times[key]
       percent = (100 * v.sum) / (total || 1)
+      // console.log(key, ' - percent: ', percent, ' threshold: ', threshold)
       if (percent > threshold) {
         table.push([
           key,
