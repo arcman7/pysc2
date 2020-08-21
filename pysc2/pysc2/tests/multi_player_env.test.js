@@ -15,7 +15,7 @@ async function TestMultiplayerEnv() {
   async function test_multi_player_env_features () {
     console.log('   test_multi_player_env_features')
     testCase.setUp()
-    const env = new sc2_env.AgentIterfaceFormat({
+    const agent_interface_format = new sc2_env.AgentIterfaceFormat({
       feature_dimentions: new sc2_env.Dimensions(84, 64),
     })
     const env = new sc2_env.
