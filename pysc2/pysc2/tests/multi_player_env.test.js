@@ -28,7 +28,7 @@ async function TestMultiplayerEnv() {
       })
     }
 
-    const env = new sc2_env.SC2Env(kwargs)
+    const env = await sc2_env.SC2EnvFactory(kwargs)
     const agents = []
     for (let i = 0; i < numPlayers; i++) {
       agents.push(new random_agent.RandomAgent())
@@ -53,7 +53,7 @@ async function TestMultiplayerEnv() {
       })
     }
 
-    const env = new sc2_env.SC2Env(kwargs)
+    const env = await sc2_env.SC2EnvFactory(kwargs)
     const agents = []
     for (let i = 0; i < numPlayers; i++) {
       agents.push(new random_agent.RandomAgent())
@@ -80,7 +80,7 @@ async function TestMultiplayerEnv() {
       })]
     }
 
-    const env = new sc2_env.SC2Env(kwargs)
+    const env = await sc2_env.SC2EnvFactory(kwargs)
     const agents = []
     for (let i = 0; i < numPlayers; i++) {
       agents.push(new random_agent.RandomAgent())

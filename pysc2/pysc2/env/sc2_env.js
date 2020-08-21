@@ -519,13 +519,15 @@ class SC2Env extends environment.Base {
     // Join the game. This must be run in parallel because Join is a blocking call to the game that waits until all clients have joined.
 
     this._game_info = await Promise.all(this._controllers.map((c) => c.game_info()))
-
     zip(this._game_info, this._interface_options).forEach(([g, interfacee]) => {
-      const optionsRender = JSON.stringify(g.getOptions().getRender().toObject())
-      const interfaceeRender = JSON.stringify(interfacee.getRender().toObject())
+      const optionsRender = JSON.stringify(g.getOptions().getRender() ? g.getOptions().getRender().toObject() : 'undefined')
+      const interfaceeRender = JSON.stringify(interfacee.getRender() ? interfacee.getRender().toObject() : 'undefined')
       if (optionsRender !== interfaceeRender) {
         console.warn(`Actual interface options don't match requested options: \n
           Requested: ${interfacee.toObject()} \n\nActual: ${g.options.toObject()}`)
+      } else {
+        console.log('else: optionsRender')
+        console.log(optionsRender)
       }
     })
 
@@ -557,8 +559,6 @@ class SC2Env extends environment.Base {
 
   observation_spec() {
     // Look at Features for full specs.//
-    console.log('*** this: ', this)
-    console.log('****** this._features : ', this._features)
     return this._features.map((f) => f.observation_spec())
   }
 
@@ -610,7 +610,13 @@ class SC2Env extends environment.Base {
     const sorted = Object.keys(this._features[0].requested_races)
       .sort()
       .map((key) => [key, this._features[0].requested_races[key]]) // [key, value]
+    console.log(this._features)
+    console.log('sorted:')
+    console.log(sorted)
+    // console.log('races:')
+    // console.log(races)
     const races = sorted.map(([_, r]) => Race(r).name) //eslint-disable-line
+  
     console.info(`Starting episode ${this._episode_count}: [${races.join(', ')}] on ${this._map_name}`)
     this._metrics.increment_episode()
     this._last_score = Array(this._num_agents.length).fill(0)
