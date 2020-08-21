@@ -45,12 +45,6 @@ class TestMultiplayerEnv(parameterized.TestCase, utils.TestCase):
     steps = 100
     step_mul = 16
     players = 2
-    test = sc2_env.AgentInterfaceFormat(
-          feature_dimensions=sc2_env.Dimensions(screen=84, minimap=64))
-    temp = sc2_env
-    print('*** test : ', test)
-    print('=== agent_interface_format : ', agent_interface_format)
-    print(' <<<< check : ', temp == agent_interface_format)
     with sc2_env.SC2Env(
         map_name="Simple64",
         players=[sc2_env.Agent(sc2_env.Race.random, "random"),

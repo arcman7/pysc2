@@ -280,7 +280,7 @@ class SC2Env extends environment.Base {
     if (agent_interface_format instanceof AgentInterfaceFormat) {
       const tempAgents = [agent_interface_format]
       for (let i = 1; i < this._num_agents; i++) {
-        tempAgents.push(new AgentInterfaceFormat(...agent_interface_format._pickle_args))
+        tempAgents.push(tempAgents[0])
       }
       agent_interface_format = tempAgents
     }
@@ -556,6 +556,8 @@ class SC2Env extends environment.Base {
 
   observation_spec() {
     // Look at Features for full specs.//
+    console.log('*** this: ', this)
+    console.log('****** this._features : ', this._features)
     return this._features.map((f) => f.observation_spec())
   }
 
@@ -980,7 +982,8 @@ class SC2Env extends environment.Base {
   }
 }
 
-async function SC2EnvFactory({
+async function SC2EnvFactory(
+  _only_use_kwargs,
   map_name,
   battle_net_map,
   players,
@@ -1000,8 +1003,9 @@ async function SC2EnvFactory({
   disable_fog,
   ensure_available_actions,
   version
-}, _only_use_kwargs) {
-  const sc2Env = new SC2Env({
+) {
+  const sc2Env = new SC2Env(
+    _only_use_kwargs,
     map_name,
     battle_net_map,
     players,
@@ -1021,7 +1025,7 @@ async function SC2EnvFactory({
     disable_fog,
     ensure_available_actions,
     version
-  }, _only_use_kwargs)
+  )
   await sc2Env._setUpGame()
   return sc2Env
 }
