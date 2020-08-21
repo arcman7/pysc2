@@ -538,6 +538,7 @@ class SC2Env(environment.Base):
     self._episode_count += 1
     races = [Race(r).name
              for _, r in sorted(self._features[0].requested_races.items())]
+    print('races: ', races)
     logging.info("Starting episode %s: [%s] on %s",
                  self._episode_count, ", ".join(races), self._map_name)
     self._metrics.increment_episode()

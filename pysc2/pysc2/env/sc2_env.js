@@ -463,7 +463,7 @@ class SC2Env extends environment.Base {
         // doesn't respect tmpdir on windows, which leads to a race condition:
         // https://github.com/Blizzard/s2client-proto/issues/102
         try {
-          await Promise.all(this._controllers.map((c) => c.save_map(map_inst.path, map_data)))
+          await sequentialTaskQueue(this._controllers.map((c) => () => c.save_map(map_inst.path, map_data)))
         } catch (err) {
           console.error('bad map data: ', map_data, 'using map_inst: ', map_inst)
           throw err
@@ -607,8 +607,7 @@ class SC2Env extends environment.Base {
     const sorted = Object.keys(this._features[0].requested_races)
       .sort()
       .map((key) => [key, this._features[0].requested_races[key]]) // [key, value]
-    const races = sorted.map(([_, r]) => Race(r).name) //eslint-disable-line
-    console.log('races: ', races)
+    const races = sorted.map(([_, r]) => Race(r).key) //eslint-disable-line
     console.info(`Starting episode ${this._episode_count}: [${races.join(', ')}] on ${this._map_name}`)
     this._metrics.increment_episode()
     this._last_score = Array(this._num_agents.length).fill(0)
@@ -905,7 +904,7 @@ class SC2Env extends environment.Base {
     if (this._state == environment.StepType.LAST) {
       if (this._save_replay_episodes > 0
         && (this._episode_count % this._save_replay_episodes) == 0) {
-        this.save_replay(this._replay_dir, this._replay_prefix)
+        await this.save_replay(this._replay_dir, this._replay_prefix)
       }
       const score_val = []
       this._agent_obs.forEach((o) => {

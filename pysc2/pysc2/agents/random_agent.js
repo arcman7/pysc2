@@ -8,7 +8,7 @@ class RandomAgent extends base_agent.BaseAgent {
   // A random agent for starcraft. //
   step(obs) {
     super.step(obs)
-    const function_id = randomChoice(obs.observation.available_actions)
+    const function_id = randomChoice(obs.getObservation().getAvailableActions())
     const args = []
     Object.keys(this.action_spec.functions[function_id].args).forEach((key) => {
       const arg = this.action_spec.functions[function_id].args[key]

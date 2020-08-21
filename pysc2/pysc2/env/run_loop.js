@@ -7,6 +7,7 @@ const { zip } = pythonUtils
 /*eslint-disable no-await-in-loop*/
 async function run_loop(agents, env, max_frames = 0, max_episodes = 0) {
   // A run loop to have agents and an environment interact.
+  console.log('run_loop: ', 'max_frames = ', max_frames)
   let total_frames = 0
   let total_episodes = 0
   const start_time = performance.now() / 1000
@@ -21,13 +22,14 @@ async function run_loop(agents, env, max_frames = 0, max_episodes = 0) {
   try {
     while (!(max_episodes) || total_episodes < max_episodes) {
       total_episodes += 1
-      let timesteps = env.reset()
+      let timesteps = await env.reset()
       agents.forEach((a) => {
         a.reset()
       })
       while (true) {
         total_frames += 1
         const actions = zip(agents, timesteps).map((agent, timestep) => agent.step(timestep))
+        console.log('actions: ', actions)
         if (max_frames && total_frames >= max_frames) {
           return
         }
@@ -44,6 +46,8 @@ async function run_loop(agents, env, max_frames = 0, max_episodes = 0) {
     const frame_ratio = total_frames / elapsed_time
     console.log("Took", elapsed_time.toFixed(3), "seconds for", total_frames, "steps:", frame_ratio.toFixed(3), "fps")
   }
+  console.log('end of run_loop, returning')
+  return true
 }
 
 module.exports = {

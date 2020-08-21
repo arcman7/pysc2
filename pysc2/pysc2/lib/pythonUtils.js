@@ -847,13 +847,14 @@ function withPython(withInterface, callback) {
   }
   return tempResult
 }
-async function withPythonAsync(withInterface, callback) {
+async function withPythonAsync(pendingWithInterface, callback) {
+  const withInterface = await pendingWithInterface
   if (!withInterface.__enter__ || !withInterface.__exit__) {
     throw new Error('ValueError: withInterface must define a __enter__ and __exit__ method')
   }
-  let tempResult = withInterface.__enter__()
+  let tempResult = withInterface.__enter__.call(withInterface)
   tempResult = await callback(tempResult)
-  withInterface.__exit__()
+  await withInterface.__exit__.call(withInterface)
   return tempResult
 }
 

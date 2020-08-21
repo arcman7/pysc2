@@ -25,7 +25,7 @@ class BaseAgent {
 
   step(obs) {
     this.steps += 1
-    this.reward += obs.reward
+    this.reward += obs.getReward()
     return actions.FunctionCall(actions.FUNCTIONS.no_op_id, [])
   }
 }
