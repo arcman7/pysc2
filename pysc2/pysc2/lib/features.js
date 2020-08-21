@@ -726,6 +726,7 @@ class AgentInterfaceFormat {
     } else {
       this._action_dimensions = rgb_dimensions
     }
+    this._pickle_args = arguments//eslint-disable-line
   }
 
   get feature_dimensions() {
