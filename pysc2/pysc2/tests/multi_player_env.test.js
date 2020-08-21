@@ -1,9 +1,10 @@
-// Test that the multiplayer environment works.
-const path = require('path')
+const path = require('path') //eslint-disable-line
 const random_agent = require(path.resolve(__dirname, '..', 'agents', 'random_agent.js'))
 const run_loop = require(path.resolve(__dirname, '..', 'env', 'run_loop.js'))
 const sc2_env = require(path.resolve(__dirname, '..', 'env', 'sc2_env.js'))
 const utils = require(path.resolve(__dirname, '..', 'tests', 'utils.js'))
+
+// Test that the multiplayer environment works.
 
 const testCase = new utils.TestCase()
 
@@ -34,7 +35,7 @@ async function TestMultiplayerEnv() {
       agents.push(new random_agent.RandomAgent())
     }
     await run_loop.run_loop(agents, env, steps)
-    testCase.tearDown()
+    await testCase.tearDown()
   }
   await test_multi_player_env_features()
 
@@ -59,7 +60,7 @@ async function TestMultiplayerEnv() {
       agents.push(new random_agent.RandomAgent())
     }
     await run_loop.run_loop(agents, env, steps)
-    testCase.tearDown()
+    await testCase.tearDown()
   }
   await test_multi_player_env_rgb()
 
@@ -86,7 +87,7 @@ async function TestMultiplayerEnv() {
       agents.push(new random_agent.RandomAgent())
     }
     await run_loop.run_loop(agents, env, steps)
-    testCase.tearDown()
+    await testCase.tearDown()
   }
   await test_multi_player_env_features_and_rgb()
 }

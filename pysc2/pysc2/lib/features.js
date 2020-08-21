@@ -1004,8 +1004,8 @@ function features_from_game_info({ game_info, agent_interface_format = null, map
   return new Features( //eslint-disable-line
     agent_interface_format,
     map_size,
-    map_name,
     requested_races,
+    map_name,
   )
 }
 

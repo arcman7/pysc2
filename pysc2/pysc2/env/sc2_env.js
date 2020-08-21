@@ -15,7 +15,7 @@ const renderer_human = require(path.resolve(__dirname, '..', 'lib', 'renderer_hu
 const stopwatch = require(path.resolve(__dirname, '..', 'lib', 'stopwatch.js'))
 const pythonUtils = require(path.resolve(__dirname, '..', 'lib', 'pythonUtils.js'))
 
-const { any, assert, DefaultDict, isinstance, namedtuple, pythonWith, randomChoice, sequentialTaskQueue, ValueError, zip } = pythonUtils
+const { any, assert, DefaultDict, isinstance, namedtuple, withPython, randomChoice, sequentialTaskQueue, ValueError, zip } = pythonUtils
 const { common_pb, sc2api_pb } = s2clientprotocol
 const sc_common = common_pb
 const sc_pb = sc2api_pb
@@ -525,9 +525,6 @@ class SC2Env extends environment.Base {
       if (optionsRender !== interfaceeRender) {
         console.warn(`Actual interface options don't match requested options: \n
           Requested: ${interfacee.toObject()} \n\nActual: ${g.options.toObject()}`)
-      } else {
-        console.log('else: optionsRender')
-        console.log(optionsRender)
       }
     })
 
@@ -610,13 +607,8 @@ class SC2Env extends environment.Base {
     const sorted = Object.keys(this._features[0].requested_races)
       .sort()
       .map((key) => [key, this._features[0].requested_races[key]]) // [key, value]
-    console.log(this._features)
-    console.log('sorted:')
-    console.log(sorted)
-    // console.log('races:')
-    // console.log(races)
     const races = sorted.map(([_, r]) => Race(r).name) //eslint-disable-line
-  
+    console.log('races: ', races)
     console.info(`Starting episode ${this._episode_count}: [${races.join(', ')}] on ${this._map_name}`)
     this._metrics.increment_episode()
     this._last_score = Array(this._num_agents.length).fill(0)
@@ -781,7 +773,7 @@ class SC2Env extends environment.Base {
       throw new ValueError('We should never need to step backwards')
     }
     if (step_mul > 0) {
-      await pythonWith(this._metrics.measure_step_time(step_mul), async () => {
+      await withPython(this._metrics.measure_step_time(step_mul), async () => {
         if (!this._controllers[0].status_ended) { // May already have ended.
           await Promise.all(this._controllers.map((c) => c.step(step_mul)))
         }
@@ -799,7 +791,7 @@ class SC2Env extends environment.Base {
       return [obs, agent_obs]
     }
 
-    await pythonWith(this._metrics.measure_observation_time(), async () => {
+    await withPython(this._metrics.measure_observation_time(), async () => {
       const parallelRuns = await Promise.all(zip(this._controllers, this._features)
         .map(([c, f]) => parallel_observe(c, f)))
 
@@ -923,8 +915,9 @@ class SC2Env extends environment.Base {
         Outcome: ${outcome}, reward: ${reward}, score: ${score_val}`)
     }
 
+    const self = this
     function zero_on_first_step(value) {
-      if (this._state == environment.StepType.FIRST) {
+      if (self._state == environment.StepType.FIRST) {
         return 0.0
       }
       return value
