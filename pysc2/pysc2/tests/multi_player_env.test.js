@@ -8,16 +8,38 @@ const testCase = new utils.TestCase()
 
 async function TestMultiplayerEnv() {
   console.log('TestMultiplayerEnv: ')
-  const step = 100
+  const steps = 100
   const step_mul = 16
-  const players = 2
+  const numPlayers = 2
 
   async function test_multi_player_env_features () {
     console.log('   test_multi_player_env_features')
     testCase.setUp()
-    const agent_interface_format = new sc2_env.AgentIterfaceFormat({
-      feature_dimentions: new sc2_env.Dimensions(84, 64),
-    })
-    const env = new sc2_env.
+    const players = [new sc2_env.Agent(Number(sc2_env.Race.random), 'random'), new sc2_env.Agent(Number(sc2_env.Race.random), 'random')]
+    const kwargs = {
+      map_name: 'Simple64',
+      players,
+      step_mul,
+      game_steps_per_episode: Math.floor((steps * step_mul) / 2),
+      agent_interface_format: new sc2_env.AgentInterfaceFormat({
+        feature_dimensions: new sc2_env.Dimensions(84, 64)
+      })
+    }
+    const env = new sc2_env.SC2Env(kwargs)
+    const agents = []
+    for (let i = 0; i < numPlayers; i++) {
+      agents.push(random_agent.RandomAgent())
+    }
+    await run_loop.run_loop(agents, env, steps)
+    testCase.tearDown()
   }
+  await test_multi_player_env_features()
+
+  // async function test_multi_player_env_rgb () {
+  //   console.log('   test_multi_player_env_rgb')
+  //   testCase
+  // }
+  // await test_multi_player_env_rgb()
 }
+
+TestMultiplayerEnv()
