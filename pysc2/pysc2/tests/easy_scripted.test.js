@@ -4,7 +4,7 @@ const scripted_agent = require(path.resolve(__dirname, '..', 'agents', 'scripted
 const run_loop = require(path.resolve(__dirname, '..', 'env', 'run_loop.js'))
 const sc2_env = require(path.resolve(__dirname, '..', 'env', 'sc2_env.js'))
 const pythonUtils = require(path.resolve(__dirname, '..', 'lib', 'pythonUtils.js'))
-const utils = require(path.resolve(__dirname, '..', './utils.js'))
+const utils = require(path.resolve(__dirname, './utils.js'))
 const { assert } = pythonUtils
 
 async function TestEasy() {
