@@ -280,8 +280,8 @@ class SC2Env extends environment.Base {
     if (agent_interface_format instanceof AgentInterfaceFormat) {
       const tempAgents = [agent_interface_format]
       for (let i = 1; i < this._num_agents; i++) {
-        // tempAgents.push(new AgentInterfaceFormat(...agent_interface_format._pickle_args))
-        tempAgents.push(tempAgents[0])
+        tempAgents.push(new AgentInterfaceFormat(...agent_interface_format._pickle_args))
+        // tempAgents.push(tempAgents[0])
       }
       agent_interface_format = tempAgents
     }
