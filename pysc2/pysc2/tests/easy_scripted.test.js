@@ -27,8 +27,8 @@ async function TestEasy() {
     })
     const agent = new scripted_agent.MoveToBeacon()
     await run_loop.run_loop([agent], env, steps)
+    await testCase.tearDown()
 
-    testCase.tearDown()
     assert(agent.episodes <= agent.reward, 'Error: agent.episodes <= agent.reward')
     assert(agent.steps == steps, 'Error: agent.steps == steps')
     console.log()
@@ -50,8 +50,8 @@ async function TestEasy() {
     })
     const agent = new scripted_agent.CollectMineralShards()
     await run_loop.run_loop([agent], env, steps)
+    await testCase.tearDown()
 
-    testCase.tearDown()
     assert(agent.episodes <= agent.reward, 'Error: agent.episodes <= agent.reward')
     assert(agent.step == steps, 'Error: agent.step == steps')
   }
@@ -72,8 +72,8 @@ async function TestEasy() {
     })
     const agent = new scripted_agent.CollectMineralShardsFeatureUnits()
     await run_loop.run_loop([agent], env, steps)
+    await testCase.tearDown()
 
-    testCase.tearDown()
     assert(agent.episodes <= agent.reward, 'Error: agent.episodes <= agent.reward')
     assert(agent.steps == steps, 'Error: agent.step == steps')
   }
@@ -94,8 +94,8 @@ async function TestEasy() {
     })
     const agent = new scripted_agent.CollectMineralShardsRaw()
     await run_loop.run_loop([agent], env, steps)
+    await testCase.tearDown()
 
-    testCase.tearDown()
     assert(agent.episodes <= agent.reward, 'Error: agent.episodes <= agent.reward')
     assert(agent.steps == steps, 'Error: agent.step == steps')
   }
@@ -137,8 +137,8 @@ async function TestEasy() {
     })
     const agent = new scripted_agent.DefeatRoachesRaw()
     await run_loop.run_loop([agent], env, steps)
+    await testCase.tearDown()
 
-    testCase.tearDown()
     assert(agent.episodes <= agent.reward, 'Error: agent.episodes <= agent.reward')
     assert(agent.steps == steps, 'Error: agent.step == steps')
   }
