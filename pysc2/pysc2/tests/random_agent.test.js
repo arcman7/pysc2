@@ -33,7 +33,7 @@ async function TestRandomAgent() {
     const env = new sc2_env.SC2Env(kwargs)
     const agent = new random_agent.RandomAgent()
     await run_loop.run_loop([agent], env, steps)
-    testCase.tearDown()
+    await testCase.tearDown()
   }
   await test_random_agent_features()
 
@@ -59,7 +59,7 @@ async function TestRandomAgent() {
     const env = new sc2_env.SC2Env(kwargs)
     const agent = new random_agent.RandomAgent()
     await run_loop.run_loop([agent], env, steps)
-    testCase.tearDown()
+    await testCase.tearDown()
   }
   await test_random_agent_rgb()
 
@@ -89,7 +89,7 @@ async function TestRandomAgent() {
     const env = new sc2_env.SC2Env(kwargs)
     const agent = new random_agent.RandomAgent()
     await run_loop.run_loop([agent], env, steps)
-    testCase.tearDown()
+    await testCase.tearDown()
   }
   await test_random_agent_all()
 }
