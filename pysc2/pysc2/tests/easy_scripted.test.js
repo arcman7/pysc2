@@ -86,7 +86,7 @@ async function TestEasy() {
       map_name: 'CollectMineralShards',
       players: [new sc2_env.Agent(Number(sc2_env.Race.terran))],
       agent_interface_format: new sc2_env.AgentInterfaceFormat({
-        action_space: sc2_env.ACtionSpace.RAW,
+        action_space: Number(sc2_env.ActionSpace.RAW),
         use_raw_units: true
       }),
       step_mul: step_mul,
@@ -129,7 +129,7 @@ async function TestEasy() {
       map_name: 'DefeatRoaches',
       players: [new sc2_env.Agent(Number(sc2_env.Race.terran))],
       agent_interface_format: new sc2_env.AgentInterfaceFormat({
-        action_space: sc2_env.ACtionSpace.RAW,
+        action_space: Number(sc2_env.ActionSpace.RAW),
         use_raw_units: true
       }),
       step_mul: step_mul,
