@@ -11,8 +11,10 @@ const AGENT_INTERFACE_FORMAT = new sc2_env.AgentInterfaceFormat({
 })
 
 async function StepMulOverrideTest() {
+  console.log('StepMulOverrideTest')
   const testCase = new utils.TestCase()
   async function test_returns_game_loop_zero_on_first_step_despite_override() {
+    console.log('=== test_returns_game_loop_zero_on_first_step_despite_override ===')
     testCase.setUp()
     const env = new sc2_env.SC2Env({
       map_name: 'DefeatRoaches',
@@ -27,6 +29,7 @@ async function StepMulOverrideTest() {
   await test_returns_game_loop_zero_on_first_step_despite_override()
 
   async function test_respects_override() {
+    console.log('=== test_respects_override ===')
     testCase.setUp()
     const env = sc2_env.SC2Env({
       map_name: 'DefeatRoaches',
