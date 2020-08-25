@@ -11,5 +11,14 @@ const utils = require(path.resolve(__dirname, './utils.js'))
 const sc_common = s2clientprotocol.common_pb
 const sc_pb = s2clientprotocol.sc2api_pb
 
-// const pythonUtils = require(path.resolve(__dirname, '..', 'lib', 'pythonUtils.js'))
+const pythonUtils = require(path.resolve(__dirname, '..', 'lib', 'pythonUtils.js'))
+const { assert } = pythonUtils
 
+function print_stage(stage) {
+  console.info(`${stage}`.center(80, '-'))
+}
+
+async function TestMultiplayer() {
+  const testCase = new utils.TestCase()
+  async function test_
+}
