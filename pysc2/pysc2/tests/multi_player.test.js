@@ -19,6 +19,36 @@ function print_stage(stage) {
 }
 
 async function TestMultiplayer() {
+  console.log('TestMultiplayer')
   const testCase = new utils.TestCase()
-  async function test_
+
+  async function test_multi_player() {
+    console.log('=== test_multi_player ===')
+    testCase.setUp()
+    const players = 2
+    const run_config = run_configs.get()
+    const parallel = new run_parallel.RunParallel()
+    const map_inst = maps.get('Simple64')
+
+    const screen_size_px = new point.Point(64, 64)
+    const minimap_size_px = new point.Point(32, 32)
+    const interfacee = new sc_pb.InterfaceOptions(new sc_pb.SpatialCameraSetup())
+    screen_size_px.assign_to(interfacee.getFeatureLayer().getResolution())
+    minimap_size_px.assign_to(interfacee.getFeatureLayer().getMinimapResolution())
+
+    // Reserve a whole bunch of ports for the weird multiplayer implementation.
+    const ports = await portspicker.pick_unused_ports(players * 2)
+    console.info(`Valid Ports: ${ports}`)
+
+    // Actually launch the game processes.
+    console.log('start')
+    
+
+
+
+    await testCase.tearDown()
+  }
+  await test_multi_player()
 }
+
+TestMultiplayer()
