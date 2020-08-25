@@ -36,7 +36,7 @@ async function TestObservationSpec() {
   }
 
   async function test_observation_matches_obs_spec() {
-    console.log('test_observation_matches_obs_spec')
+    console.log('=== test_observation_matches_obs_spec ===')
     testCase.setUp()
     const env = new sc2_env.SC2Env({
       map_name: 'Simple64',
@@ -80,7 +80,7 @@ async function TestObservationSpec() {
   await test_observation_matches_obs_spec()
 
   async function test_heterogeneous_observations() {
-    console.log('test_heterogeneous_observations')
+    console.log('=== test_heterogeneous_observations ===')
     testCase.setUp()
     const env = new sc2_env.SC2Env({
       map_name: 'Simple64',
