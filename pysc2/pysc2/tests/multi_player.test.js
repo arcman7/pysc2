@@ -9,6 +9,7 @@ const portspicker = require(path.resolve(__dirname, '..', 'lib', 'portspicker.js
 const utils = require(path.resolve(__dirname, './utils.js'))
 const sc_common = s2clientprotocol.common_pb
 const sc_pb = s2clientprotocol.sc2api_pb
+const spatial_pb = s2clientprotocol.spatial_pb
 
 const pythonUtils = require(path.resolve(__dirname, '..', 'lib', 'pythonUtils.js'))
 const { assert, zip } = pythonUtils
@@ -114,11 +115,15 @@ async function TestMultiplayer() {
           for (let i = 0; i < players; i += 1) {
             actions.push(new sc_pb.Action())
           }
+
           actions.forEach((action) => {
             const pt = Math.floor(point.Point.unit_rand() * minimap_size_px)
-            action.setActionFeatureLayer()
-            
-
+            const actionfeaturelayer = new sc_pb.ObserverAction()
+            const cammove = new spatial_pb.ActionSpatialCameraMove()
+            cammove.SetCenterMinimap(new sc_common.PointI())            
+            actionfeaturelayer.setCameraMove(cammove)
+            action.setActionFeatureLayer(actionfeaturelayer)
+            pt.assign_to(action.getActionFeatureLayer().getCameraMove().getCenterMinimap())
           })
           await Promise.All(zip(controllers, actions).map((c, a) => c.act(a)))
         }
