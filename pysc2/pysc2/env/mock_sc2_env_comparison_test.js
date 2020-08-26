@@ -42,8 +42,9 @@ async function TestCompareEnvironments() {
       ]
     }
 
-    env = new sc2_env.SC2Env(kwargs)
-    await env._setUpGame()
+    // env = new sc2_env.SC2Env(kwargs)
+    // await env._setUpGame()
+    env = await sc2_env.SC2EnvFactory(kwargs)
     mock_env = new mock_sc2_env.SC2TestEnv(kwargs)
   }
 

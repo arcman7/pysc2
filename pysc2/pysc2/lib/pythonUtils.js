@@ -438,17 +438,11 @@ function namedtuple(name, fields) {
       _fields.forEach((field, index) => {
         usedArgs[index] = kwargs[field]
       })
-      // console.log('here! A *******************')
-      // console.log('arguments: ')
-      // console.log(usedArgs)
       super(...usedArgs)
     } else {
       _fields.forEach((field, index) => {
         usedArgs[index] = arguments[index]
       })
-      // console.log('here! B *******************')
-      // console.log('arguments: ')
-      // console.log(usedArgs)
       super(...usedArgs)
     }
   }
@@ -847,13 +841,14 @@ function withPython(withInterface, callback) {
   }
   return tempResult
 }
-async function withPythonAsync(withInterface, callback) {
+async function withPythonAsync(pendingWithInterface, callback) {
+  const withInterface = await pendingWithInterface
   if (!withInterface.__enter__ || !withInterface.__exit__) {
     throw new Error('ValueError: withInterface must define a __enter__ and __exit__ method')
   }
-  let tempResult = withInterface.__enter__()
+  let tempResult = withInterface.__enter__.call(withInterface)
   tempResult = await callback(tempResult)
-  withInterface.__exit__()
+  await withInterface.__exit__.call(withInterface)
   return tempResult
 }
 
