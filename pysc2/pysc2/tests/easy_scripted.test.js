@@ -5,7 +5,7 @@ const run_loop = require(path.resolve(__dirname, '..', 'env', 'run_loop.js'))
 const sc2_env = require(path.resolve(__dirname, '..', 'env', 'sc2_env.js'))
 const pythonUtils = require(path.resolve(__dirname, '..', 'lib', 'pythonUtils.js'))
 const utils = require(path.resolve(__dirname, './utils.js'))
-const { assert } = pythonUtils
+const { assert, withPythonAsync } = pythonUtils
 
 async function TestEasy() {
   console.log('TestEasy')
@@ -16,7 +16,7 @@ async function TestEasy() {
   async function test_move_to_beacon() {
     console.log('=== test_move_to_beacon')
     testCase.setUp()
-    const env = new sc2_env.SC2Env({
+    const kwargs = {
       map_name: 'MoveToBeacon',
       players: [new sc2_env.Agent(Number(sc2_env.Race.terran))],
       agent_interface_format: new sc2_env.AgentInterfaceFormat({
@@ -24,21 +24,21 @@ async function TestEasy() {
       }),
       step_mul: step_mul,
       game_steps_per_episode: steps * step_mul
+    }
+    await withPythonAsync(sc2_env.SC2EnvFactory(kwargs), async (env) => {
+      const agent = new scripted_agent.MoveToBeacon()
+      await run_loop.run_loop([agent], env, steps)
+      await testCase.tearDown()
+      assert(agent.episodes <= agent.reward, 'Error: agent.episodes <= agent.reward')
+      assert(agent.steps == steps, 'Error: agent.steps == steps')
     })
-    const agent = new scripted_agent.MoveToBeacon()
-    await run_loop.run_loop([agent], env, steps)
-    await testCase.tearDown()
-
-    assert(agent.episodes <= agent.reward, 'Error: agent.episodes <= agent.reward')
-    assert(agent.steps == steps, 'Error: agent.steps == steps')
-    console.log()
   }
   await test_move_to_beacon()
 
   async function test_collect_mineral_shards() {
     console.log('=== test_collect_mineral_shards')
     testCase.setUp()
-    const env = new sc2_env.SC2Env({
+    const kwargs = {
       map_name: 'CollectMineralShards',
       players: [new sc2_env.Agent(Number(sc2_env.Race.terran))],
       agent_interface_format: new sc2_env.AgentInterfaceFormat({
@@ -47,20 +47,21 @@ async function TestEasy() {
       }),
       step_mul: step_mul,
       game_steps_per_episode: steps * step_mul
+    }
+    await withPythonAsync(sc2_env.SC2EnvFactory(kwargs), async (env) => {
+      const agent = new scripted_agent.CollectMineralShards()
+      await run_loop.run_loop([agent], env, steps)
+      await testCase.tearDown()
+      assert(agent.episodes <= agent.reward, 'Error: agent.episodes <= agent.reward')
+      assert(agent.step == steps, 'Error: agent.step == steps')
     })
-    const agent = new scripted_agent.CollectMineralShards()
-    await run_loop.run_loop([agent], env, steps)
-    await testCase.tearDown()
-
-    assert(agent.episodes <= agent.reward, 'Error: agent.episodes <= agent.reward')
-    assert(agent.step == steps, 'Error: agent.step == steps')
   }
   await test_collect_mineral_shards()
 
   async function test_collect_mineral_shards_feature_units() {
     console.log('=== test_collect_mineral_shards_feature_units')
     testCase.setUp()
-    const env = new sc2_env.SC2Env({
+    const kwargs = {
       map_name: 'CollectMineralShards',
       players: [new sc2_env.Agent(Number(sc2_env.Race.terran))],
       agent_interface_format: new sc2_env.AgentInterfaceFormat({
@@ -69,20 +70,21 @@ async function TestEasy() {
       }),
       step_mul: step_mul,
       game_steps_per_episode: steps * step_mul
+    }
+    await withPythonAsync(sc2_env.SC2EnvFactory(kwargs), async (env) => {
+      const agent = new scripted_agent.CollectMineralShardsFeatureUnits()
+      await run_loop.run_loop([agent], env, steps)
+      await testCase.tearDown()
+      assert(agent.episodes <= agent.reward, 'Error: agent.episodes <= agent.reward')
+      assert(agent.steps == steps, 'Error: agent.step == steps')
     })
-    const agent = new scripted_agent.CollectMineralShardsFeatureUnits()
-    await run_loop.run_loop([agent], env, steps)
-    await testCase.tearDown()
-
-    assert(agent.episodes <= agent.reward, 'Error: agent.episodes <= agent.reward')
-    assert(agent.steps == steps, 'Error: agent.step == steps')
   }
   await test_collect_mineral_shards_feature_units()
 
   async function test_collect_mineral_shards_raw() {
     console.log('=== test_collect_mineral_shards_raw')
     testCase.setUp()
-    const env = new sc2_env.SC2Env({
+    const kwargs = {
       map_name: 'CollectMineralShards',
       players: [new sc2_env.Agent(Number(sc2_env.Race.terran))],
       agent_interface_format: new sc2_env.AgentInterfaceFormat({
@@ -91,20 +93,22 @@ async function TestEasy() {
       }),
       step_mul: step_mul,
       game_steps_per_episode: steps * step_mul
-    })
-    const agent = new scripted_agent.CollectMineralShardsRaw()
-    await run_loop.run_loop([agent], env, steps)
-    await testCase.tearDown()
+    }
+    await withPythonAsync(sc2_env.SC2EnvFactory(kwargs), async (env) => {
+      const agent = new scripted_agent.CollectMineralShardsRaw()
+      await run_loop.run_loop([agent], env, steps)
+      await testCase.tearDown()
 
-    assert(agent.episodes <= agent.reward, 'Error: agent.episodes <= agent.reward')
-    assert(agent.steps == steps, 'Error: agent.step == steps')
+      assert(agent.episodes <= agent.reward, 'Error: agent.episodes <= agent.reward')
+      assert(agent.steps == steps, 'Error: agent.step == steps')
+    })
   }
   await test_collect_mineral_shards_raw()
 
   async function test_defeat_roaches() {
     console.log('=== test_defeat_roaches')
     testCase.setUp()
-    const env = new sc2_env.SC2Env({
+    const kwargs = {
       map_name: 'DefeatRoaches',
       players: [new sc2_env.Agent(Number(sc2_env.Race.terran))],
       agent_interface_format: new sc2_env.AgentInterfaceFormat({
@@ -112,20 +116,21 @@ async function TestEasy() {
       }),
       step_mul: step_mul,
       game_steps_per_episode: steps * step_mul
+    }
+    await withPythonAsync(sc2_env.SC2EnvFactory(kwargs), async (env) => {
+      const agent = new scripted_agent.DefeatRoaches()
+      await run_loop.run_loop([agent], env, steps)
+      await testCase.tearDown()
+      assert(agent.episodes <= agent.reward, 'Error: agent.episodes <= agent.reward')
+      assert(agent.steps == steps, 'Error: agent.step == steps')
     })
-    const agent = new scripted_agent.DefeatRoaches()
-    await run_loop.run_loop([agent], env, steps)
-
-    testCase.tearDown()
-    assert(agent.episodes <= agent.reward, 'Error: agent.episodes <= agent.reward')
-    assert(agent.steps == steps, 'Error: agent.step == steps')
   }
   await test_defeat_roaches()
 
   async function test_defeat_roaches_raw() {
     console.log('=== test_defeat_roaches_raw')
     testCase.setUp()
-    const env = new sc2_env.SC2Env({
+    const kwargs = {
       map_name: 'DefeatRoaches',
       players: [new sc2_env.Agent(Number(sc2_env.Race.terran))],
       agent_interface_format: new sc2_env.AgentInterfaceFormat({
@@ -134,13 +139,14 @@ async function TestEasy() {
       }),
       step_mul: step_mul,
       game_steps_per_episode: steps * step_mul * 100
+    }
+    await withPythonAsync(sc2_env.SC2EnvFactory(kwargs), async (env) => {
+      const agent = new scripted_agent.DefeatRoachesRaw()
+      await run_loop.run_loop([agent], env, steps)
+      await testCase.tearDown()
+      assert(agent.episodes <= agent.reward, 'Error: agent.episodes <= agent.reward')
+      assert(agent.steps == steps, 'Error: agent.step == steps')
     })
-    const agent = new scripted_agent.DefeatRoachesRaw()
-    await run_loop.run_loop([agent], env, steps)
-    await testCase.tearDown()
-
-    assert(agent.episodes <= agent.reward, 'Error: agent.episodes <= agent.reward')
-    assert(agent.steps == steps, 'Error: agent.step == steps')
   }
   await test_defeat_roaches_raw()
 }
