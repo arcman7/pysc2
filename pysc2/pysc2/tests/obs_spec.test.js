@@ -5,7 +5,7 @@ const random_agent = require(path.resolve(__dirname, '..', 'agents', 'random_age
 const sc2_env = require(path.resolve(__dirname, '..', 'env', 'sc2_env.js'))
 const utils = require(path.resolve(__dirname, './utils.js'))
 const pythonUtils = require(path.resolve(__dirname, '..', 'lib', 'pythonUtils.js'))
-const { assert, arrayShape, zip } = pythonUtils
+const { assert, arrayShape, withPythonAsync, zip } = pythonUtils
 
 // Verify that the observations match the observation spec.
 
@@ -38,7 +38,7 @@ async function TestObservationSpec() {
   async function test_observation_matches_obs_spec() {
     console.log('=== test_observation_matches_obs_spec ===')
     testCase.setUp()
-    const env = new sc2_env.SC2Env({
+    const kwargs = {
       map_name: 'Simple64',
       players: [
         new sc2_env.Agent(Number(sc2_env.Race.random)),
@@ -50,39 +50,41 @@ async function TestObservationSpec() {
           [64, 67]
         )
       })
-    })
-    let multiplayer_obs_spec = env.observation_spec()
-    assert(multiplayer_obs_spec instanceof Array, 'Error: multiplayer_obs_spec instanceof Array')
-    assert(multiplayer_obs_spec.length == 1, 'Error: multiplayer_obs_spec.length == 1')
-    const obs_spec = multiplayer_obs_spec[0]
-
-    multiplayer_obs_spec = env.action_spec()
-    assert(multiplayer_obs_spec instanceof Array, 'Error: multiplayer_obs_spec instanceof Array')
-    assert(multiplayer_obs_spec.length == 1, 'Error: multiplayer_obs_spec.length == 1')
-    const action_spec = multiplayer_obs_spec[0]
-
-    const agent = new random_agent.RandomAgent()
-    await agent.setup(obs_spec, action_spec)
-
-    let multiplayer_obs = await env.reset()
-    for (let i = 0; i < 100; i += 1) {
-      assert(multiplayer_obs instanceof Array, 'Error: multiplayer_obs instanceof Array')
-      assert(multiplayer_obs.length == 1, 'Error: multiplayer_obs.length == 1')
-      const raw_obs = multiplayer_obs[0]
-      const obs = raw_obs.observation
-      check_observation_matches_spec(obs, obs_spec)
-      const act = agent.step(raw_obs)
-      const multiplayer_act = [act]
-      multiplayer_obs = await env.step(multiplayer_act)
     }
-    await testCase.tearDown()
+    await withPythonAsync(sc2_env.SC2EnvFactory(kwargs), async (env) => {
+      let multiplayer_obs_spec = env.observation_spec()
+      assert(multiplayer_obs_spec instanceof Array, 'Error: multiplayer_obs_spec instanceof Array')
+      assert(multiplayer_obs_spec.length == 1, 'Error: multiplayer_obs_spec.length == 1')
+      const obs_spec = multiplayer_obs_spec[0]
+
+      multiplayer_obs_spec = env.action_spec()
+      assert(multiplayer_obs_spec instanceof Array, 'Error: multiplayer_obs_spec instanceof Array')
+      assert(multiplayer_obs_spec.length == 1, 'Error: multiplayer_obs_spec.length == 1')
+      const action_spec = multiplayer_obs_spec[0]
+
+      const agent = new random_agent.RandomAgent()
+      await agent.setup(obs_spec, action_spec)
+
+      let multiplayer_obs = await env.reset()
+      for (let i = 0; i < 100; i += 1) {
+        assert(multiplayer_obs instanceof Array, 'Error: multiplayer_obs instanceof Array')
+        assert(multiplayer_obs.length == 1, 'Error: multiplayer_obs.length == 1')
+        const raw_obs = multiplayer_obs[0]
+        const obs = raw_obs.observation
+        check_observation_matches_spec(obs, obs_spec)
+        const act = agent.step(raw_obs)
+        const multiplayer_act = [act]
+        multiplayer_obs = await env.step(multiplayer_act)
+        await testCase.tearDown()
+      }
+    })
   }
   await test_observation_matches_obs_spec()
 
   async function test_heterogeneous_observations() {
     console.log('=== test_heterogeneous_observations ===')
     testCase.setUp()
-    const env = new sc2_env.SC2Env({
+    const kwargs = {
       map_name: 'Simple64',
       players: [
         new sc2_env.Agent(Number(sc2_env.Race.random)),
@@ -99,37 +101,39 @@ async function TestObservationSpec() {
           rgb_dimensions: new sc2_env.Dimensions(128, 64)
         })
       ]
-    })
-    const obs_specs = env.observation_spec()
-    assert(obs_specs instanceof Array, 'Error: obs_specs instanceof Array')
-    assert(obs_specs.length == 2, 'Error: obs_specs.length == 2')
-
-    const action_specs = env.action_spec()
-    assert(action_specs instanceof Array, 'Error: action_specs instanceof Array')
-    assert(action_specs.length == 2, 'Error: action_specs.length == 2')
-    const agents = []
-    zip(obs_specs, action_specs).forEach(([obs_spec, action_spec]) => {
-      let agent = new random_agent.RandomAgent()
-      await agent.setup(obs_spec, action_spec)
-      await agent.reset()
-      agents.push(agent)
-    })
-    let time_step = await env.reset()
-    for (let i = 0; i < 100; i += 1) {
-      assert(time_steps instanceof Array, 'Error: time_steps instanceof Array')
-      assert(time_steps.length == 2, 'Error: time_steps.length == 2')
-
-      const actions = []
-      Object.keys(agents).forEach((i) => {
-        const agent = agents[i]
-        time_step = time_steps[i]
-        const obs = time_step.observation
-        check_observation_matches_spec(obs, obs_specs[i])
-        actions.push(agent.step(time_step))
-      })
-      time_steps = await env.step(actions)
     }
-    await testCase.tearDown()
+    await withPythonAsync(sc2_env.SC2EnvFactory(kwargs), async (env) => {
+      const obs_specs = env.observation_spec()
+      assert(obs_specs instanceof Array, 'Error: obs_specs instanceof Array')
+      assert(obs_specs.length == 2, 'Error: obs_specs.length == 2')
+
+      const action_specs = env.action_spec()
+      assert(action_specs instanceof Array, 'Error: action_specs instanceof Array')
+      assert(action_specs.length == 2, 'Error: action_specs.length == 2')
+      const agents = []
+      zip(obs_specs, action_specs).forEach(([obs_spec, action_spec]) => {
+        let agent = new random_agent.RandomAgent()
+        await agent.setup(obs_spec, action_spec)
+        await agent.reset()
+        agents.push(agent)
+      })
+      let time_step = await env.reset()
+      for (let i = 0; i < 100; i += 1) {
+        assert(time_steps instanceof Array, 'Error: time_steps instanceof Array')
+        assert(time_steps.length == 2, 'Error: time_steps.length == 2')
+
+        const actions = []
+        Object.keys(agents).forEach((i) => {
+          const agent = agents[i]
+          time_step = time_steps[i]
+          const obs = time_step.observation
+          check_observation_matches_spec(obs, obs_specs[i])
+          actions.push(agent.step(time_step))
+        })
+        time_steps = await env.step(actions)
+        await testCase.tearDown()
+      }
+    })
   }
   await test_heterogeneous_observations()
 }
