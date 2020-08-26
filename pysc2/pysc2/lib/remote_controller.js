@@ -321,7 +321,7 @@ class RemoteController {
   }
 
   close() {
-    this._client.close()
+    return this._client.close()
   }
 
   get status_ended() {

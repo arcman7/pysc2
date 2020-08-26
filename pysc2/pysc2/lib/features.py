@@ -1645,7 +1645,7 @@ class Features(object):
             func_id in self.available_actions(obs)):
       raise ValueError("Function %s/%s is currently not available" % (
           func_id, func.name))
-
+    
     # Right number of args?
     if len(func_call.arguments) != len(func.args):
       raise ValueError(
@@ -1671,7 +1671,6 @@ class Features(object):
         sizes = aif.raw_resolution
       else:
         sizes = t.sizes
-
       if len(sizes) != len(arg):
         raise ValueError(
             "Wrong number of values for argument of %s, got: %s" % (
