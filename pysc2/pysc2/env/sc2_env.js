@@ -396,12 +396,12 @@ class SC2Env extends environment.Base {
 
   async _launch_game() {
     // Reserve a whole bunch of ports for the weird multiplayer implementation.
-    if (this._num_agents > 1) {
-      this._ports = await portspicker.pick_unused_ports(this._num_agents * 4)
-      console.info(`Ports used for multiplayer: ${this._ports}`)
-    } else {
-      this._ports = []
-    }
+    // if (this._num_agents > 1) {
+    this._ports = await portspicker.pick_unused_ports(this._num_agents * 4)
+    console.info(`Ports used for multiplayer: ${this._ports}`)
+    // } else {
+      // this._ports = []
+    // }
 
     // Actually launch the game processes.
     this._sc2_procs = []
@@ -482,7 +482,7 @@ class SC2Env extends environment.Base {
         create.addPlayerSetup(playerSetup)
       } else {
         playerSetup.setType(sc_pb.PlayerType.COMPUTER)
-        playerSetup.setDifficutly(p.difficulty)
+        playerSetup.setDifficulty(p.difficulty)
         playerSetup.setAiBuild(randomChoice(p.build))
         create.addPlayerSetup(playerSetup)
       }

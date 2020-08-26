@@ -30,7 +30,7 @@ async function TestRandomAgent() {
       step_mul,
       game_steps_per_episode: Math.floor((steps * step_mul) / 3)
     }
-    const env = new sc2_env.SC2Env(kwargs)
+    const env = await sc2_env.SC2EnvFactory(kwargs)
     const agent = new random_agent.RandomAgent()
     await run_loop.run_loop([agent], env, steps)
     await testCase.tearDown()
@@ -56,7 +56,7 @@ async function TestRandomAgent() {
       step_mul,
       game_steps_per_episode: Math.floor((steps * step_mul) / 3)
     }
-    const env = new sc2_env.SC2Env(kwargs)
+    const env = await sc2_env.SC2EnvFactory(kwargs)
     const agent = new random_agent.RandomAgent()
     await run_loop.run_loop([agent], env, steps)
     await testCase.tearDown()
@@ -86,7 +86,7 @@ async function TestRandomAgent() {
       step_mul,
       game_steps_per_episode: Math.floor((steps * step_mul) / 3)
     }
-    const env = new sc2_env.SC2Env(kwargs)
+    const env = await sc2_env.SC2EnvFactory(kwargs)
     const agent = new random_agent.RandomAgent()
     await run_loop.run_loop([agent], env, steps)
     await testCase.tearDown()
