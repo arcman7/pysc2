@@ -269,8 +269,6 @@ class SC2Env extends environment.Base {
     this._default_score_multiplier = score_multiplier
     this._default_episode_length = game_steps_per_episode
     this._run_config = run_configs.get(version)
-    // not sure if javascript needs this
-    // this._parallel = run_parallel.RunParallel()  // Needed for multiplayer.
     this._game_info = null
 
     if (agent_interface_format == null) {
@@ -281,7 +279,6 @@ class SC2Env extends environment.Base {
       const tempAgents = [agent_interface_format]
       for (let i = 1; i < this._num_agents; i++) {
         tempAgents.push(new AgentInterfaceFormat(...agent_interface_format._pickle_args))
-        // tempAgents.push(tempAgents[0])
       }
       agent_interface_format = tempAgents
     }
@@ -396,19 +393,21 @@ class SC2Env extends environment.Base {
 
   async _launch_game() {
     // Reserve a whole bunch of ports for the weird multiplayer implementation.
-    // if (this._num_agents > 1) {
-    this._ports = await portspicker.pick_unused_ports(this._num_agents * 4)
-    console.info(`Ports used for multiplayer: ${this._ports}`)
-    // } else {
-      // this._ports = []
-    // }
+    if (this._num_agents > 1) {
+      this._ports = await portspicker.pick_unused_ports(this._num_agents * 4)
+      console.info(`Ports used for multiplayer: ${this._ports}`)
+    } else {
+      this._ports = []
+    }
+    const proc_ports = await portspicker.pick_unused_ports(this._players.length || 1)
 
     // Actually launch the game processes.
     this._sc2_procs = []
     this._interface_options.forEach((interfacee) => {
       this._sc2_procs.push(this._run_config.start({
-        port: this._ports.pop(),
-        want_rgb: interfacee.hasRender()
+        port: proc_ports.pop(),
+        want_rgb: interfacee.hasRender(),
+        // passedSw: new stopwatch.StopWatch(true),
       }))
     })
     this._sc2_procs = await Promise.all(this._sc2_procs)
@@ -482,13 +481,13 @@ class SC2Env extends environment.Base {
         create.addPlayerSetup(playerSetup)
       } else {
         playerSetup.setType(sc_pb.PlayerType.COMPUTER)
-        playerSetup.setDifficulty(p.difficulty)
-        playerSetup.setAiBuild(randomChoice(p.build))
+        playerSetup.setDifficulty(Array.isArray(p.build) ? Number(randomChoice(p.build)) : Number(p.build))
+        playerSetup.setAiBuild(Array.isArray(p.build) ? Number(randomChoice(p.build)) : Number(p.build))
+        playerSetup.setRace(Array.isArray(p.race) ? Number(randomChoice(p.race)) : Number(p.race))
         create.addPlayerSetup(playerSetup)
       }
     })
     await this._controllers[0].create_game(create)
-
     // Create the join requests.
     const agent_players = this._players.filter((p) => p instanceof Agent)
     const sanitized_names = crop_and_deduplicate_names(agent_players.map((p) => p.name))
@@ -499,7 +498,7 @@ class SC2Env extends environment.Base {
         join.setOptions(interfacee)
         join.setRace(Array.isArray(p.race) ? Number(randomChoice(p.race)) : Number(p.race))
         join.setPlayerName(name)
-        if (this._ports) {
+        if (this._ports.length) {
           join.setServerPorts(new sc_pb.PortSet())
           join.setSharedPort(0)
           join.getServerPorts().setGamePort(this._ports[0])
@@ -510,14 +509,12 @@ class SC2Env extends environment.Base {
             ports.setBasePort(this._ports[i * 2 + 3])
             join.addClientPorts(ports)
           }
-          join_reqs.push(join)
         }
+        join_reqs.push(join)
       })
     await Promise.all(zip(this._controllers, join_reqs).map(([c, join]) => c.join_game(join)))
-
     // #python_problems lol
     // Join the game. This must be run in parallel because Join is a blocking call to the game that waits until all clients have joined.
-
     this._game_info = await Promise.all(this._controllers.map((c) => c.game_info()))
     zip(this._game_info, this._interface_options).forEach(([g, interfacee]) => {
       const optionsRender = JSON.stringify(g.getOptions().getRender() ? g.getOptions().getRender().toObject() : 'undefined')

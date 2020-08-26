@@ -8,10 +8,9 @@ const features = require(path.resolve(__dirname, '..', 'lib', 'features.js'))
 const point = require(path.resolve(__dirname, '..', 'lib', 'point.js'))
 const portspicker = require(path.resolve(__dirname, '..', 'lib', 'portspicker.js'))
 const stopwatch = require(path.resolve(__dirname, '..', 'lib', 'stopwatch.js'))
-// const np = require(path.resolve(__dirname, '..', 'lib', 'numpy.js'))
 const pythonUtils = require(path.resolve(__dirname, '..', 'lib', 'pythonUtils.js'))
 
-const { assert, getattr, sequentialTaskQueue, snakeToPascal, String } = pythonUtils //eslint-disable-line
+const { assert, getattr, sequentialTaskQueue, snakeToPascal } = pythonUtils //eslint-disable-line
 
 const sc_common = s2clientprotocol.common_pb
 const sc_debug = s2clientprotocol.debug_pb
@@ -176,7 +175,7 @@ class GameReplayTestCase extends TestCase {
     this._map_data = map_inst.data(run_config)
 
     this._ports = players === 2 ? await portspicker.pick_unused_ports(4) : []
-    // using an the extra 2 to ensure each sc_process is started on a unique port
+    // using an extra 2 to ensure each sc_process is started on a unique port
     const unique_ports = await portspicker.pick_unused_ports(players || 1)
     this._sc2_procs = []
     for (let i = 0; i < players; i++) {

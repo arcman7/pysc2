@@ -444,8 +444,9 @@ class SC2Env(environment.Base):
         create.player_setup.add(
             type=sc_pb.Computer, race=random.choice(p.race),
             difficulty=p.difficulty, ai_build=random.choice(p.build))
-    self._controllers[0].create_game(create)
 
+    self._controllers[0].create_game(create)
+    print('\nself._ports: ', self._ports)
     # Create the join requests.
     agent_players = [p for p in self._players if isinstance(p, Agent)]
     sanitized_names = crop_and_deduplicate_names(p.name for p in agent_players)
@@ -462,6 +463,7 @@ class SC2Env(environment.Base):
         for i in range(self._num_agents - 1):
           join.client_ports.add(game_port=self._ports[i * 2 + 2],
                                 base_port=self._ports[i * 2 + 3])
+          print('--------------- join req: ----------------\n', join)
       join_reqs.append(join)
 
     # Join the game. This must be run in parallel because Join is a blocking
