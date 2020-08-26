@@ -27,12 +27,12 @@ class Metrics {
   measure_step_time(num_steps = 1) { //eslint-disable-line
     // Return a context manager to measure the time to perform N game steps.
     num_steps = null
-    return _EventTimer()
+    return new _EventTimer()
   }
 
   measure_observation_time() { //eslint-disable-line
     // Return a context manager to measure the time to get an observation.
-    return _EventTimer()
+    return new _EventTimer()
   }
 
   close() { //eslint-disable-line

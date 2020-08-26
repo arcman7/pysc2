@@ -131,11 +131,11 @@ class Base extends ABCMeta {
 
   __exit__(unused_exception_type, unused_exc_value, unused_traceback) { //eslint-disable-line
     //Allows the environment to be used in a with-statement context.
-    this.close()
+    return this.close()
   }
 
   __del__() {
-    this.close()
+    return this.close()
   }
 }
 
