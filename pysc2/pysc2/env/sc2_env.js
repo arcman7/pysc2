@@ -847,7 +847,6 @@ class SC2Env extends environment.Base {
         episode_complete = true
       }
     })
-    // const episode_complete = any(this._obs.map((o) => o.player_result))
 
     if (episode_complete) {
       this._state = environment.StepType.LAST
