@@ -1038,6 +1038,7 @@ function _init_valid_functions(action_dimensions) {
     return actions.Function.spec(f.id, f.name, tuple)
   })
   const functions = new actions.Functions(args)
+  // console.log('_init_valid_functions: \n', new actions.ValidActions(types, functions))
   return new actions.ValidActions(types, functions)
 }
 
@@ -1065,9 +1066,9 @@ function _init_valid_raw_functions(raw_resolution, max_selected_units) {
     return actions.Function.spec(f.id, f.name, tuple)
   })
   const functions = new actions.Functions(args)
+  // console.log('_init_valid_raw_functions: \n', new actions.ValidActions(types, functions))
   return new actions.ValidActions(types, functions)
 }
-
 
 class Features {
   /*Render feature layers from SC2 Observation protos into numpy arrays.
@@ -1927,30 +1928,40 @@ class Features {
     if (isinstance(func_call, sc_pb.Action)) {
       return func_call
     }
-    const func_id = func_call.function
+    let func_id = func_call.function
+    if (func_id instanceof Enum.EnumMeta) {
+      // func_id = func_id.key
+      func_id = Number(func_id)
+    }
     let func
     try {
       if (this._raw) {
-        func = actions.RAW_FUNCTIONS[func_id.key]
+        // func = actions.RAW_FUNCTIONS[func_id.key]
+        func = actions.RAW_FUNCTIONS[func_id]
       } else {
-        func = actions.FUNCTIONS[func_id.key]
+        // func = actions.FUNCTIONS[func_id.key]
+        func = actions.FUNCTIONS[func_id]
       }
     } catch (err) {
-      throw new ValueError(`Invalid function id: ${func_id.key}.`)
+      // throw new ValueError(`Invalid function id: ${func_id.key}.`)
+      throw new ValueError(`Invalid function id: ${func_id}.`)
     }
 
     // Available?
-    if (!skip_available && !this._raw && !this.available_actions(obs).hasOwnProperty(func_id.key)) {
-      throw new ValueError(`Function ${func_id.key} ${func.name} is currently not available`)
+    if (!(skip_available || this._raw || this.available_actions(obs).includes(func_id))) {
+      // throw new ValueError(`Function ${func_id.key} ${func.name} is currently not available`)
+      throw new ValueError(`Function ${func_id} ${func.name} is currently not available`)
     }
     // Right number of args?
     if (func_call.arguments.length !== func.args.length) {
+      // console.log('func_id', func_id)
+      // console.log('func_call:', func_call, '\n func_call.arguments: ', func_call.arguments, 'length: ', func_call.arguments.length)
+      // console.log('func:', func, ' func.args: ', func.args, ' length: ', func.args.length)
       throw new ValueError(`Wrong number of arguments for function: ${func}, got:${func_call} ${func_call.arguments}`)
     }
     // Args are valid?
     const aif = this._agent_interface_format
-    zip(func.args, func_call.arguments).forEach((pair) => {
-      const [t, arg] = pair
+    zip(func.args, func_call.arguments).forEach(([t, arg]) => {
       if (t.count) {
         if (len(arg) >= 1 && len(arg) <= t.count) {
           return
@@ -1968,6 +1979,7 @@ class Features {
         sizes = t.sizes
       }
       if (sizes.length !== arg.length) {
+        // console.log('t: ', t, '  arg: ', arg, '  t.count: ', t.count, '\narg.length: ', arg.length, ' sizes: ', sizes)
         throw new ValueError(`Wrong number of values for argument of ${func}, got: ${func_call.arguments}`)
       }
       zip(sizes, arg).forEach((p) => {
@@ -2020,12 +2032,16 @@ class Features {
           return find_original_tag(t)
         })
       }
-      const argArray = getArgsArray(actions.RAW_FUNCTIONS[func_id.key].function_type, kwargs)
-      actions.RAW_FUNCTIONS[func_id.key].function_type(...argArray)
+      // const argArray = getArgsArray(actions.RAW_FUNCTIONS[func_id.key].function_type, kwargs)
+      const argArray = getArgsArray(actions.RAW_FUNCTIONS[func_id].function_type, kwargs)
+      // actions.RAW_FUNCTIONS[func_id.key].function_type(...argArray)
+      actions.RAW_FUNCTIONS[func_id].function_type(...argArray)
     } else {
       kwargs['action_space'] = aif.action_space
-      const argArray = getArgsArray(actions.FUNCTIONS[func_id.key].function_type, kwargs)
-      actions.FUNCTIONS[func_id.key].function_type(...argArray)
+      // const argArray = getArgsArray(actions.FUNCTIONS[func_id.key].function_type, kwargs)
+      const argArray = getArgsArray(actions.FUNCTIONS[func_id].function_type, kwargs)
+      // actions.FUNCTIONS[func_id.key].function_type(...argArray)
+      actions.FUNCTIONS[func_id].function_type(...argArray)
     }
     return sc2_action
   }

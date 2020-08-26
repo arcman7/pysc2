@@ -17,6 +17,7 @@ import numbers
 
 import enum as Enum
 import numpy as np
+import collections
 from pysc2.lib import point
 
 from s2clientprotocol import spatial_pb2 as sc_spatial
@@ -26,7 +27,6 @@ from absl import logging
 
 
 from pysc2.lib import all_collections_generated_classes_orig as all_collections_generated_classes
-# import all_collections_generated_classes
 
 # necessary shim(s) for eventual javascript transpiling:
 def iteritems(d, **kw):
@@ -271,6 +271,8 @@ class ArgumentType(all_collections_generated_classes.ArgumentType):
   def enum(cls, options, values):
     """Create an ArgumentType where you choose one of a set of known values."""
     names, real = zip(*options)
+    print('ArgumentType: ', ' names:  ', names, '   real: ', real)
+
     del names  # unused
 
     def factory(i, name):
@@ -492,11 +494,10 @@ POINT_REQUIRED_FUNCS = {
 
 always = lambda _: True
 
-
-# class Function(collections.namedtuple(
-#     "Function", ["id", "name", "ability_id", "general_id", "function_type",
-#                  "args", "avail_fn", "raw"])):
-class Function(all_collections_generated_classes.Function):
+# class Function(all_collections_generated_classes.Function):
+class Function(collections.namedtuple(
+    "Function", ["id", "name", "ability_id", "general_id", "function_type",
+                 "args", "avail_fn", "raw"])):
 
   """Represents a function action.
 

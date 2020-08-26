@@ -538,7 +538,6 @@ class SC2Env(environment.Base):
     self._episode_count += 1
     races = [Race(r).name
              for _, r in sorted(self._features[0].requested_races.items())]
-    print('races: ', races)
     logging.info("Starting episode %s: [%s] on %s",
                  self._episode_count, ", ".join(races), self._map_name)
     self._metrics.increment_episode()
@@ -570,6 +569,7 @@ class SC2Env(environment.Base):
       return self.reset()
 
     skip = not self._ensure_available_actions
+                
     actions = [[f.transform_action(o.observation, a, skip_available=skip)
                 for a in to_list(acts)]
                for f, o, acts in zip(self._features, self._obs, actions)]
@@ -606,11 +606,14 @@ class SC2Env(environment.Base):
     """Apply action delays to the requested actions, if configured to."""
     assert not self._realtime
     actions_now = []
+    # print('_apply_action_delays - actions: ', actions)
+    print('_apply_action_delays - loop:')
     for actions_for_player, delay_fn, delayed_actions in zip(
         actions, self._action_delay_fns, self._delayed_actions):
       actions_now_for_player = []
 
       for action in actions_for_player:
+        print(' - action: ', action)
         delay = delay_fn() if delay_fn else 1
         if delay > 1 and action.ListFields():  # Skip no-ops.
           game_loop = self._episode_steps + delay - 1

@@ -438,17 +438,11 @@ function namedtuple(name, fields) {
       _fields.forEach((field, index) => {
         usedArgs[index] = kwargs[field]
       })
-      // console.log('here! A *******************')
-      // console.log('arguments: ')
-      // console.log(usedArgs)
       super(...usedArgs)
     } else {
       _fields.forEach((field, index) => {
         usedArgs[index] = arguments[index]
       })
-      // console.log('here! B *******************')
-      // console.log('arguments: ')
-      // console.log(usedArgs)
       super(...usedArgs)
     }
   }

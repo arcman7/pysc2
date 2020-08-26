@@ -8,16 +8,22 @@ class RandomAgent extends base_agent.BaseAgent {
   // A random agent for starcraft. //
   step(obs) {
     super.step(obs)
-    const function_id = randomChoice(obs.getObservation().getAvailableActions())
+    // console.log('random agent step: ', obs.observation.available_actions)
+    const function_id = randomChoice(obs.observation.available_actions)
+    // console.log('function_id: ', function_id)
+    // console.log('this.action_spec.functions[function_id]:', this.action_spec.functions[function_id])
+    // console.log('this.action_spec.functions[function_id].args:', this.action_spec.functions[function_id].args)
+    // console.log('this.action_spec: ', this.action_spec)
     const args = []
-    Object.keys(this.action_spec.functions[function_id].args).forEach((key) => {
-      const arg = this.action_spec.functions[function_id].args[key]
-      Object.keys(arg.sizes).forEach((k) => {
-        const size = arg.sizes[k]
-        args.push(Math.floor(Math.random() * size))
-      })
+    this.action_spec.functions[function_id].args.forEach((arg) => {
+      // console.log('arg: ', arg)
+      // console.log('arg.sizes: ', arg.sizes)
+      args.push(arg.sizes.map((size) => { //eslint-disable-line
+        return Math.floor(Math.random() * size)
+      }))
     })
-    return actions.FunctionCall(function_id, args)
+    // console.log('actions.FunctionCall(function_id, args) - function_id: ', function_id, 'args: ', args)
+    return new actions.FunctionCall(function_id, args)
   }
 }
 

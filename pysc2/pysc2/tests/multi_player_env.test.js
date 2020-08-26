@@ -30,7 +30,6 @@ async function TestMultiplayerEnv() {
       })
     }
 
-    // const env = await sc2_env.SC2EnvFactory(kwargs)
     await withPythonAsync(sc2_env.SC2EnvFactory(kwargs), async (env) => {
       const agents = []
       for (let i = 0; i < numPlayers; i++) {
@@ -57,7 +56,6 @@ async function TestMultiplayerEnv() {
       })
     }
 
-    // const env = await sc2_env.SC2EnvFactory(kwargs)
     await withPythonAsync(sc2_env.SC2EnvFactory(kwargs), async (env) => {
       const agents = []
       for (let i = 0; i < numPlayers; i++) {
