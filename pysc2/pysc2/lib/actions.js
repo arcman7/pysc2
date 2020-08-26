@@ -464,6 +464,7 @@ const SelectWorker = _define_position_based_enum(
   "SelectWorker", SELECT_WORKER_OPTIONS
 )
 
+//The list of known types.
 const TYPES = Arguments.types({
   screen: ArgumentType.point(),
   minimap: ArgumentType.point(),
@@ -559,6 +560,7 @@ class Function extends namedtuple("Function", ["id", "name", "ability_id", "gene
   _getProxy(thing) {
     const self = this
     return new Proxy(thing, {
+      //eslint-disable-next-line
       get: (target, name) => {
         return self[name]
       },
@@ -574,7 +576,12 @@ class Function extends namedtuple("Function", ["id", "name", "ability_id", "gene
       general_id: 0,
       function_type,
       args: FUNCTION_TYPES[function_type.name],
-      avail_fn,
+      avail_fn: (obs) => {
+        if (!obs) {
+          return false
+        }
+        return avail_fn(obs)
+      },
       raw: false,
     })
   }
@@ -1992,6 +1999,7 @@ class FunctionCall extends namedtuple("FunctionCall", ["functionn", "argumentss"
         kwargs.functionn = kwargs.function
       }
     }
+
     super(...arguments) //eslint-disable-line
     const self = this
     Object.defineProperty(this, 'function', {
