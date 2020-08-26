@@ -18,7 +18,8 @@ module.exports = {
     }
     return tf.range(...arguments)
   },
-  array: tf.tensor,
+  // array: tf.tensor,
+  array(arr) { return arr },
   argMin: tf.argMin,
   argMax: tf.argMax,
   buffer: tf.buffer,

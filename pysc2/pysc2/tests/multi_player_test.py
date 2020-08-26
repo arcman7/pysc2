@@ -71,7 +71,7 @@ class TestMultiplayer(utils.TestCase):
 
       # Create the create request.
       create = sc_pb.RequestCreateGame(
-          local_map=sc_pb.LocalMap(map_path=map_path))
+        local_map=sc_pb.LocalMap(map_path=map_path))
       for _ in range(players):
         create.player_setup.add(type=sc_pb.Participant)
 
