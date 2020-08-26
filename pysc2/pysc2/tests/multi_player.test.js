@@ -11,7 +11,7 @@ const sc_common = s2clientprotocol.common_pb
 const sc_pb = s2clientprotocol.sc2api_pb
 
 const pythonUtils = require(path.resolve(__dirname, '..', 'lib', 'pythonUtils.js'))
-const { assert } = pythonUtils
+const { assert, zip } = pythonUtils
 
 function print_stage(stage) {
   console.info(`${stage}`.center(80, '-'))
@@ -116,9 +116,11 @@ async function TestMultiplayer() {
           }
           actions.forEach((action) => {
             const pt = Math.floor(point.Point.unit_rand() * minimap_size_px)
+            action.setActionFeatureLayer()
+            
 
           })
-          
+          await Promise.All(zip(controllers, actions).map((c, a) => c.act(a)))
         }
       }
       // Done this game.
