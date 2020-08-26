@@ -3,7 +3,7 @@ const path = require('path')
 const sc2_env = require(path.resolve(__dirname, '..', 'env', 'sc2_env.js'))
 const actions = require(path.resolve(__dirname, '..', 'lib', 'actions.js'))
 const utils = require(path.resolve(__dirname, './utils.js'))
-const pythonUtils = require(path.resolve(__dirname. '..', 'lib', 'pythonUtils.js'))
+const pythonUtils = require(path.resolve(__dirname, '..', 'lib', 'pythonUtils.js'))
 const { assert, withPythonAsync } = pythonUtils
 
 const AGENT_INTERFACE_FORMAT = new sc2_env.AgentInterfaceFormat({
