@@ -4,6 +4,9 @@ const random_agent = require(path.resolve(__dirname, '..', 'agents', 'random_age
 const run_loop = require(path.resolve(__dirname, '..', 'env', 'run_loop.js'))
 const sc2_env = require(path.resolve(__dirname, '..', 'env', 'sc2_env.js'))
 const utils = require(path.resolve(__dirname, './utils.js'))
+const pythonUtils = require(path.resolve(__dirname, '..', 'lib', 'pythonUtils.js')) //eslint-disable-line
+const { withPythonAsync } = pythonUtils
+
 const testCase = new utils.TestCase()
 
 async function TestRandomAgent() {
@@ -30,10 +33,11 @@ async function TestRandomAgent() {
       step_mul,
       game_steps_per_episode: Math.floor((steps * step_mul) / 3)
     }
-    const env = await sc2_env.SC2EnvFactory(kwargs)
-    const agent = new random_agent.RandomAgent()
-    await run_loop.run_loop([agent], env, steps)
-    await testCase.tearDown()
+    await withPythonAsync(sc2_env.SC2EnvFactory(kwargs), async (env) => {
+      const agent = new random_agent.RandomAgent()
+      await run_loop.run_loop([agent], env, steps)
+      await testCase.tearDown()
+    })
   }
   await test_random_agent_features()
 
@@ -56,10 +60,11 @@ async function TestRandomAgent() {
       step_mul,
       game_steps_per_episode: Math.floor((steps * step_mul) / 3)
     }
-    const env = await sc2_env.SC2EnvFactory(kwargs)
-    const agent = new random_agent.RandomAgent()
-    await run_loop.run_loop([agent], env, steps)
-    await testCase.tearDown()
+    await withPythonAsync(sc2_env.SC2EnvFactory(kwargs), async (env) => {
+      const agent = new random_agent.RandomAgent()
+      await run_loop.run_loop([agent], env, steps)
+      await testCase.tearDown()
+    })
   }
   await test_random_agent_rgb()
 
@@ -79,17 +84,18 @@ async function TestRandomAgent() {
       agent_interface_format: new sc2_env.AgentInterfaceFormat({
         feature_dimensions: new sc2_env.Dimensions(84, 64),
         rgb_dimensions: new sc2_env.Dimensions(128, 64),
-        action_space: sc2_env.ACtionSpace.FEATURES,
+        action_space: sc2_env.ActionSpace.FEATURES,
         use_unit_counts: true,
         use_feature_units: true
       }),
       step_mul,
       game_steps_per_episode: Math.floor((steps * step_mul) / 3)
     }
-    const env = await sc2_env.SC2EnvFactory(kwargs)
-    const agent = new random_agent.RandomAgent()
-    await run_loop.run_loop([agent], env, steps)
-    await testCase.tearDown()
+    await withPythonAsync(sc2_env.SC2EnvFactory(kwargs), async (env) => {
+      const agent = new random_agent.RandomAgent()
+      await run_loop.run_loop([agent], env, steps)
+      await testCase.tearDown()
+    })
   }
   await test_random_agent_all()
 }
