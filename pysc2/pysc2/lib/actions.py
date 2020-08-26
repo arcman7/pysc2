@@ -17,6 +17,7 @@ import numbers
 
 import enum as Enum
 import numpy as np
+import collections
 from pysc2.lib import point
 
 from s2clientprotocol import spatial_pb2 as sc_spatial
@@ -26,7 +27,6 @@ from absl import logging
 
 
 from pysc2.lib import all_collections_generated_classes_orig as all_collections_generated_classes
-# import all_collections_generated_classes
 
 # necessary shim(s) for eventual javascript transpiling:
 def iteritems(d, **kw):
@@ -206,7 +206,6 @@ def raw_cmd_pt(action, ability_id, queued, unit_tags, world):
   if not isinstance(unit_tags, (tuple, list)):
     unit_tags = [unit_tags]
   action_cmd.unit_tags.extend(unit_tags)
-  print('raw_cmd_pt > world: ', world)
   world.assign_to(action_cmd.target_world_space_pos)
 
 
@@ -492,11 +491,10 @@ POINT_REQUIRED_FUNCS = {
 
 always = lambda _: True
 
-
-# class Function(collections.namedtuple(
-#     "Function", ["id", "name", "ability_id", "general_id", "function_type",
-#                  "args", "avail_fn", "raw"])):
-class Function(all_collections_generated_classes.Function):
+# class Function(all_collections_generated_classes.Function):
+class Function(collections.namedtuple(
+    "Function", ["id", "name", "ability_id", "general_id", "function_type",
+                 "args", "avail_fn", "raw"])):
 
   """Represents a function action.
 

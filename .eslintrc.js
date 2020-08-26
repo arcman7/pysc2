@@ -42,6 +42,7 @@ module.exports = {
         "linebreak-style": 0,
         "max-len": "off",
         "camelcase": 0,
+        "no-await-in-loop": 0
     },
     "env": {
         "browser": true,

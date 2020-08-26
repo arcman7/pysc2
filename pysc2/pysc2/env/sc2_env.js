@@ -15,7 +15,7 @@ const renderer_human = require(path.resolve(__dirname, '..', 'lib', 'renderer_hu
 const stopwatch = require(path.resolve(__dirname, '..', 'lib', 'stopwatch.js'))
 const pythonUtils = require(path.resolve(__dirname, '..', 'lib', 'pythonUtils.js'))
 
-const { any, assert, DefaultDict, isinstance, namedtuple, pythonWith, randomChoice, sequentialTaskQueue, ValueError, zip } = pythonUtils
+const { any, assert, DefaultDict, getattr, isinstance, namedtuple, withPython, randomChoice, sequentialTaskQueue, setattr, ValueError, zip } = pythonUtils
 const { common_pb, sc2api_pb } = s2clientprotocol
 const sc_common = common_pb
 const sc_pb = sc2api_pb
@@ -68,10 +68,10 @@ const AgentInterfaceFormat = features.AgentInterfaceFormat
 const parse_agent_interface_format = features.parse_agent_interface_format //eslint-disable-line
 
 function to_list(arg) {
-  if (arg instanceof Array) {
-    return arg
+  if (arg instanceof actions.FunctionCall || !Array.isArray(arg)) {
+    return [arg]
   }
-  return [arg]
+  return arg
 }
 
 function get_default(a, b) {
@@ -95,7 +95,7 @@ class Bot extends namedtuple('Bot', ['race', 'difficulty', 'build']) {
   }
 }
 
-const _DelayedAction = namedtuple('DelayedAction', ['game_loop', 'action'])
+const _DelayedAction = namedtuple('DelayedAction', ['game_loop', 'action', 'field_name'])
 
 const REALTIME_GAME_LOOP_SECONDS = 1 / 22.4
 const MAX_STEP_COUNT = 524000 // The game fails above 2^19=524288 steps.
@@ -281,6 +281,7 @@ class SC2Env extends environment.Base {
       const tempAgents = [agent_interface_format]
       for (let i = 1; i < this._num_agents; i++) {
         tempAgents.push(new AgentInterfaceFormat(...agent_interface_format._pickle_args))
+        // tempAgents.push(tempAgents[0])
       }
       agent_interface_format = tempAgents
     }
@@ -342,8 +343,8 @@ class SC2Env extends environment.Base {
     this._total_steps = 0
     this._episode_steps = 0
     this._episode_count = 0
-    this._obs = Array(this._num_agents.length).fill(null)
-    this._agent_obs = Array(this._num_agents.length).fill(null)
+    this._obs = Array(this._num_agents).fill(null)
+    this._agent_obs = Array(this._num_agents).fill(null)
     this._state = environment.StepType.LAST // Want to jump to `reset`.
     console.info('Environment is ready')
   }
@@ -462,7 +463,7 @@ class SC2Env extends environment.Base {
         // doesn't respect tmpdir on windows, which leads to a race condition:
         // https://github.com/Blizzard/s2client-proto/issues/102
         try {
-          await Promise.all(this._controllers.map((c) => c.save_map(map_inst.path, map_data)))
+          await sequentialTaskQueue(this._controllers.map((c) => () => c.save_map(map_inst.path, map_data)))
         } catch (err) {
           console.error('bad map data: ', map_data, 'using map_inst: ', map_inst)
           throw err
@@ -518,10 +519,9 @@ class SC2Env extends environment.Base {
     // Join the game. This must be run in parallel because Join is a blocking call to the game that waits until all clients have joined.
 
     this._game_info = await Promise.all(this._controllers.map((c) => c.game_info()))
-
     zip(this._game_info, this._interface_options).forEach(([g, interfacee]) => {
-      const optionsRender = JSON.stringify(g.getOptions().getRender().toObject())
-      const interfaceeRender = JSON.stringify(interfacee.getRender().toObject())
+      const optionsRender = JSON.stringify(g.getOptions().getRender() ? g.getOptions().getRender().toObject() : 'undefined')
+      const interfaceeRender = JSON.stringify(interfacee.getRender() ? interfacee.getRender().toObject() : 'undefined')
       if (optionsRender !== interfaceeRender) {
         console.warn(`Actual interface options don't match requested options: \n
           Requested: ${interfacee.toObject()} \n\nActual: ${g.options.toObject()}`)
@@ -607,10 +607,10 @@ class SC2Env extends environment.Base {
     const sorted = Object.keys(this._features[0].requested_races)
       .sort()
       .map((key) => [key, this._features[0].requested_races[key]]) // [key, value]
-    const races = sorted.map(([_, r]) => Race(r).name) //eslint-disable-line
+    const races = sorted.map(([_, r]) => Race(r).key) //eslint-disable-line
     console.info(`Starting episode ${this._episode_count}: [${races.join(', ')}] on ${this._map_name}`)
     this._metrics.increment_episode()
-    this._last_score = Array(this._num_agents.length).fill(0)
+    this._last_score = Array(this._num_agents).fill(0)
     this._state = environment.StepType.FIRST
     if (this._realtime) {
       this._last_step_time = performance.now() * 1000
@@ -674,7 +674,7 @@ class SC2Env extends environment.Base {
     if (!(this._realtime)) {
       // Send any delayed actions that were scheduled up to the target game loop.
       const up_to_game_loop = target_game_loop
-      const current_game_loop = this._send_delayed_actions(
+      const current_game_loop = await this._send_delayed_actions(
         up_to_game_loop,
         this._episode_steps, //current game_loop
       )
@@ -694,10 +694,14 @@ class SC2Env extends environment.Base {
     const actions_now = []
     zip(actionss, this._action_delay_fns, this._delayed_actions)
       .forEach(([actions_for_player, delay_fn, delayed_actions]) => {
-        const actions_now_for_player = []
-        actions_for_player.toArray().forEach((action) => {
+        const actions_now_for_player = new sc_pb.Action()
+        const acts = actions_for_player.toObject()
+        Object.keys(acts).forEach((field_name) => {
+          const usedAction = getattr(actions_for_player, field_name)
+          const action = acts[field_name]
           const delay = delay_fn ? delay_fn() : 1
-          if (delay > 1 && Object.keys(action.toObject()).length) { //action.ListFields() //Skip no-ops
+          //action.ListFields() //Skip no-ops
+          if (delay > 1 && Object.keys(action).filter((aKey) => action[aKey] !== undefined).length) {
             let game_loop = this._episode_steps + delay - 1
 
             // Randomized delays mean that 2 delay actions can be reversed.
@@ -707,9 +711,10 @@ class SC2Env extends environment.Base {
             }
 
             // Don't send an action this frame.
-            delayed_actions.push(_DelayedAction(game_loop, action))
+            // using field name to aid in reconstruction of proto object
+            delayed_actions.push(new _DelayedAction(game_loop, usedAction, field_name))
           } else {
-            actions_now_for_player.push(action)
+            setattr(actions_now_for_player, field_name, usedAction)
           }
         })
         actions_now.push(actions_now_for_player)
@@ -717,53 +722,43 @@ class SC2Env extends environment.Base {
     return actions_now
   }
 
-  _send_delayed_actions(up_to_game_loop, current_game_loop) {
+  async _send_delayed_actions(up_to_game_loop, current_game_loop) {
     // Send any delayed actions scheduled for up to the specified game loop.
     assert(!this._realtime, '!this._realtime')
-    let resolve
-    let reject
-    const prom = new Promise((res, rej) => {
-      resolve = res
-      reject = rej
-    })
-    const self = this
-    async function submitActionRequest () {
-      try {
-        if (!any(self._delayed_actions)) { // No queued actions
-          resolve(current_game_loop)
-          return
+    while (true) {
+      let hasAny = false
+      for (let i = 0; i < this._delayed_actions.length; i++) {
+        if (this._delayed_actions[i].length) {
+          hasAny = true
+          break
         }
-        const act_game_loop = Math.min(...self._delayed_actions.filter((d) => d).map((d) => d[0].game_loop))
-        if (act_game_loop > up_to_game_loop) {
-          resolve(current_game_loop)
-          return
-        }
-
-        await self._step_to(act_game_loop, current_game_loop)
-        current_game_loop = act_game_loop
-        if (self._controllers[0].status_ended) {
-          // We haven't observed and may have hit game end.
-          resolve(current_game_loop)
-          return
-        }
-
-        const actionss = self._delayed_actions.map((d) => {
-          if (d && d[0].game_loop == current_game_loop) {
-            const delayed_action = d.shift()
-            return delayed_action.action
-          }
-          return null
-        })
-        // every player submits their respective actions
-        await Promise.all(zip(self._controllers, actionss).map(([c, a]) => c.act(a)))
-        // start next iteration
-        submitActionRequest()
-      } catch (err) {
-        reject(err)
       }
+      if (!hasAny) {
+        //We haven't observed and may have hit game end.
+        return current_game_loop
+      }
+
+      const act_game_loop = Math.min(...(this._delayed_actions.map((deque) => deque.get(0) ? deque.get(0).game_loop : Infinity))) //eslint-disable-line
+      if (act_game_loop > up_to_game_loop) {
+        return current_game_loop
+      }
+      await this._step_to(act_game_loop, current_game_loop)
+      current_game_loop = act_game_loop
+
+      const actionss = []
+      for (let i = 0; i < this._delayed_actions.length; i++) {
+        const deque = this._delayed_actions[i]
+        if (deque.length && deque[0].game_loop === current_game_loop) {
+          const delayed_action = deque.shift()
+          const act = new sc_pb.Action()
+          setattr(act, delayed_action.field_name, delayed_action.action)
+          actionss.push(act)
+        } else {
+          actionss.push(null)
+        }
+      }
+      await Promise.all(zip(this._controllers, actionss).map(([c, a]) => c.act(a)))
     }
-    submitActionRequest()
-    return prom
   }
 
   async _step_to(game_loop, current_game_loop) {
@@ -771,8 +766,9 @@ class SC2Env extends environment.Base {
     if (step_mul < 0) {
       throw new ValueError('We should never need to step backwards')
     }
+    // console.log({ game_loop, current_game_loop, step_mul })
     if (step_mul > 0) {
-      await pythonWith(this._metrics.measure_step_time(step_mul), async () => {
+      await withPython(this._metrics.measure_step_time(step_mul), async () => {
         if (!this._controllers[0].status_ended) { // May already have ended.
           await Promise.all(this._controllers.map((c) => c.step(step_mul)))
         }
@@ -784,13 +780,14 @@ class SC2Env extends environment.Base {
 
   async _get_observations(target_game_loop) {
     // Transform in the thread so it runs while waiting for other observations.
+    const disable_fog = false
     async function parallel_observe(c, f) {
-      const obs = await c.observe(target_game_loop)
+      const obs = await c.observe(disable_fog, target_game_loop)
       const agent_obs = f.transform_obs(obs)
       return [obs, agent_obs]
     }
 
-    await pythonWith(this._metrics.measure_observation_time(), async () => {
+    await withPython(this._metrics.measure_observation_time(), async () => {
       const parallelRuns = await Promise.all(zip(this._controllers, this._features)
         .map(([c, f]) => parallel_observe(c, f)))
 
@@ -801,7 +798,9 @@ class SC2Env extends environment.Base {
     const bucket = []
     const game_loop = this._agent_obs[0].game_loop[0]
     this._obs.forEach((o) => {
-      bucket.push(o.player_result)
+      if (o.getPlayerResultList().length) {
+        bucket.push(o.getPlayerResultList())
+      }
     })
     if (game_loop < target_game_loop && !any(bucket)) {
       throw new ValueError(`The game didn't advance to the expected game loop.\n
@@ -840,9 +839,14 @@ class SC2Env extends environment.Base {
   async _observe(target_game_loop) {
     await this._get_observations(target_game_loop)
     // TODO(tewalds): How should we handle more than 2 agents and the case where the episode can end early for some agents?
-    const outcome = Array(this._num_agents.length).fill(0)
+    const outcome = Array(this._num_agents).fill(0)
     let discount = this._discount
-    const episode_complete = any(this._obs.map((o) => o.player_result))
+    let episode_complete = false
+    this._obs.forEach((o) => {
+      if (o.getPlayerResultList().length) {
+        episode_complete = true
+      }
+    })
 
     if (episode_complete) {
       this._state = environment.StepType.LAST
@@ -859,14 +863,13 @@ class SC2Env extends environment.Base {
         }
       }
     }
-
     let reward
     if (this._score_index >= 0) { // Game score, not win/loss reward.
       const cur_score = this._agent_obs.map((o) => {
         return o['score_cumulative'][this._score_index]
       })
       if (this._episode_steps == 0) { // First reward is always 0.
-        reward = Array(this._num_agents.length).fill(0)
+        reward = Array(this._num_agents).fill(0)
       } else {
         reward = zip(cur_score, this._last_score).map(([cur, last]) => cur - last)
       }
@@ -904,23 +907,23 @@ class SC2Env extends environment.Base {
     if (this._state == environment.StepType.LAST) {
       if (this._save_replay_episodes > 0
         && (this._episode_count % this._save_replay_episodes) == 0) {
-        this.save_replay(this._replay_dir, this._replay_prefix)
+        await this.save_replay(this._replay_dir, this._replay_prefix)
       }
       const score_val = []
       this._agent_obs.forEach((o) => {
         score_val.push(o['score_cumulative'][0])
       })
       console.info(`Episode ${this._episode_count} finished after ${this._episode_steps} game steps.\n
-        Outcome: ${outcome}, reward: ${reward}, score: ${score_val}`)
+        Outcome: [${outcome}], reward: [${reward}], score: [${score_val}]`)
     }
 
+    const self = this
     function zero_on_first_step(value) {
-      if (this._state == environment.StepType.FIRST) {
+      if (self._state == environment.StepType.FIRST) {
         return 0.0
       }
       return value
     }
-
     return zip(reward, this._agent_obs).map(([r, o]) => { //eslint-disable-line
       return new environment.TimeStep({
         step_type: this._state,

@@ -219,7 +219,8 @@ class StarcraftProtocol {
 
   async _read() {
     //Actually read the response and parse it, returning a Response.//
-    let response = await withPythonAsync(this._sw('read_response'), async () => {
+    // let response = await withPythonAsync(this._sw('read_response'), async () => {
+    let response = await withPython(this._sw('read_response'), async () => {
       if (this._que.length) {
         return this._que.shift()
       }
