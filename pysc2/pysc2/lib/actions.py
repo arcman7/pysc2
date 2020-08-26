@@ -206,7 +206,6 @@ def raw_cmd_pt(action, ability_id, queued, unit_tags, world):
   if not isinstance(unit_tags, (tuple, list)):
     unit_tags = [unit_tags]
   action_cmd.unit_tags.extend(unit_tags)
-  print('raw_cmd_pt > world: ', world)
   world.assign_to(action_cmd.target_world_space_pos)
 
 
@@ -271,8 +270,6 @@ class ArgumentType(all_collections_generated_classes.ArgumentType):
   def enum(cls, options, values):
     """Create an ArgumentType where you choose one of a set of known values."""
     names, real = zip(*options)
-    print('ArgumentType: ', ' names:  ', names, '   real: ', real)
-
     del names  # unused
 
     def factory(i, name):

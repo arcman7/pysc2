@@ -25,10 +25,10 @@ async function run_loop(agents, env, max_frames = 0, max_episodes = 0) {
       agents.forEach((a) => {
         a.reset()
       })
-      console.log("starting episode loop ", total_episodes)
+      // console.log("starting episode loop ", total_episodes)
       while (true) {
         total_frames += 1
-        console.log('       starting step: ', total_frames)
+        // console.log('       starting step: ', total_frames)
         const actions = zip(agents, timesteps).map(([agent, timestep]) => agent.step(timestep))
         if (max_frames && total_frames >= max_frames) {
           console.log('       max_frames && total_frames >= max_frame RETURN')
@@ -49,7 +49,6 @@ async function run_loop(agents, env, max_frames = 0, max_episodes = 0) {
     const frame_ratio = total_frames / elapsed_time
     console.log("Took", elapsed_time.toFixed(3), "seconds for", total_frames, "steps:", frame_ratio.toFixed(3), "fps")
   }
-  console.log('end of run_loop, returning  ******************')
   return true
 }
 

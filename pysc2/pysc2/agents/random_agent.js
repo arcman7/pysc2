@@ -16,8 +16,6 @@ class RandomAgent extends base_agent.BaseAgent {
     // console.log('this.action_spec: ', this.action_spec)
     const args = []
     this.action_spec.functions[function_id].args.forEach((arg) => {
-      // console.log('arg: ', arg)
-      // console.log('arg.sizes: ', arg.sizes)
       args.push(arg.sizes.map((size) => { //eslint-disable-line
         return Math.floor(Math.random() * size)
       }))

@@ -915,7 +915,7 @@ class SC2Env extends environment.Base {
         score_val.push(o['score_cumulative'][0])
       })
       console.info(`Episode ${this._episode_count} finished after ${this._episode_steps} game steps.\n
-        Outcome: ${outcome}, reward: ${reward}, score: ${score_val}`)
+        Outcome: [${outcome}], reward: [${reward}], score: [${score_val}]`)
     }
 
     const self = this
