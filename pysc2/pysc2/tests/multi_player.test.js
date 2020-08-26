@@ -32,7 +32,12 @@ async function TestMultiplayer() {
 
     const screen_size_px = new point.Point(64, 64)
     const minimap_size_px = new point.Point(32, 32)
-    const interfacee = new sc_pb.InterfaceOptions(new sc_pb.SpatialCameraSetup())
+    const interfacee = new sc_pb.InterfaceOptions()
+    const resol = new sc_pb.SpatialCameraSetup()
+    resol.setResolution()
+    resol.setMinimapResolution()
+    interfacee.setFeatureLayer(resol)
+
     screen_size_px.assign_to(interfacee.getFeatureLayer().getResolution())
     minimap_size_px.assign_to(interfacee.getFeatureLayer().getMinimapResolution())
 
@@ -41,14 +46,95 @@ async function TestMultiplayer() {
     console.info(`Valid Ports: ${ports}`)
 
     // Actually launch the game processes.
-    console.log('start')
-    
+    print_stage('start')
+    const sc2_procs = []
+    for (let i = 0; i < players; i += 1) {
+      sc2_procs.push(run_config.start({
+        extra_ports: ports,
+        want_rgb: false
+      }))
+    }
+    const controllers = []
+    sc2_procs.forEach((p) => {
+      controllers.push(p.controller)
+    })
 
+    try {
+      // Save the maps so they can access it.
+      const map_path = path.basename(map_inst.path)
+      print_stage('save_map')
+      controllers.forEach((c) => { //Skip parallel due to a race condition on Windows.
+        c.save_map(map_path, map_inst.data(run_config))
+      })
 
+      // Create the create request.
+      const create = new sc_pb.RequestCreateGame()
+      const localmap = new sc_pb.LocalMap()
+      localmap.setMapPath(map_path)
+      create.setLocalMap(localmap)
+      for (let i = 0; i < players; i += 1) {
+        const playersetup = new sc_pb.PlayerSetup()
+        playersetup.setType(sc_pb.PlayerType.PARTICIPANT)
+        create.addPlayerSetup(playersetup)
+      }
+
+      // Create the join request.
+      const join = new sc_pb.RequestJoinGame()
+      join.setRace(sc_common.Race.RANDOM)
+      join.setOptions(interfacee)
+      join.setSharedPort(0)
+      const serverport = new sc_pb.PortSet()
+      serverport.setGamePort(ports[0])
+      serverport.setBasePort(ports[1])
+      join.setServerPorts(serverport)
+      const clientport = new sc_pb.PortSet()
+      clientport.setGamePort(ports[2])
+      clientport.setBasePort(ports[3])
+      join.addClientPorts(clientport)
+
+      // Play a few short games.
+      for (let i = 0; i < 2; i += 1) { //2 episodes
+        // Create and Join
+        print_stage('create')
+        await controllers[0].create_game(create)
+        print_stage('join')
+        let joins = []
+        controllers.forEach((c) => {
+          joins.push()
+        })
+          await parallel.run([c.join_game, join]) //eslint-disable-line
+
+        print_stage('run')
+        for (let game_loop = 1; game_loop < 10; game_loop += 1) { //steps per episode
+          // Step the game
+          let csteps = []
+          controllers.forEach((c) => {
+            csteps.push(c.step)
+          })
+          await parallel.run(csteps)
+
+          //Observe
+          const obs 
+        }
+      }
+      print_stage('leave')
+      
+    }
+    finally {
+      print_stage('quit')
+      // Done, shut down. Don't depend on parallel since it might be broken.
+      controllers.forEach((c) => {
+        await c.quit()
+      })
+      sc2_procs.forEach((p) => {
+        await p.quit()
+      })
+      await portspicker.return_ports(ports)
+    } 
 
     await testCase.tearDown()
   }
-  await test_multi_player()
+  test_multi_player()
 }
 
 TestMultiplayer()
