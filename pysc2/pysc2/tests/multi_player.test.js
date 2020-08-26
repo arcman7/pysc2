@@ -6,7 +6,6 @@ const maps = require(path.resolve(__dirname, '..', 'maps'))
 const run_configs = require(path.resolve(__dirname, '..', 'run_configs'))
 const point = require(path.resolve(__dirname, '..', 'lib', 'point.js'))
 const portspicker = require(path.resolve(__dirname, '..', 'lib', 'portspicker.js'))
-const run_parallel = require(path.resolve(__dirname, '..', 'lib', 'run_parallel.js'))
 const utils = require(path.resolve(__dirname, './utils.js'))
 const sc_common = s2clientprotocol.common_pb
 const sc_pb = s2clientprotocol.sc2api_pb
@@ -27,17 +26,15 @@ async function TestMultiplayer() {
     testCase.setUp()
     const players = 2
     const run_config = run_configs.get()
-    const parallel = new run_parallel.RunParallel()
     const map_inst = maps.get('Simple64')
 
     const screen_size_px = new point.Point(64, 64)
     const minimap_size_px = new point.Point(32, 32)
     const interfacee = new sc_pb.InterfaceOptions()
-    const resol = new sc_pb.SpatialCameraSetup()
-    resol.setResolution()
-    resol.setMinimapResolution()
-    interfacee.setFeatureLayer(resol)
-
+    const feature_layer = new sc_pb.SpatialCameraSetup()
+    feature_layer.setResolution(new sc_pb.Size2DI())
+    feature_layer.setMinimapResolution(new sc_pb.Size2DI())
+    interfacee.setFeatureLayer(feature_layer)
     screen_size_px.assign_to(interfacee.getFeatureLayer().getResolution())
     minimap_size_px.assign_to(interfacee.getFeatureLayer().getMinimapResolution())
 
@@ -98,27 +95,36 @@ async function TestMultiplayer() {
         print_stage('create')
         await controllers[0].create_game(create)
         print_stage('join')
-        let joins = []
-        controllers.forEach((c) => {
-          joins.push()
-        })
-          await parallel.run([c.join_game, join]) //eslint-disable-line
+        await Promise.All(controllers.map((c) => c.join_game(join)))
 
         print_stage('run')
         for (let game_loop = 1; game_loop < 10; game_loop += 1) { //steps per episode
           // Step the game
-          let csteps = []
-          controllers.forEach((c) => {
-            csteps.push(c.step)
-          })
-          await parallel.run(csteps)
+          await Promise.All(controllers.map((c) => c.step()))
 
-          //Observe
-          const obs 
+          // Observe
+          const obs = await Promise.All(controllers.map((c) => c.observe()))
+          obs.forEach((p_id, o) => {
+            assert(o.observation.game_loop == game_loop, 'Error: o.observation.game_loop == game_loop')
+            assert(o.observation.player_common.player_id == p_id + 1, 'Error: o.observation.player_common.player_id == p_id + 1')
+          })
+
+          // Act
+          const actions = []
+          for (let i = 0; i < players; i += 1) {
+            actions.push(new sc_pb.Action())
+          }
+          actions.forEach((action) => {
+            const pt = Math.floor(point.Point.unit_rand() * minimap_size_px)
+
+          })
+          
         }
       }
+      // Done this game.
       print_stage('leave')
-      
+      // parallel.run(c.leave for c in controllers)
+      await parallel.run()
     }
     finally {
       print_stage('quit')
