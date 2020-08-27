@@ -175,7 +175,6 @@ class GameReplayTestCase extends TestCase {
     //Start a multiplayer game with options.//
     this._disable_fog = disable_fog
     const run_config = run_configs.get()
-    // this._parallel = new run_parallel.RunParallel() // Python needed for multiplayer
     const map_inst = maps.get('Flat64')
     this._map_data = map_inst.data(run_config)
 
@@ -186,7 +185,6 @@ class GameReplayTestCase extends TestCase {
     for (let i = 0; i < players; i++) {
       this._sc2_procs.push(run_config.start({ want_rgb: false, port: unique_ports[i], passedSw: new stopwatch.StopWatch(true) }))
     }
-    // await sequentialTaskQueue() // currently in consideration
     this._sc2_procs = await Promise.all(this._sc2_procs)
     this._sc2_procs.forEach((p) => p._sw.enable())
     this._controllers = this._sc2_procs.map((p) => p._controller)
