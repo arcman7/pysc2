@@ -42,9 +42,6 @@ class RequestError extends Error {
 function check_error(res, error_enum) {
   //Raise if the result has an error, otherwise return the result.//
   if (res && res.hasError()) {
-    console.log('\n\n')
-    console.log(res.toObject())
-    console.log('\n\n')
     const enum_name = error_enum.name
     const error_name = error_enum(res.getError()).key
 
