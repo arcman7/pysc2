@@ -28,8 +28,7 @@ class TestCase {
     stopwatch.sw.enable()
     this._start_timer = performance.now() * msToS
   }
-
-  tearDown() { //eslint-disable-line
+  tearDown(moreTestsNext = false) { //eslint-disable-line
     // const s = stopwatch.sw.toString()
     let sw
     if (this._sc2_procs) {
@@ -48,7 +47,13 @@ class TestCase {
     }
     stopwatch.sw.disable();
     (this._sc2_procs || []).forEach((p) => p._sw.disable())
-    console.log(`\n----------------------------------------------------------------------\nRan 1 test in ${(performance.now() * msToS) - this._start_timer}s\n\n`)
+    const duration = (performance.now() * msToS) - this._start_timer
+    this._tests_ran = (this._tests_ran || 0) + 1
+    if (moreTestsNext === false) {
+      console.log(`\n----------------------------------------------------------------------\nRan ${this._tests_ran} test in ${duration}s\n\n`)
+    } else {
+      this._total_time = (this._total_time || 0) + duration
+    }
   }
 }
 
