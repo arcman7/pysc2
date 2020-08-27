@@ -444,8 +444,8 @@ class SC2Env(environment.Base):
         create.player_setup.add(
             type=sc_pb.Computer, race=random.choice(p.race),
             difficulty=p.difficulty, ai_build=random.choice(p.build))
-    self._controllers[0].create_game(create)
 
+    self._controllers[0].create_game(create)
     # Create the join requests.
     agent_players = [p for p in self._players if isinstance(p, Agent)]
     sanitized_names = crop_and_deduplicate_names(p.name for p in agent_players)

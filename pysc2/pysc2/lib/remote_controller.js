@@ -44,9 +44,6 @@ function check_error(res, error_enum) {
   if (res && res.hasError()) {
     const enum_name = error_enum.name
     const error_name = error_enum(res.getError()).key
-    // console.log('\n\n')
-    // console.log(res.toObject())
-    // console.log('\n\n')
 
     const details = res.getErrorDetails ? res.getErrorDetails() : '<none>'
     throw new RequestError(`${enum_name}.${error_name},\n\`,

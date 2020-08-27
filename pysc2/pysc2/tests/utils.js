@@ -8,10 +8,9 @@ const features = require(path.resolve(__dirname, '..', 'lib', 'features.js'))
 const point = require(path.resolve(__dirname, '..', 'lib', 'point.js'))
 const portspicker = require(path.resolve(__dirname, '..', 'lib', 'portspicker.js'))
 const stopwatch = require(path.resolve(__dirname, '..', 'lib', 'stopwatch.js'))
-// const np = require(path.resolve(__dirname, '..', 'lib', 'numpy.js'))
 const pythonUtils = require(path.resolve(__dirname, '..', 'lib', 'pythonUtils.js'))
 
-const { assert, getattr, sequentialTaskQueue, snakeToPascal, String } = pythonUtils //eslint-disable-line
+const { assert, getattr, sequentialTaskQueue, snakeToPascal } = pythonUtils //eslint-disable-line
 
 const sc_common = s2clientprotocol.common_pb
 const sc_debug = s2clientprotocol.debug_pb
@@ -29,8 +28,7 @@ class TestCase {
     stopwatch.sw.enable()
     this._start_timer = performance.now() * msToS
   }
-
-  tearDown() { //eslint-disable-line
+  tearDown(moreTestsNext = false) { //eslint-disable-line
     // const s = stopwatch.sw.toString()
     let sw
     if (this._sc2_procs) {
@@ -49,7 +47,13 @@ class TestCase {
     }
     stopwatch.sw.disable();
     (this._sc2_procs || []).forEach((p) => p._sw.disable())
-    console.log(`\n----------------------------------------------------------------------\nRan 1 test in ${(performance.now() * msToS) - this._start_timer}s\n\n`)
+    const duration = (performance.now() * msToS) - this._start_timer
+    this._tests_ran = (this._tests_ran || 0) + 1
+    if (moreTestsNext === false) {
+      console.log(`\n----------------------------------------------------------------------\nRan ${this._tests_ran} test in ${duration}s\n\n`)
+    } else {
+      this._total_time = (this._total_time || 0) + duration
+    }
   }
 }
 
@@ -171,18 +175,16 @@ class GameReplayTestCase extends TestCase {
     //Start a multiplayer game with options.//
     this._disable_fog = disable_fog
     const run_config = run_configs.get()
-    // this._parallel = new run_parallel.RunParallel() // Python needed for multiplayer
     const map_inst = maps.get('Flat64')
     this._map_data = map_inst.data(run_config)
 
     this._ports = players === 2 ? await portspicker.pick_unused_ports(4) : []
-    // using an the extra 2 to ensure each sc_process is started on a unique port
+    // using an extra 2 to ensure each sc_process is started on a unique port
     const unique_ports = await portspicker.pick_unused_ports(players || 1)
     this._sc2_procs = []
     for (let i = 0; i < players; i++) {
       this._sc2_procs.push(run_config.start({ want_rgb: false, port: unique_ports[i], passedSw: new stopwatch.StopWatch(true) }))
     }
-    // await sequentialTaskQueue() // currently in consideration
     this._sc2_procs = await Promise.all(this._sc2_procs)
     this._sc2_procs.forEach((p) => p._sw.enable())
     this._controllers = this._sc2_procs.map((p) => p._controller)
