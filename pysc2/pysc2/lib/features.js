@@ -15,7 +15,7 @@ const sw = stopwatch.sw
 const { raw_pb, sc2api_pb } = s2clientprotocol
 const sc_raw = raw_pb
 const sc_pb = sc2api_pb
-const { clip, Defaultdict, getArgsArray, getattr, getImageData, int, isinstance, len, namedtuple, setUpProtoAction, sum, unpackbits, ValueError, withPython, zip } = pythonUtils
+const { clip, DefaultDict, getArgsArray, getattr, getImageData, int, isinstance, len, namedtuple, setUpProtoAction, sum, unpackbits, ValueError, withPython, zip } = pythonUtils
 const EPSILON = 1e-5
 
 const FeatureType = Enum.Enum('FeatureType', {
@@ -1797,7 +1797,7 @@ class Features {
 
     if (aif.use_unit_counts) {
       withPython(sw('unit_counts'), () => {
-        const unit_counts = new Defaultdict(0)
+        const unit_counts = new DefaultDict(0)
         raw.getUnitsList().forEach((u) => {
           if (u.getAlliance() !== sc_raw.Alliance.SELF) {
             return

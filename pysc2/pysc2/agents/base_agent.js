@@ -1,4 +1,4 @@
-const path = require('path')
+const path = require('path') //eslint-disable-line
 const actions = require(path.resolve(__dirname, '..', 'lib', './actions.js'))
 
 class BaseAgent {
