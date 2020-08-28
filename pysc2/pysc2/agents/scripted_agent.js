@@ -22,7 +22,7 @@ class MoveToBeacon extends base_agent.BaseAgent {
 // An agent specifically for solving the MoveToBeacon map.//
   step(obs) {
     super.step(obs)
-    if (obs.observation.available_actions.includes(FUNCTIONS.MOVE_screen.id)) {
+    if (obs.observation.available_actions.includes(FUNCTIONS.Move_screen.id)) {
       const player_relative = obs.observation.feature_screen.player_relative
       const beacon = _xy_locs(player_relative == _PLAYER_NEUTRAL)
       if (!beacon) {

@@ -44,6 +44,8 @@ class TestEasy(utils.TestCase):
       run_loop.run_loop([agent], env, self.steps)
 
     # Get some points
+    print('agent.episoes: ', agent.episoes)
+    print('agent.reward: ', agent.reward)
     self.assertLessEqual(agent.episodes, agent.reward)
     self.assertEqual(agent.steps, self.steps)
 
