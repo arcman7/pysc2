@@ -15,7 +15,7 @@ async function TestEasy() {
   testCase.setUp()
 
   async function test_move_to_beacon() {
-    console.log('[ RUN     ]test_move_to_beacon')
+    console.log('[ RUN     ] test_move_to_beacon')
     const kwargs = {
       map_name: 'MoveToBeacon',
       players: [new sc2_env.Agent(Number(sc2_env.Race.terran))],
@@ -33,12 +33,12 @@ async function TestEasy() {
     })
     assert(agent.episodes <= agent.reward, 'agent.episodes <= agent.reward')
     assert(agent.steps == steps, 'agent.steps == steps')
-    console.log('[      OK ]test_move_to_beacon')
+    console.log('[      OK ] test_move_to_beacon')
   }
   await test_move_to_beacon()
 
   async function test_collect_mineral_shards() {
-    console.log('[ RUN     ]test_collect_mineral_shards')
+    console.log('[ RUN     ] test_collect_mineral_shards')
     const kwargs = {
       map_name: 'CollectMineralShards',
       players: [new sc2_env.Agent(Number(sc2_env.Race.terran))],
@@ -57,12 +57,12 @@ async function TestEasy() {
     })
     assert(agent.episodes <= agent.reward, 'agent.episodes <= agent.reward')
     assert(agent.step == steps, 'agent.step == steps')
-    console.log('[      OK ]test_collect_mineral_shards')
+    console.log('[      OK ] test_collect_mineral_shards')
   }
   await test_collect_mineral_shards()
 
   async function test_collect_mineral_shards_feature_units() {
-    console.log('[ RUN     ]test_collect_mineral_shards_feature_units')
+    console.log('[ RUN     ] test_collect_mineral_shards_feature_units')
     const kwargs = {
       map_name: 'CollectMineralShards',
       players: [new sc2_env.Agent(Number(sc2_env.Race.terran))],

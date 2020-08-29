@@ -1588,7 +1588,9 @@ class Features(object):
     for i, func in iteritems(actions.FUNCTIONS_AVAILABLE):
       if func.avail_fn(obs):
         available_actions.add(i)
+    print(obs.abilities)
     for a in obs.abilities:
+      # print('available_actions, a: ', a)
       if a.ability_id not in actions.ABILITY_IDS:
         logging.warning("Unknown ability %s seen as available.", a.ability_id)
         continue

@@ -21,8 +21,8 @@ function _xy_locs(mask) {
 class MoveToBeacon extends base_agent.BaseAgent {
 // An agent specifically for solving the MoveToBeacon map.//
   step(obs) {
-    console.log('obs: ', obs)
-    console.log('obs.observation: ', obs.observation)
+    // console.log('obs: ', obs)
+    // console.log('obs.observation: ', obs.observation)
     console.log('obs.observation.available_actions: ', obs.observation.available_actions)
     console.log('====== FUNCTIONS.Move_screen.id: ', FUNCTIONS.Move_screen.id)
     console.log('===== check: ', obs.observation.available_actions.includes(FUNCTIONS.Move_screen.id))

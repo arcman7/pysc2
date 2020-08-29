@@ -1864,6 +1864,8 @@ class Features {
       }
     })
     const abilities = obs.getAbilitiesList()
+    console.log('abilities: ', abilities, 'abilities.length: ', abilities.length)
+    console.log(abilities.map((a) => a.toObject()))
     for (let index = 0; index < abilities.length; index++) {
       const a = abilities[index]
       if (!(actions.ABILITY_IDS.hasOwnProperty(a.getAbilityId()))) {
@@ -1940,7 +1942,8 @@ class Features {
     } catch (err) {
       throw new ValueError(`Invalid function id: ${func_id}.`)
     }
-
+    console.log('func_id: ', func_id)
+    console.log('this.available_actions(obs).includes(func_id)): ', this.available_actions(obs).includes(func_id))
     // Available?
     if (!(skip_available || this._raw || this.available_actions(obs).includes(func_id))) {
       throw new ValueError(`Function ${func_id} ${func.name} is currently not available`)
