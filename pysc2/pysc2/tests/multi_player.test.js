@@ -21,10 +21,10 @@ function print_stage(stage) {
 async function TestMultiplayer() {
   console.log('TestMultiplayer')
   const testCase = new utils.TestCase()
+  testCase.setUp()
 
   async function test_multi_player() {
     console.log('=== test_multi_player ===')
-    testCase.setUp()
     const players = 2
     const run_config = run_configs.get()
     const map_inst = maps.get('Simple64')
