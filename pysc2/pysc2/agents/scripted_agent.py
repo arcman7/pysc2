@@ -39,10 +39,12 @@ def _xy_locs(mask):
 
 class MoveToBeacon(base_agent.BaseAgent):
   """An agent specifically for solving the MoveToBeacon map."""
-
   def step(self, obs):
+    print('===== here ====')
     # super(MoveToBeacon, self).step(obs)
     super().step(obs)
+    print('===== obs.observation.available_actions: ', obs.observation.available_actions)
+    print('===== FUNCTIONS.Move_screen.id: ', FUNCTIONS.Move_screen.id)
     if FUNCTIONS.Move_screen.id in obs.observation.available_actions:
       player_relative = obs.observation.feature_screen.player_relative
       beacon = _xy_locs(player_relative == _PLAYER_NEUTRAL)

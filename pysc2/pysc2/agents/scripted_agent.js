@@ -21,15 +21,23 @@ function _xy_locs(mask) {
 class MoveToBeacon extends base_agent.BaseAgent {
 // An agent specifically for solving the MoveToBeacon map.//
   step(obs) {
+    console.log('obs: ', obs)
+    console.log('obs.observation: ', obs.observation)
+    console.log('obs.observation.available_actions: ', obs.observation.available_actions)
+    console.log('====== FUNCTIONS.Move_screen.id: ', FUNCTIONS.Move_screen.id)
+    console.log('===== check: ', obs.observation.available_actions.includes(FUNCTIONS.Move_screen.id))
     super.step(obs)
     if (obs.observation.available_actions.includes(FUNCTIONS.Move_screen.id)) {
       const player_relative = obs.observation.feature_screen.player_relative
       const beacon = _xy_locs(player_relative == _PLAYER_NEUTRAL)
+      console.log('beacon: ', beacon)
+      console.log('player_relative: ', player_relative)
       if (!beacon) {
         return FUNCTIONS.no_op()
       }
       const axis = 0
       const beacon_center = numpy.round(numpy.mean(beacon, axis))
+      console.log('beacon_center: ', beacon_center)
       return FUNCTIONS.Move_screen("now", beacon_center)
     }
     return FUNCTIONS.select_army("select")
