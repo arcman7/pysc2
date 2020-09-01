@@ -88,7 +88,7 @@ function arrayShape(array) {
         } else {
           shape = [1, array_raw.length]
         }
-      } else {
+      } else if (count < 1) {
         shape = [0]
       }
     }
