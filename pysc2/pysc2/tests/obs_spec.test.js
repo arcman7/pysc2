@@ -5,7 +5,7 @@ const random_agent = require(path.resolve(__dirname, '..', 'agents', 'random_age
 const sc2_env = require(path.resolve(__dirname, '..', 'env', 'sc2_env.js'))
 const utils = require(path.resolve(__dirname, './utils.js'))
 const pythonUtils = require(path.resolve(__dirname, '..', 'lib', 'pythonUtils.js'))
-const { assert, arrayShape, withPythonAsync, zip } = pythonUtils
+const { assert, arrayCompare, arrayShape, withPythonAsync, zip } = pythonUtils
 
 // Verify that the observations match the observation spec.
 
@@ -15,15 +15,17 @@ async function TestObservationSpec() {
   console.log('TestObservationSpec')
 
   function check_observation_matches_spec(obs, obs_spec) {
-    assert(Object.keys(obs_spec) == Object.keys(obs), 'Object.keys(obs_spec) == Object.keys(obs)')
+    assert(arrayCompare(Object.keys(obs_spec).sort(), Object.keys(obs).sort()) == true, 'Object.keys(obs_spec) == Object.keys(obs)')
     Object.keys(obs).forEach((k) => {
       const o = obs[k]
       if (k == 'map_name') {
-        assert(o instanceof String, 'o instanceof String')
+        assert(typeof o == 'string', 'o instanceof String')
+        return
       }
       const descr = `${k}: spec: ${obs_spec[k]} != obs: ${arrayShape(o)}`
-      if (arrayShape(o) == [0]) {
-        assert(obs_spec[k].includes(0), descr)
+
+      if (arrayCompare(arrayShape(o), [0]) == true) {
+        assert(obs_spec[k].includes(0) == true, descr)
       } else {
         assert(obs_spec[k].length == arrayShape(o).length, descr)
         zip(obs_spec[k], arrayShape(o)).forEach(([a, b]) => {
@@ -36,7 +38,7 @@ async function TestObservationSpec() {
   }
 
   async function test_observation_matches_obs_spec() {
-    console.log('=== test_observation_matches_obs_spec ===')
+    console.log('[ RUN     ]test_observation_matches_obs_spec')
     const kwargs = {
       map_name: 'Simple64',
       players: [
@@ -74,14 +76,15 @@ async function TestObservationSpec() {
         const act = agent.step(raw_obs)
         const multiplayer_act = [act]
         multiplayer_obs = await env.step(multiplayer_act)
-        await testCase.tearDown(true)
       }
+      await testCase.tearDown(true)
     })
+    console.log('[      OK ]test_observation_matches_obs_spec')
   }
   await test_observation_matches_obs_spec()
 
   async function test_heterogeneous_observations() {
-    console.log('=== test_heterogeneous_observations ===')
+    console.log('[ RUN     ]test_heterogeneous_observations')
     const kwargs = {
       map_name: 'Simple64',
       players: [
@@ -129,9 +132,10 @@ async function TestObservationSpec() {
           actions.push(agent.step(time_step))
         })
         time_steps = await env.step(actions)
-        await testCase.tearDown(false)
       }
+      await testCase.tearDown(false)
     })
+    console.log('[      OK ]test_heterogeneous_observations')
   }
   await test_heterogeneous_observations()
 }
