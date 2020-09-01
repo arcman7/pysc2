@@ -64,38 +64,6 @@ function arrayDtype(array) {
   return arrayDtype(array[0])
 }
 
-// function arrayShape(array) {
-//   const shape = []
-//   let keepgoing = true
-//   let count = 0
-//   const array_raw = array
-//   if (array.shape) {
-//     return array.shape
-//   }
-//   if (typeof array[0] == 'string') {
-//     return [array.length]
-//   }
-//   while (keepgoing) {
-//     if (array.length > 0) {
-//       count += 1
-//       shape.push(array.length)
-//       array = array[0]
-//     } else {
-//       keepgoing = false
-//       if (count == 1) {
-//         if (array_raw.length == 1) {
-//           shape = [1]
-//         } else {
-//           shape = [1, array_raw.length]
-//         }
-//       } else if (count < 1) {
-//         shape = [0]
-//       }
-//     }
-//   }
-//   return shape
-// }
-
 function arrayShape(arr, zeroFirst) {
   if (arr.length > 1) {
     zeroFirst = true
@@ -121,19 +89,6 @@ function arrayShape(arr, zeroFirst) {
   }
   return shape
 }
-// function arrayShape(arr) {
-//   const shape = []
-//   let keepGoing = true
-//   if (!Array.isArray(arr)) {
-//     throw new Error('@param arr must be an array. Got: ' + arr)
-//   }
-//   while (keepGoing) {
-//     shape.push(arr.length)
-//     arr = arr[0]
-//     keepGoing = Array.isArray(arr)
-//   }
-//   return shape
-// }
 
 function arraySub(a, b) {
   // This function operates subtraction with 1D or 2d array
