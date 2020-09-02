@@ -67,15 +67,19 @@ async function TestObservationSpec() {
       await agent.setup(obs_spec, action_spec)
 
       let multiplayer_obs = await env.reset()
+      console.log('=== check 1')
       for (let i = 0; i < 100; i += 1) {
         assert(multiplayer_obs instanceof Array, 'multiplayer_obs instanceof Array')
         assert(multiplayer_obs.length == 1, 'multiplayer_obs.length == 1')
         const raw_obs = multiplayer_obs[0]
         const obs = raw_obs.observation
         check_observation_matches_spec(obs, obs_spec)
+        console.log('=== check 2')
         const act = agent.step(raw_obs)
         const multiplayer_act = [act]
+        console.log('=== check 3')
         multiplayer_obs = await env.step(multiplayer_act)
+        console.log('=== chekc 4')
       }
       await testCase.tearDown(true)
     })
