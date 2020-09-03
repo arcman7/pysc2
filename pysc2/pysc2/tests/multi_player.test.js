@@ -136,15 +136,10 @@ async function TestMultiplayer() {
     } finally {
       print_stage('quit')
       // Done, shut down. Don't depend on parallel since it might be broken.
-      controllers.forEach((c) => {
-        c.quit()
-      })
-      sc2_procs.forEach((p) => {
-        p.close()
-      })
+      await Promise.all(controllers.map((c) => c.quit()))
+      await Promise.all(sc2_procs.map((p) => p.close()))
       await portspicker.return_ports(ports)
     }
-
     await testCase.tearDown()
     console.log('[       OK ] TestMultiplayer.test_multi_player')
   }
