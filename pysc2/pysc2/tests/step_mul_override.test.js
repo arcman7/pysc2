@@ -14,7 +14,7 @@ async function StepMulOverrideTest() {
   console.log('StepMulOverrideTest')
   const testCase = new utils.TestCase()
   async function test_returns_game_loop_zero_on_first_step_despite_override() {
-    console.log('=== test_returns_game_loop_zero_on_first_step_despite_override ===')
+    console.log('[ RUN      ] test_returns_game_loop_zero_on_first_step_despite_override')
     testCase.setUp()
     const kwargs = {
       map_name: 'DefeatRoaches',
@@ -27,11 +27,12 @@ async function StepMulOverrideTest() {
       assert(timestep[0].observation.game_loop[0] == 0, 'Error: timestep[0].observation.game_loop[0] == 0')
       await testCase.tearDown()
     })
+    console.log('[       OK ] test_returns_game_loop_zero_on_first_step_despite_override')
   }
   await test_returns_game_loop_zero_on_first_step_despite_override()
 
   async function test_respects_override() {
-    console.log('=== test_respects_override ===')
+    console.log('[ RUN      ] test_respects_override')
     testCase.setUp()
     const kwargs = {
       map_name: 'DefeatRoaches',
@@ -48,6 +49,7 @@ async function StepMulOverrideTest() {
       }
       await testCase.tearDown()
     })
+    console.log('[       OK ] test_respects_override')
   }
   await test_respects_override()
 }
