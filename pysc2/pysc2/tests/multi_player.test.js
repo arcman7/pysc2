@@ -94,7 +94,7 @@ async function TestMultiplayer() {
       join.addClientPorts(clientport)
 
       // Play a few short games.
-      for (let i = 0; i < 2; i += 1) { //2 episodes
+      for (let _ = 0; _ < 2; _ += 1) { //2 episodes
         // Create and Join
         print_stage('create')
         await controllers[0].create_game(create)
@@ -115,48 +115,24 @@ async function TestMultiplayer() {
 
           // Act
           const actions = []
-          for (let _ = 0; _ < players; _ += 1) {
+          for (let i = 0; i < players; i += 1) {
             actions.push(new sc_pb.Action())
           }
           actions.forEach((action) => {
-            console.log('1 action: ', action.toObject())
-            // const p = point.Point.unit_rand()
-            // console.log('p :', p)
-            // const p2 = p.mul(minimap_size_px)
-            // console.log('p2 :', p2)
-            // const p3 = p2.floor()
-            // console.log('p3: ', p3)
             const pt = point.Point.unit_rand().mul(minimap_size_px).floor()
-
-            const actionfeaturelayer = new sc_pb.ObserverAction()
-            console.log('1 actionfeaturelayer: ', actionfeaturelayer.toObject())
-
-            // const cammove = new spatial_pb.ActionSpatialCameraMove()
+            const actionfeaturelayer = new sc_pb.ActionSpatial()
             const cammove = new sc_pb.ActionSpatialCameraMove()
-            console.log('1 cammove: ', cammove.toObject())
-
-            // cammove.setCenterMinimap(new sc_common.PointI())
             cammove.setCenterMinimap(new sc_pb.PointI())
-            console.log('2 cammove: ', cammove.toObject())
-
             actionfeaturelayer.setCameraMove(cammove)
-            console.log('check point 1')
-            // console.log('2 actionfeaturelayer: ', actionfeaturelayer.toObject())
-
             action.setActionFeatureLayer(actionfeaturelayer)
-            console.log('check point 2')
-            // console.log('action: ', action.toObject())
-
             pt.assign_to(action.getActionFeatureLayer().getCameraMove().getCenterMinimap())
-            console.log('check point 3')
-            console.log('2 action: ', action.toObject())
           })
           await Promise.all(zip(controllers, actions).map(([c, a]) => c.act(a)))
         }
+        // Done this game.
+        print_stage('leave')
+        await Promise.all(controllers.map((c) => c.leave()))
       }
-      // Done this game.
-      print_stage('leave')
-      await Promise.all(controllers.map((c) => c.leave))
     } finally {
       print_stage('quit')
       // Done, shut down. Don't depend on parallel since it might be broken.
