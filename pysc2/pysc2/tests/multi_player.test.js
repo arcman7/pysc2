@@ -142,7 +142,12 @@ async function TestMultiplayer() {
     await testCase.tearDown()
     console.log('[       OK ] TestMultiplayer.test_multi_player')
   }
-  await test_multi_player()
+  try {
+    await test_multi_player()
+  } catch (err) {
+    console.error(err)
+    console.log('[  FAILED  ] TestMultiplayer.test_multi_player')
+  }
 }
 
 TestMultiplayer()
