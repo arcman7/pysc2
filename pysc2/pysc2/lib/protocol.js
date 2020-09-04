@@ -18,7 +18,7 @@ You are allowed to send additional requests before receiving a response to an ea
 */
 const { sc2api_pb } = s2clientprotocol
 const sc_pb = sc2api_pb
-const { assert, snakeToPascal, withPython, withPythonAsync } = pythonUtils
+const { assert, snakeToPascal, withPython } = pythonUtils
 
 flags.defineInteger('sc2_verbose_protocol', 0, `
   Print the communication packets with SC2. 0 disables.
@@ -58,9 +58,8 @@ class StarcraftProtocol {
     this._status = Status.LAUNCHED
     this._sock = ws._socket
     this._port = this._sock.address().port
-    // console.log('********************** _sock.address():', this._sock.address())
     this._ws = ws
-    this._count = 1
+    this._count = 0
     // apply @decoraters
     this.read = sw.decorate(this.read.bind(this))
     this.write = sw.decorate(this.write.bind(this))
@@ -84,9 +83,10 @@ class StarcraftProtocol {
     return this._status
   }
 
-  next(n) {
-    this._count = n + 1
-    return this._count
+  next() {
+    const val = this._count
+    this._count += 1
+    return val
   }
 
   close() {
@@ -169,7 +169,7 @@ class StarcraftProtocol {
     const isList = Array.isArray(val)
     // proto setters: setFoo, setFooList
     req[`set${name + (isList ? 'List' : '')}`](val)
-    req.setId(this.next(this._count))
+    req.setId(this.next())
     let res
     try {
       res = await this.send_req(req)
@@ -177,7 +177,7 @@ class StarcraftProtocol {
       console.warn('PORT: ', this._port, '\nreq:\n', req.toObject(), '\nres:\n', res ? res.toObject() : 'undefined')
       throw new ConnectionError(`Error during ${name}: ${err}`)
     }
-    if (res.getId && res.getId() !== req.getId()) {
+    if (res.hasId() && res.getId && res.getId() !== req.getId()) {
       const reqObj = req.toObject()
       Object.keys(reqObj).forEach((key) => {
         if (key.match('data') && reqObj[key]) {

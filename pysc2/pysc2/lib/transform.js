@@ -32,7 +32,7 @@ class Linear extends Transform {
         scale = scale.scale || null
       }
     }
-    super(scale, offset)
+    super()
     if (scale == null || scale == undefined) {
       this.scale = new point.Point(1, 1)
     } else if (isinstance(scale, Number)) {
@@ -69,7 +69,7 @@ class Linear extends Transform {
 class Chain extends Transform {
   constructor() {
     super(arguments) //eslint-disable-line
-    this.transforms = arguments //eslint-disable-line
+    this.transforms = Array.from(arguments) //eslint-disable-line
   }
 
   fwd_dist(dist) {
@@ -110,6 +110,7 @@ class Chain extends Transform {
 }
 
 class PixelToCoord extends Transform {
+  //Take a point within a pixel and use the tl, or tl to pixel center.
   fwd_dist(dist) { //eslint-disable-line
     return dist
   }

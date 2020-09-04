@@ -1282,7 +1282,7 @@ class Features(object):
       ), dtype=np.int32)
 
     ui = obs.observation.ui_data
-
+    print('ui: ', ui)
     with sw("ui"):
       groups = np.zeros((10, 2), dtype=np.int32)
       for g in ui.groups:
@@ -1326,6 +1326,7 @@ class Features(object):
       """Compute unit features."""
       screen_pos = pos_transform.fwd_pt(
           point.Point.build(u.pos))
+      # print('screen_pos: ', screen_pos)
       screen_radius = pos_transform.fwd_dist(u.radius)
       def raw_order(i):
         if len(u.orders) > i:
@@ -1588,9 +1589,7 @@ class Features(object):
     for i, func in iteritems(actions.FUNCTIONS_AVAILABLE):
       if func.avail_fn(obs):
         available_actions.add(i)
-    print(obs.abilities)
     for a in obs.abilities:
-      # print('available_actions, a: ', a)
       if a.ability_id not in actions.ABILITY_IDS:
         logging.warning("Unknown ability %s seen as available.", a.ability_id)
         continue

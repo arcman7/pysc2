@@ -347,10 +347,10 @@ class SC2Env(environment.Base):
   @staticmethod
   def _get_interface(agent_interface_format, require_raw):
     aif = agent_interface_format
-    # print('use raw: ', (aif.use_feature_units or
-    #      aif.use_unit_counts or
-    #      aif.use_raw_units or
-    #      require_raw))
+    print('use raw: ', (aif.use_feature_units or
+         aif.use_unit_counts or
+         aif.use_raw_units or
+         require_raw))
     interface = sc_pb.InterfaceOptions(
         raw=(aif.use_feature_units or
              aif.use_unit_counts or
@@ -732,6 +732,7 @@ class SC2Env(environment.Base):
       self._last_score = cur_score
     else:
       reward = outcome
+
 
     if self._renderer_human:
       self._renderer_human.render(self._obs[0])

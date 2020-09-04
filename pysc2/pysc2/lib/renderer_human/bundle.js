@@ -466,6 +466,7 @@ const SelectWorker = _define_position_based_enum(
   "SelectWorker", SELECT_WORKER_OPTIONS
 )
 
+//The list of known types.
 const TYPES = Arguments.types({
   screen: ArgumentType.point(),
   minimap: ArgumentType.point(),
@@ -561,6 +562,7 @@ class Function extends namedtuple("Function", ["id", "name", "ability_id", "gene
   _getProxy(thing) {
     const self = this
     return new Proxy(thing, {
+      //eslint-disable-next-line
       get: (target, name) => {
         return self[name]
       },
@@ -576,7 +578,12 @@ class Function extends namedtuple("Function", ["id", "name", "ability_id", "gene
       general_id: 0,
       function_type,
       args: FUNCTION_TYPES[function_type.name],
-      avail_fn,
+      avail_fn: (obs) => {
+        if (!obs) {
+          return false
+        }
+        return avail_fn(obs)
+      },
       raw: false,
     })
   }
@@ -1994,6 +2001,7 @@ class FunctionCall extends namedtuple("FunctionCall", ["functionn", "argumentss"
         kwargs.functionn = kwargs.function
       }
     }
+
     super(...arguments) //eslint-disable-line
     const self = this
     Object.defineProperty(this, 'function', {
@@ -2801,7 +2809,7 @@ const sw = stopwatch.sw
 const { raw_pb, sc2api_pb } = s2clientprotocol
 const sc_raw = raw_pb
 const sc_pb = sc2api_pb
-const { clip, Defaultdict, getArgsArray, getattr, getImageData, int, isinstance, len, namedtuple, setUpProtoAction, sum, unpackbits, ValueError, withPython, zip } = pythonUtils
+const { clip, DefaultDict, getArgsArray, getattr, getImageData, int, isinstance, len, namedtuple, setUpProtoAction, sum, unpackbits, ValueError, withPython, zip } = pythonUtils
 const EPSILON = 1e-5
 
 const FeatureType = Enum.Enum('FeatureType', {
@@ -3017,7 +3025,6 @@ class Feature extends namedtuple('Feature', ['index', 'name', 'layer_set', 'full
   */
 
   constructor(kwargs) {
-    // console.log('from Feature constructor: ', kwargs)
     super(kwargs)
     // javascript only set up
     this.color = sw.decorate(this.color.bind(this))
@@ -3146,7 +3153,7 @@ class Feature extends namedtuple('Feature', ['index', 'name', 'layer_set', 'full
   }
 
   static unpack_rgb_image(plane) {
-    //Return a correctly shaped numpy array given the image bytes.//
+    //Return a correctly shaped numpy array given the image bytes.//]
     if (plane.getBitsPerPixel() !== 24) {
       throw new ValueError(`plane.bits_per_pixel ${plane.getBitsPerPixel()} !== 24`)
     }
@@ -3211,7 +3218,6 @@ class MinimapFeatures extends namedtuple('MinimapFeatures', [
   constructor(kwargs) {
     const feats = {}
     let val
-    // console.log('MinimapFeatures constructor: ', kwargs)
     Object.keys(kwargs).forEach((name) => {
       val = kwargs[name]
       const [scale, type_, palette] = val
@@ -3337,17 +3343,17 @@ class Dimensions {
     return this._minimap
   }
 
-  __repr__() {
+  toString() {
     return `Dimensions(screen=${this.screen}, minimap=${this.minimap})`
   }
 
-  __eq__(other) {
-    return (isinstance(other, Dimensions) && this.screen === other.screen
-      && this.minimap === other.minimap)
+  eq(other) {
+    return other instanceof Dimensions && this.screen.eq(other.screen)
+      && this.minimap.eq(other.minimap)
   }
 
-  __ne__(other) {
-    return !(this.__eq__(other))
+  ne(other) {
+    return !(this.eq(other))
   }
 }
 
@@ -3514,6 +3520,7 @@ class AgentInterfaceFormat {
     } else {
       this._action_dimensions = rgb_dimensions
     }
+    this._pickle_args = arguments//eslint-disable-line
   }
 
   get feature_dimensions() {
@@ -3697,8 +3704,8 @@ function parse_agent_interface_format({
     action_delay_fn: _action_delay_fn(action_delays),
     kwargs,
   }
-  Object.keys(arguments[0]).forEach((key) => {
-    usedArgs[key] = usedArgs[key] || arguments[0][key]
+  Object.keys(arguments[0]).forEach((key) => { //eslint-disable-line prefer-rest-params
+    usedArgs[key] = usedArgs[key] || arguments[0][key] //eslint-disable-line prefer-rest-params
   })
   return new AgentInterfaceFormat(usedArgs)
 }
@@ -3764,14 +3771,18 @@ function features_from_game_info({ game_info, agent_interface_format = null, map
       throw new ValueError(' Either give an agent_interface_format or kwargs, not both.')
     }
     const aif = agent_interface_format
-    if (aif.rgb_dimensions !== rgb_dimensions
-      || aif.feature_dimensions !== feature_dimensions
+    if (!(aif.rgb_dimensions ? aif.rgb_dimensions.eq(rgb_dimensions) : true)
+      || !(aif.feature_dimensions ? aif.feature_dimensions.eq(feature_dimensions) : true)
       || (feature_dimensions
       && aif.camera_width_world_units !== camera_width_world_units)) {
-      throw new Error(`The supplied agent_interface_format doesn't match the resolutions computed from the game_info:
-  rgb_dimensions: ${aif.rgb_dimensions} !== ${rgb_dimensions}
-  feature_dimensions: ${aif.feature_dimensions} !== ${feature_dimensions}
-  camera_width_world_units: ${aif.camera_width_world_units} !== ${camera_width_world_units}`)
+      console.error('aif.rgb_dimensions !== rgb_dimensions')
+      console.error(aif.rgb_dimensions, '   ', rgb_dimensions)
+      console.error('aif.feature_dimensions !== feature_dimensions')
+      console.error(aif.feature_dimensions, '   ', feature_dimensions)
+      throw new Error('The supplied agent_interface_format doesn\'t match the resolutions computed from the game_info')
+      // rgb_dimensions: ${aif.rgb_dimensions} !== ${rgb_dimensions}
+      // feature_dimensions: ${aif.feature_dimensions} !== ${feature_dimensions}
+      // camera_width_world_units: ${aif.camera_width_world_units} !== ${camera_width_world_units}`)
     }
   } else {
     const args = {
@@ -3787,8 +3798,8 @@ function features_from_game_info({ game_info, agent_interface_format = null, map
   return new Features( //eslint-disable-line
     agent_interface_format,
     map_size,
-    map_name,
     requested_races,
+    map_name,
   )
 }
 
@@ -3850,7 +3861,6 @@ function _init_valid_raw_functions(raw_resolution, max_selected_units) {
   const functions = new actions.Functions(args)
   return new actions.ValidActions(types, functions)
 }
-
 
 class Features {
   /*Render feature layers from SC2 Observation protos into numpy arrays.
@@ -4025,7 +4035,6 @@ class Features {
     }
 
     const aif = this._agent_interface_format
-
     if (aif.feature_dimensions) {
       obs_spec["feature_screen"] = [
         SCREEN_FEATURES.length,
@@ -4452,11 +4461,9 @@ class Features {
             ])
           })
         })
-        // console.log('--------------------------------- here at raw_effects ---------------------------------')
         out['raw_effects'] = named_array.NamedNumpyArray(
           raw_effects, [null, EffectPos]
         )
-        // console.log('after raw effects')
       })
     }
     out['upgrades'] = np.array(raw.getPlayer().getUpgradeIdsList())
@@ -4584,7 +4591,7 @@ class Features {
 
     if (aif.use_unit_counts) {
       withPython(sw('unit_counts'), () => {
-        const unit_counts = new Defaultdict(0)
+        const unit_counts = new DefaultDict(0)
         raw.getUnitsList().forEach((u) => {
           if (u.getAlliance() !== sc_raw.Alliance.SELF) {
             return
@@ -4651,6 +4658,8 @@ class Features {
       }
     })
     const abilities = obs.getAbilitiesList()
+    console.log('abilities: ', abilities, 'abilities.length: ', abilities.length)
+    console.log(abilities.map((a) => a.toObject()))
     for (let index = 0; index < abilities.length; index++) {
       const a = abilities[index]
       if (!(actions.ABILITY_IDS.hasOwnProperty(a.getAbilityId()))) {
@@ -4713,21 +4722,25 @@ class Features {
     if (isinstance(func_call, sc_pb.Action)) {
       return func_call
     }
-    const func_id = func_call.function
+    let func_id = func_call.function
+    if (func_id instanceof Enum.EnumMeta) {
+      func_id = Number(func_id)
+    }
     let func
     try {
       if (this._raw) {
-        func = actions.RAW_FUNCTIONS[func_id.key]
+        func = actions.RAW_FUNCTIONS[func_id]
       } else {
-        func = actions.FUNCTIONS[func_id.key]
+        func = actions.FUNCTIONS[func_id]
       }
     } catch (err) {
-      throw new ValueError(`Invalid function id: ${func_id.key}.`)
+      throw new ValueError(`Invalid function id: ${func_id}.`)
     }
-
+    console.log('func_id: ', func_id)
+    console.log('this.available_actions(obs).includes(func_id)): ', this.available_actions(obs).includes(func_id))
     // Available?
-    if (!skip_available && !this._raw && !this.available_actions(obs).hasOwnProperty(func_id.key)) {
-      throw new ValueError(`Function ${func_id.key} ${func.name} is currently not available`)
+    if (!(skip_available || this._raw || this.available_actions(obs).includes(func_id))) {
+      throw new ValueError(`Function ${func_id} ${func.name} is currently not available`)
     }
     // Right number of args?
     if (func_call.arguments.length !== func.args.length) {
@@ -4735,8 +4748,7 @@ class Features {
     }
     // Args are valid?
     const aif = this._agent_interface_format
-    zip(func.args, func_call.arguments).forEach((pair) => {
-      const [t, arg] = pair
+    zip(func.args, func_call.arguments).forEach(([t, arg]) => {
       if (t.count) {
         if (len(arg) >= 1 && len(arg) <= t.count) {
           return
@@ -4806,12 +4818,12 @@ class Features {
           return find_original_tag(t)
         })
       }
-      const argArray = getArgsArray(actions.RAW_FUNCTIONS[func_id.key].function_type, kwargs)
-      actions.RAW_FUNCTIONS[func_id.key].function_type(...argArray)
+      const argArray = getArgsArray(actions.RAW_FUNCTIONS[func_id].function_type, kwargs)
+      actions.RAW_FUNCTIONS[func_id].function_type(...argArray)
     } else {
       kwargs['action_space'] = aif.action_space
-      const argArray = getArgsArray(actions.FUNCTIONS[func_id.key].function_type, kwargs)
-      actions.FUNCTIONS[func_id.key].function_type(...argArray)
+      const argArray = getArgsArray(actions.FUNCTIONS[func_id].function_type, kwargs)
+      actions.FUNCTIONS[func_id].function_type(...argArray)
     }
     return sc2_action
   }
@@ -5164,7 +5176,7 @@ function assign(values, name, keyPathArray) {
   }
   Object.defineProperty(parent, name, {
     get: function() { return parent[lookUpIndex] },
-    set: function(val) { parent[lookUpIndex] = val; return val }
+    set: function(val) { parent[lookUpIndex] = val; return val || true }
   })
 }
 function unpack(values, names, nameIndex = 0, keyPathArray = []) {
@@ -5438,7 +5450,7 @@ function getNamedNumpyArray(values, names) {
       },
       set(target, key, value) {
         target[key] = value
-        return value
+        return value || true
       },
       // ownKeys: (target) => Object.keys(target).concat(['length']),
       getOwnPropertyDescriptor: function(target, key) {
@@ -5496,7 +5508,8 @@ module.exports = {
     }
     return tf.range(...arguments)
   },
-  array: tf.tensor,
+  // array: tf.tensor,
+  array(arr) { return arr },
   argMin: tf.argMin,
   argMax: tf.argMax,
   buffer: tf.buffer,
@@ -6032,7 +6045,7 @@ class StarcraftProtocol {
     this._status = Status.LAUNCHED
     this._sock = ws._socket
     this._port = this._sock.address().port
-    console.log('********************** _sock.address():', this._sock.address())
+    // console.log('********************** _sock.address():', this._sock.address())
     this._ws = ws
     this._count = 1
     // apply @decoraters
@@ -6193,7 +6206,8 @@ class StarcraftProtocol {
 
   async _read() {
     //Actually read the response and parse it, returning a Response.//
-    let response = await withPythonAsync(this._sw('read_response'), async () => {
+    // let response = await withPythonAsync(this._sw('read_response'), async () => {
+    let response = await withPython(this._sw('read_response'), async () => {
       if (this._que.length) {
         return this._que.shift()
       }
@@ -6297,6 +6311,32 @@ function arrayCompare(a, b, sameOrder = false) {
   return true
 }
 
+function arrayDtype(array) {
+  if (array.length == null) {
+    return typeof (array)
+  }
+  return arrayDtype(array[0])
+}
+
+function arrayShape(array) {
+  let shape = []
+  let keepgoing = true
+  let count = 0
+  while (keepgoing) {
+    if (array.length > 0) {
+      count += 1
+      shape.push(array.length)
+      array = array[0]
+    } else {
+      keepgoing = false
+      if (count == 1) {
+        shape = [1]
+      }
+    }
+  }
+  return shape
+}
+
 function arraySub(a, b) {
   // This function operates subtraction with 1D or 2d array
   const result = []
@@ -6338,6 +6378,57 @@ function clip(a, a_min, a_max) {
       a[i] = a_max
     }
   }
+}
+
+function compareKey(a, b, key) {
+  if (Array.isArray(a)) {
+    return arrayCompare(a, b)
+  }
+  return a[key] === b[key]
+}
+
+function compareAIF(a, b) {
+  assert(compareKey(a, b, 'feature_dimensions'), "compareKey(a, b, 'feature_dimensions'")
+  assert(compareKey(a, b, 'rgb_dimensions'), "compareKey(a, b, 'rgb_dimensions')")
+  assert(compareKey(a, b, 'raw_resolution'), "compareKey(a, b, 'raw_resolution')")
+  assert(compareKey(a, b, 'action_space'), "compareKey(a, b, 'action_space')")
+  assert(compareKey(a, b, 'camera_width_world_units'), "compareKey(a, b, 'camera_width_world_units')")
+  assert(compareKey(a, b, 'use_feature_units'), "compareKey(a, b, 'use_feature_units')")
+  assert(compareKey(a, b, 'use_raw_units'), "compareKey(a, b, 'use_raw_units')")
+  assert(compareKey(a, b, 'use_raw_actions'), "compareKey(a, b, 'use_raw_actions')")
+  assert(compareKey(a, b, 'max_raw_actions'), "compareKey(a, b, 'max_raw_actions')")
+  assert(compareKey(a, b, 'max_selected_units'), "compareKey(a, b, 'max_selected_units')")
+  assert(compareKey(a, b, 'use_unit_counts'), "compareKey(a, b, 'use_unit_counts')")
+  assert(compareKey(a, b, 'use_camera_position'), "compareKey(a, b, 'use_camera_position')")
+  assert(compareKey(a, b, 'show_cloaked'), "compareKey(a, b, 'show_cloaked')")
+  assert(compareKey(a, b, 'show_burrowed_shadows'), "compareKey(a, b, 'show_burrowed_shadows')")
+  assert(compareKey(a, b, 'show_placeholders'), "compareKey(a, b, 'show_placeholders')")
+  assert(compareKey(a, b, 'hide_specific_actions'), "compareKey(a, b, 'hide_specific_actions')")
+  assert(compareKey(a, b, 'action_delay_fn'), "compareKey(a, b, 'action_delay_fn')")
+  assert(compareKey(a, b, 'send_observation_proto'), "compareKey(a, b, 'send_observation_proto')")
+  assert(compareKey(a, b, 'crop_to_playable_area'), "compareKey(a, b, 'crop_to_playable_area')")
+  assert(compareKey(a, b, 'raw_crop_to_playable_area'), "compareKey(a, b, 'raw_crop_to_playable_area')")
+  assert(compareKey(a, b, 'allow_cheating_layers'), "compareKey(a, b, 'allow_cheating_layers')")
+  assert(compareKey(a, b, 'add_cargo_to_units'), "compareKey(a, b, 'add_cargo_to_units')")
+}
+
+function compareObsSpec(a, b) {
+  assert(compareKey(a, b, "action_result"))
+  assert(compareKey(a, b, "alerts"))
+  assert(compareKey(a, b, "build_queue"))
+  assert(compareKey(a, b, "cargo"))
+  assert(compareKey(a, b, "cargo_slots_available"))
+  assert(compareKey(a, b, "control_groups"))
+  assert(compareKey(a, b, "game_loop"))
+  assert(compareKey(a, b, "last_actions"))
+  assert(compareKey(a, b, "map_name"))
+  assert(compareKey(a, b, "multi_select"))
+  assert(compareKey(a, b, "player"))
+  assert(compareKey(a, b, "production_queue"))
+  assert(compareKey(a, b, "score_cumulative"))
+  assert(compareKey(a, b, "score_by_category"))
+  assert(compareKey(a, b, "score_by_vital"))
+  assert(compareKey(a, b, "single_select"))
 }
 
 function eq(a, b) {
@@ -6601,17 +6692,11 @@ function namedtuple(name, fields) {
       _fields.forEach((field, index) => {
         usedArgs[index] = kwargs[field]
       })
-      // console.log('here! A *******************')
-      // console.log('arguments: ')
-      // console.log(usedArgs)
       super(...usedArgs)
     } else {
       _fields.forEach((field, index) => {
         usedArgs[index] = arguments[index]
       })
-      // console.log('here! B *******************')
-      // console.log('arguments: ')
-      // console.log(usedArgs)
       super(...usedArgs)
     }
   }
@@ -6681,9 +6766,6 @@ function nonZero(arr) {
 
 function randomChoice(arr) {
   // This function does not support "size" of output shape.
-  if (Array.isArray(arr)) {
-    arr = [Array(arr).key()]
-  }
   return arr[Math.floor(Math.random() * arr.length)]
 }
 
@@ -7013,13 +7095,14 @@ function withPython(withInterface, callback) {
   }
   return tempResult
 }
-async function withPythonAsync(withInterface, callback) {
+async function withPythonAsync(pendingWithInterface, callback) {
+  const withInterface = await pendingWithInterface
   if (!withInterface.__enter__ || !withInterface.__exit__) {
     throw new Error('ValueError: withInterface must define a __enter__ and __exit__ method')
   }
-  let tempResult = withInterface.__enter__()
+  let tempResult = withInterface.__enter__.call(withInterface)
   tempResult = await callback(tempResult)
-  withInterface.__exit__()
+  await withInterface.__exit__.call(withInterface)
   return tempResult
 }
 
@@ -7045,10 +7128,13 @@ module.exports = {
   ABCMeta,
   any,
   arrayCompare,
+  arrayDtype,
+  arrayShape,
   arraySub,
   assert,
-  Array,
   clip,
+  compareObsSpec,
+  compareAIF,
   DefaultDict,
   eq,
   expanduser,
@@ -7100,6 +7186,16 @@ const stopwatch = require('./stopwatch.js') //eslint-disable-line
 const transform = require('./transform.js') //eslint-disable-line
 const remote_controller = require('./protocol.js') //eslint-disable-line
 const np = require('./numpy.js') //eslint-disable-line
+
+/*NOTE: Currently using this block to toggle rgb rendering and manual rendering
+line 2175 (as of commit c34643e6e02bdb46a4ffd7d2dd0170d38077315c)
+  draw_screen(surf) {
+    //Draw the screen area.//
+    if (this._render_rgb &&
+      this._obs.getObservation().hasRenderData() &&
+      this._obs.getObservation().getRenderData().hasMap() && false) {
+
+*/
 
 // const sc_error = s2clientprotocol.error_pb
 const sc_raw = s2clientprotocol.raw_pb
@@ -7425,7 +7521,6 @@ class RendererHuman {
     this._obs_queue = deque(undefined, 100)
     // probably won't need these in javascript
     this._render_thread = null //threading.Thread(target=this.render_thread, name="Renderer")
-    // this._render_thread.start()
     this._game_times = deque(undefined, 100)  // Avg FPS over 100 frames.
     this._render_times = deque(undefined, 100)
     this._last_time = performance.now()
@@ -7456,7 +7551,6 @@ class RendererHuman {
 
   close() {
     if (this._obs_queue.length) {
-      //this._obs_queue.push(null) //??
       this._obs_queue = null
       this._render_thread = null
     }
@@ -9252,7 +9346,7 @@ class RendererHuman {
     //Draw the screen area.//
     if (this._render_rgb &&
       this._obs.getObservation().hasRenderData() &&
-      this._obs.getObservation().getRenderData().hasMap() && false) {
+      this._obs.getObservation().getRenderData().hasMap() && true) {
       this.draw_rendered_map(surf)
     } else {
       this.draw_base_map(surf)
@@ -9597,9 +9691,28 @@ const { performance } = require('perf_hooks') //eslint-disable-line
 const pythonUtils = require(path.resolve(__dirname, './pythonUtils.js'))
 
 const { DefaultDict, withPython, zip } = pythonUtils
-String = pythonUtils.String //eslint-disable-line
-Array = pythonUtils.Array //eslint-disable-line
+// String = pythonUtils.String //eslint-disable-line
+// Array = pythonUtils.Array //eslint-disable-line
 const msToS = 1 / 1000
+const usedVal = { val: 0 }
+const perf_hooks_mock = {
+  usedVal,
+  useRealish: false,
+  set return_val(val) {
+    usedVal.val = val
+  },
+  get return_val() {
+    return usedVal.val
+  },
+  performance: {
+    now() {
+      if (perf_hooks_mock.useRealish) {
+        return Date.now()
+      }
+      return usedVal.val
+    },
+  },
+}
 
 class Stat {
   static get _fields() { return ["num", "min", "max", "sum", "sum_sq"] }
@@ -9685,39 +9798,40 @@ class StopWatchContext {
   //Time an individual call.//
   static get _fields() { return ['_sw', '_start'] }
 
-  constructor(stopwatch, name) {
+  constructor(stopwatch, name, mock_time = false) {
     this._sw = stopwatch
     this._sw.push(name)
     this.__enter__ = this.__enter__.bind(this)
     this.__exit__ = this.__exit__.bind(this)
-    if (typeof window === 'undefined') {
-      this.performance = performance
+    if (mock_time) {
+      this.performance = perf_hooks_mock.performance
+      // NOTE: Jest will define a window object
+    } else if (typeof window === 'undefined') {
+      // this.performance = performance
+      this.performance = Date
     } else {
-      this.performance = window.performance
+      // this.performance = window.performance
+      this.performance = Date
     }
   }
 
   // performance.now() => measured in milliseconds.
   __enter__() {
-    this._start = this.performance.now() * msToS
+    this._start = this.performance.now()
   }
 
   __exit__() {
-    this._sw.add(this._sw.pop(), (this.performance.now() * msToS) - this._start)
+    // this._sw.add(this._sw.pop(), (this.performance.now() * msToS) - this._start)
+    this._sw.add(this._sw.pop(), (this.performance.now() - this._start) * msToS)
   }
 }
 
 class TracingStopWatchContext extends StopWatchContext {
   //Time an individual call, but also output all the enter/exit calls.//
-  constructor(stopwatch, name) {
-    super(stopwatch, name)
+  constructor(stopwatch, name, mock_time = false) {
+    super(stopwatch, name, mock_time)
     this.__enter__ = this.__enter__.bind(this)
     this.__exit__ = this.__exit__.bind(this)
-    if (typeof window === 'undefined') {
-      this.performance = performance
-    } else {
-      this.performance = window.performance
-    }
   }
 
   __enter__() {
@@ -9735,7 +9849,6 @@ class TracingStopWatchContext extends StopWatchContext {
     process.stderr.write(s + '\n')
   }
 }
-
 
 class FakeStopWatchContext {
   constructor() {} //eslint-disable-line
@@ -9770,11 +9883,11 @@ class StopWatch {
     return new this.prototype.constructor(kwargs);
   }
 
-  constructor(enabled = true, trace = false) {
+  constructor(enabled = true, trace = false, mock_time = false) {
     this._times = new DefaultDict(Stat)
     // we dont need to declare anything as being local to the context
     // of the thread since by default node js worker threads are local
-    this._local = {}//threading.local()
+    this._local = {}
     if (trace) {
       this.trace()
     } else if (enabled) {
@@ -9797,6 +9910,10 @@ class StopWatch {
     stopwatchProxy._times = this._times
     stopwatchProxy.parse = this.constructor.parse
     stopwatchProxy.instanceRef = this
+    this._mock_time = mock_time
+    if (this._mock_time) {
+      stopwatchProxy._perf_hooks_mock = perf_hooks_mock
+    }
     this._funcProxy = stopwatchProxy
     return stopwatchProxy
   }
@@ -9806,11 +9923,11 @@ class StopWatch {
   }
 
   enable() {
-    this._factory = (name) => new StopWatchContext(this, name)
+    this._factory = (name) => new StopWatchContext(this, name, this._mock_time)
   }
 
   trace() {
-    this._factory = (name) => new TracingStopWatchContext(this, name)
+    this._factory = (name) => new TracingStopWatchContext(this, name, this._mock_time)
   }
 
   custom(factory) {

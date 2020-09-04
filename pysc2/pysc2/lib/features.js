@@ -1170,7 +1170,7 @@ class Features {
       new point.Point(1, -1),
       new point.Point(0, map_size.y)
     )
-    const offset = -map_size.div(4)
+    const offset = map_size.div(-4)
     this._world_tl_to_world_camera_rel = new transform.Linear(null, offset)
     if (feature_dimensions) {
       const world_camera_rel_to_feature_screen = new transform.Linear(
@@ -1200,8 +1200,9 @@ class Features {
   _update_camera(camera_center) {
     //Update the camera transform based on the new camera center.//
     this._world_tl_to_world_camera_rel.offset = (
-      -this._world_to_world_tl.fwd_pt(camera_center)
-      * this._world_tl_to_world_camera_rel.scale
+      this._world_to_world_tl.fwd_pt(camera_center)
+        .mul(this._world_tl_to_world_camera_rel.scale)
+        .mul(-1)
     )
   }
 
@@ -1469,10 +1470,11 @@ class Features {
         int(u.getBuildProgress() * 100), // discretize
       ])
     }
-    const ui = obs.getObservation().getUiData()
-
+    const ui = obs.getObservation().getUiData() || new sc_pb.ObservationUI()
     withPython(sw('ui'), () => {
       const groups = np.zeros([10, 2])
+      // console.log('obs: ', obs.getObservation().toObject())
+      console.log('ui: ', ui ? ui.toObject() : ui)
       ui.getGroupsList().forEach((g) => {
         groups[g.getControlGroupIndex()] = [g.getLeaderUnitType(), g.getCount()]
       })
@@ -1530,7 +1532,7 @@ class Features {
     function full_unit_vec(u, pos_transform, is_raw = false) {
       //Compute unit features.//
       const screen_pos = pos_transform.fwd_pt(
-        point.Point.build(u.getPos())
+        new point.Point(u.getPos())
       )
       const screen_radius = pos_transform.fwd_dist(u.getRadius())
       function raw_order(i) {
@@ -1598,11 +1600,12 @@ class Features {
     raw = obs.getObservation().getRawData()
 
     if (aif.use_feature_units) {
+      const self = this
       withPython(sw('feature_units'), () => {
         // Update the camera location so we can calculate world to screen pos
-        this._update_camera(point.Point.build(raw.getPlayer().getCamera()))
+        self._update_camera(point.Point.build(raw.getPlayer().getCamera()))
         const feature_units = raw.getUnitsList().filter((u) => u.getIsOnScreen())
-          .map((u) => full_unit_vec(u, this._world_to_feature_screen_px))
+          .map((u) => full_unit_vec(u, self._world_to_feature_screen_px))
         out['feature_units'] = named_array.NamedNumpyArray(
           feature_units, [null, FeatureUnit],
         )
@@ -1611,7 +1614,7 @@ class Features {
         const feature_screen_size = aif.feature_dimensions.screen
         raw.getEffectsList().forEach((effect) => {
           effect.getPosList().forEach((pos) => {
-            const screen_pos = this._world_to_feature_screen_px.fwd_pt(
+            const screen_pos = self._world_to_feature_screen_px.fwd_pt(
               point.Point.build(pos)
             )
             if (screen_pos.x >= 0 && screen_pos.x < feature_screen_size.x
@@ -1860,12 +1863,14 @@ class Features {
     Object.keys(actions.FUNCTIONS_AVAILABLE).forEach((i) => {
       const func = actions.FUNCTIONS_AVAILABLE[i]
       if (func.avail_fn(obs)) {
-        available_actions.add(func.id.key)
+        // available_actions.add(func.id.key)
+        // available_actions.add(func.id.val)
+        available_actions.add(func.id)
       }
     })
     const abilities = obs.getAbilitiesList()
-    console.log('abilities: ', abilities, 'abilities.length: ', abilities.length)
-    console.log(abilities.map((a) => a.toObject()))
+    // console.log('abilities: ', abilities, 'abilities.length: ', abilities.length)
+    // console.log(abilities.map((a) => a.toObject()))
     for (let index = 0; index < abilities.length; index++) {
       const a = abilities[index]
       if (!(actions.ABILITY_IDS.hasOwnProperty(a.getAbilityId()))) {
@@ -1879,7 +1884,9 @@ class Features {
         if (actions.POINT_REQUIRED_FUNCS.get(a.getRequiresPoint())
           .hasOwnProperty(func.function_type.name)) {
           if (func.general_id == 0 || !hide_specific_actions) {
-            available_actions.add(func.id.key)
+            // available_actions.add(func.id.key)
+            // available_actions.add(func.id.val)
+            available_actions.add(func.id)
             found_applicable = true
           }
           if (func.general_id != 0) { // Always offer generic actions.
@@ -1889,7 +1896,9 @@ class Features {
               if (general_func.function_type === func.function_type) {
                 // Only the right type. Don't want to expose the general action
                 // to minimap if only the screen version is available.
-                available_actions.add(general_func.id.key)
+                // available_actions.add(general_func.id.key)
+                // available_actions.add(general_func.id.val)
+                available_actions.add(general_func.id)
                 found_applicable = true
                 break
               }
@@ -1929,9 +1938,9 @@ class Features {
       return func_call
     }
     let func_id = func_call.function
-    if (func_id instanceof Enum.EnumMeta) {
-      func_id = Number(func_id)
-    }
+    // if (func_id instanceof Enum.EnumMeta) {
+    //   func_id = Number(func_id)
+    // }
     let func
     try {
       if (this._raw) {
@@ -1942,8 +1951,7 @@ class Features {
     } catch (err) {
       throw new ValueError(`Invalid function id: ${func_id}.`)
     }
-    console.log('func_id: ', func_id)
-    console.log('this.available_actions(obs).includes(func_id)): ', this.available_actions(obs).includes(func_id))
+    
     // Available?
     if (!(skip_available || this._raw || this.available_actions(obs).includes(func_id))) {
       throw new ValueError(`Function ${func_id} ${func.name} is currently not available`)

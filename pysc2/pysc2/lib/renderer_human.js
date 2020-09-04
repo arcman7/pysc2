@@ -15,10 +15,8 @@ const transform = require('./transform.js') //eslint-disable-line
 const remote_controller = require('./protocol.js') //eslint-disable-line
 const np = require('./numpy.js') //eslint-disable-line
 
-
-
-/*current using this block to toggle rgb rendering and manual rendering
-line 2175 (as of commit 301cfdb57d7f465a96ac36ec2c1997983b1067e9 )
+/*NOTE: Currently using this block to toggle rgb rendering and manual rendering
+line 2175 (as of commit c34643e6e02bdb46a4ffd7d2dd0170d38077315c)
   draw_screen(surf) {
     //Draw the screen area.//
     if (this._render_rgb &&
@@ -2176,7 +2174,7 @@ class RendererHuman {
     //Draw the screen area.//
     if (this._render_rgb &&
       this._obs.getObservation().hasRenderData() &&
-      this._obs.getObservation().getRenderData().hasMap() && false) {
+      this._obs.getObservation().getRenderData().hasMap() && true) {
       this.draw_rendered_map(surf)
     } else {
       this.draw_base_map(surf)

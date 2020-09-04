@@ -31,11 +31,11 @@ async function run_loop(agents, env, max_frames = 0, max_episodes = 0) {
         // console.log('       starting step: ', total_frames)
         const actions = zip(agents, timesteps).map(([agent, timestep]) => agent.step(timestep))
         if (max_frames && total_frames >= max_frames) {
-          console.log('       max_frames && total_frames >= max_frame RETURN')
+          // console.log('       max_frames && total_frames >= max_frame RETURN')
           return
         }
         if (timesteps[0].last()) {
-          console.log('       timesteps[0].last() BREAK')
+          // console.log('       timesteps[0].last() BREAK')
           break
         }
         timesteps = await env.step(actions)
