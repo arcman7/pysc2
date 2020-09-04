@@ -19,7 +19,6 @@ function print_stage(stage) {
 }
 
 async function TestMultiplayer() {
-  console.log('TestMultiplayer')
   const testCase = new utils.TestCase()
   testCase.setUp()
 
@@ -143,7 +142,7 @@ async function TestMultiplayer() {
     await testCase.tearDown()
     console.log('[       OK ] TestMultiplayer.test_multi_player')
   }
-  test_multi_player()
+  await test_multi_player()
 }
 
 TestMultiplayer()
