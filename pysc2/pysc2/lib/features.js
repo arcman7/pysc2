@@ -1473,8 +1473,6 @@ class Features {
     const ui = obs.getObservation().getUiData() || new sc_pb.ObservationUI()
     withPython(sw('ui'), () => {
       const groups = np.zeros([10, 2])
-      // console.log('obs: ', obs.getObservation().toObject())
-      console.log('ui: ', ui ? ui.toObject() : ui)
       ui.getGroupsList().forEach((g) => {
         groups[g.getControlGroupIndex()] = [g.getLeaderUnitType(), g.getCount()]
       })
@@ -1542,6 +1540,7 @@ class Features {
         }
         return 0
       }
+      // console.log('u.getAlliance(): ', Cu.getAlliance(), ' u.getTag(): ', u.getTag())
       const features = [
         // Match unit_vec order
         u.getUnitType(),
@@ -1639,12 +1638,22 @@ class Features {
       let raw_units
       withPython(sw('raw_units'), () => {
         withPython(sw('to_list'), () => {
-          raw_units = raw.getUnitsList().map((u) => full_unit_vec(u, this._world_to_minimap_px, /*is_raw=*/true))
+          // raw_units = raw.getUnitsList().map((u) => full_unit_vec(u, this._world_to_minimap_px, /*is_raw=*/true))
+          raw_units = raw.getUnitsList().map((u) => {
+            const u_vec = full_unit_vec(u, this._world_to_minimap_px, true)
+            // console.log('u.getAlliance(): ', u.getAlliance(), ' u.getTag(): ', u.getTag(), ' unit_vec.alliance: ', u_vec.alliance, u_vec)
+            return u_vec
+          })
         })
         withPython(sw('to_numpy'), () => {
           out['raw_units'] = named_array.NamedNumpyArray(
             raw_units, [null, FeatureUnit]
           )
+          raw.getUnitsList().forEach((u, i) => {
+            const u_vec = out['raw_units'][i]
+            console.log('u.getAlliance(): ', u.getAlliance(), ' u.getTag(): ', u.getTag(), ' unit_vec.alliance: ', u_vec.alliance, ' (x, y): ', u_vec.x, u_vec.y)
+          })
+
         })
         if (raw_units) {
           const temp = []
@@ -1863,14 +1872,10 @@ class Features {
     Object.keys(actions.FUNCTIONS_AVAILABLE).forEach((i) => {
       const func = actions.FUNCTIONS_AVAILABLE[i]
       if (func.avail_fn(obs)) {
-        // available_actions.add(func.id.key)
-        // available_actions.add(func.id.val)
         available_actions.add(func.id)
       }
     })
     const abilities = obs.getAbilitiesList()
-    // console.log('abilities: ', abilities, 'abilities.length: ', abilities.length)
-    // console.log(abilities.map((a) => a.toObject()))
     for (let index = 0; index < abilities.length; index++) {
       const a = abilities[index]
       if (!(actions.ABILITY_IDS.hasOwnProperty(a.getAbilityId()))) {
@@ -1884,8 +1889,6 @@ class Features {
         if (actions.POINT_REQUIRED_FUNCS.get(a.getRequiresPoint())
           .hasOwnProperty(func.function_type.name)) {
           if (func.general_id == 0 || !hide_specific_actions) {
-            // available_actions.add(func.id.key)
-            // available_actions.add(func.id.val)
             available_actions.add(func.id)
             found_applicable = true
           }
@@ -1896,8 +1899,6 @@ class Features {
               if (general_func.function_type === func.function_type) {
                 // Only the right type. Don't want to expose the general action
                 // to minimap if only the screen version is available.
-                // available_actions.add(general_func.id.key)
-                // available_actions.add(general_func.id.val)
                 available_actions.add(general_func.id)
                 found_applicable = true
                 break
@@ -1937,10 +1938,7 @@ class Features {
     if (isinstance(func_call, sc_pb.Action)) {
       return func_call
     }
-    let func_id = func_call.function
-    // if (func_id instanceof Enum.EnumMeta) {
-    //   func_id = Number(func_id)
-    // }
+    const func_id = func_call.function
     let func
     try {
       if (this._raw) {
@@ -1951,7 +1949,7 @@ class Features {
     } catch (err) {
       throw new ValueError(`Invalid function id: ${func_id}.`)
     }
-    
+
     // Available?
     if (!(skip_available || this._raw || this.available_actions(obs).includes(func_id))) {
       throw new ValueError(`Function ${func_id} ${func.name} is currently not available`)
@@ -1990,7 +1988,7 @@ class Features {
       })
     })
 
-    // Convert them to python types.
+    // Convert them to javascript types.
     const kwargs = {}
     zip(func.args, func_call.arguments).forEach((pair) => {
       const [type_, a] = pair

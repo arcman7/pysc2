@@ -98,14 +98,11 @@ class CollectMineralShardsFeatureUnits(base_agent.BaseAgent):
     super().step(obs)
     marines = [unit for unit in obs.observation.feature_units
                if unit.alliance == _PLAYER_SELF]
-    # print('marines: ', marines)
-    print('len(marines): ', len(marines))
     if not marines:
       return FUNCTIONS.no_op()
     marine_unit = next((m for m in marines
                         if m.is_selected == self._marine_selected), marines[0])
     marine_xy = [marine_unit.x, marine_unit.y]
-    print('marine_unit: ', marine_unit)
     if not marine_unit.is_selected:
       # Nothing selected or the wrong marine is selected.
       self._marine_selected = True
@@ -218,11 +215,12 @@ class DefeatRoachesRaw(base_agent.BaseAgent):
   def step(self, obs):
     # super(DefeatRoachesRaw, self).step(obs)
     super().step(obs)
+    print('len(obs.observation.raw_units): ', len(obs.observation.raw_units))
     marines = [unit.tag for unit in obs.observation.raw_units
                if unit.alliance == _PLAYER_SELF]
     roaches = [unit for unit in obs.observation.raw_units
                if unit.alliance == _PLAYER_ENEMY]
-
+    print('len(marines): ', len(marines))
     if marines and roaches:
       # Find the roach with max y coord.
       target = sorted(roaches, key=lambda r: r.y)[0].tag

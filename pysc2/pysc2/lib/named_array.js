@@ -134,7 +134,6 @@ class NamedNumpyArray extends Array {// extends np.ndarray:
   to a particular dimension, use None. If your array only has one dimension, the
   second level of list can be skipped.
 
-
     Jihan & Ryan - Documentation notes:
 
      var foo = named_array.NamedNumpyArray([1, 3, 6], ["a", "b", "c"])

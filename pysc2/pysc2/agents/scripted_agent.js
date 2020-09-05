@@ -104,7 +104,6 @@ class CollectMineralShardsFeatureUnits extends base_agent.BaseAgent {
       //Find and move to the nearest mineral.
       let minerals = []
       obs.observation.feature_units.forEach((unit) => {
-        // const unit = obs.observation.feature_units[key]
         console.log('unit.alliance: ', unit.alliance)
         if (unit.alliance == _PLAYER_NEUTRAL) {
           minerals.push([unit.x, unit.y])
@@ -152,40 +151,40 @@ class CollectMineralShardsRaw extends base_agent.BaseAgent {
   }
 
   step(obs) {
-    super.setup(obs)
+    super.step(obs)
     const marines = []
-    obs.getObservation().getRawUnitsList().forEach((unit) => {
-      if (unit.getAlliance() == _PLAYER_SELF) {
+    obs.observation.raw_units.forEach((unit) => {
+      if (unit.alliance == _PLAYER_SELF) {
         marines.push(unit)
       }
     })
-    if (!marines) {
+    if (!marines.length) {
       return RAW_FUNCTIONS.no_op()
     }
     let marine_unit = marines[0]
     marines.forEach((m) => {
-      if (m.getTag() !== this._last_marine) {
+      if (m.tag !== this._last_marine) {
         marine_unit = m
       }
     })
-    const marine_xy = [marine_unit.getX(), marine_unit.getY()]
+    const marine_xy = [marine_unit.x, marine_unit.y]
     const minerals = []
-    obs.getObservation().getRawUnitsList().forEach((unit) => {
-      if (unit.getAlliance() == _PLAYER_NEUTRAL) {
+    obs.observation.raw_units.forEach((unit) => {
+      if (unit.alliance == _PLAYER_NEUTRAL) {
         if (this._previous_mineral_xy) {
           // Don't go for the same mineral shard as other marine
-          if (unit.getX() === this._previous_mineral_xy[0] && unit.getY() === this._previous_mineral_xy[1]) {
+          if (unit.x === this._previous_mineral_xy[0] && unit.y === this._previous_mineral_xy[1]) {
             return
           }
         }
-        minerals.push([unit.getX(), unit.getY()])
+        minerals.push([unit.x, unit.y])
       }
     })
-    if (minerals) {
+    if (minerals.length) {
       //Find the closest.
       const axis = 1
-      const distances = numpy.norm(numpy.tensor(minerals).sub(numpy.tensor(marine_xy)), axis)
-      const closest_mineral_xy = minerals[numpy.argMin(distances)]
+      const distances = numpy.norm(numpy.tensor(minerals).sub(marine_xy), 'euclidean', axis)
+      const closest_mineral_xy = minerals[numpy.argMin(distances).arraySync()]
 
       this._last_marine = marine_unit.tag
       this._previous_mineral_xy = closest_mineral_xy
@@ -202,8 +201,8 @@ class DefeatRoaches extends base_agent.BaseAgent {
     super.step(obs)
     if (obs.observation.available_actions.includes(FUNCTIONS.Attack_screen.id)) {
       const player_relative = obs.observation.feature_screen.player_relative
-      const roaches = xy_locs(player_relative == _PLAYER_ENEMY)
-      if (!roaches) {
+      const roaches = xy_locs(player_relative, _PLAYER_ENEMY)
+      if (!roaches.length) {
         return FUNCTIONS.no_op()
       }
       //Find the roach with max y coord.
@@ -211,7 +210,7 @@ class DefeatRoaches extends base_agent.BaseAgent {
       for (let i = 0; i < roaches.length; i++) {
         temp.push(roaches[i][1])
       }
-      const target = roaches[numpy.argMax(temp)]
+      const target = roaches[numpy.argMax(temp).arraySync()]
       return FUNCTIONS.Attack_screen('now', target)
     }
     if (obs.observation.available_actions.includes(FUNCTIONS.select_army.id)) {
@@ -230,26 +229,29 @@ class DefeatRoachesRaw extends base_agent.BaseAgent {
     }
   }
 
-  setp(obs) {
+  step(obs) {
     super.step(obs)
     const marines = []
-    Object.keys(obs.observation.raw_units).forEach((key) => {
-      const unit = obs.observation.raw_units[key]
-      if (unit.alliance == _PLAYER_ENEMY) {
+    console.log()
+    obs.observation.raw_units.forEach((unit) => {
+      console.log('unit.alliance: ', unit.alliance)
+      if (unit.alliance == _PLAYER_SELF) {
         marines.push(unit.tag)
       }
     })
     const roaches = []
-    Object.keys(obs.observation.raw_units).forEach((key) => {
-      const unit = obs.observation.raw_units[key]
+    obs.observation.raw_units.forEach((unit) => {
       if (unit.alliance == _PLAYER_ENEMY) {
         roaches.push(unit)
       }
     })
 
-    if (marines && roaches) {
+    if (marines.length && roaches.length) {
+      console.log('calling RAW_FUNCTIONS.Attack_unit')
       //Find the roach with max y coord.
       const target = roaches.sort((r1, r2) => r2.y - r1.y)[0].tag
+      console.log('marines: ', marines)
+      console.log('target: ', target)
       return RAW_FUNCTIONS.Attack_unit('now', marines, target)
     }
     return FUNCTIONS.no_op()

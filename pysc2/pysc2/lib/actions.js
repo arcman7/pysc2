@@ -1935,7 +1935,7 @@ let _RAW_FUNCTIONS = [
   Function.raw_ability(100, "UnloadAll_quick", raw_cmd, 3664),
   Function.raw_ability(556, "UnloadUnit_quick", raw_cmd, 3796),
   Function.raw_ability(557, "UnloadUnit_Bunker_quick", raw_cmd, 410, 3796),
-  Function.raw_ability(558, "UnloadUnit_CommandCenter_quick", raw_cmd, 415, 3796),
+  Function.raw_ability(558, "UnloadUnit_Comman+dCenter_quick", raw_cmd, 415, 3796),
   Function.raw_ability(559, "UnloadUnit_Medivac_quick", raw_cmd, 397, 3796),
   Function.raw_ability(560, "UnloadUnit_NydusNetwork_quick", raw_cmd, 1440, 3796),
   Function.raw_ability(561, "UnloadUnit_Overlord_quick", raw_cmd, 1409, 3796),

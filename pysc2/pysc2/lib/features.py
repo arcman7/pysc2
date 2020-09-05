@@ -1282,7 +1282,6 @@ class Features(object):
       ), dtype=np.int32)
 
     ui = obs.observation.ui_data
-    print('ui: ', ui)
     with sw("ui"):
       groups = np.zeros((10, 2), dtype=np.int32)
       for g in ui.groups:

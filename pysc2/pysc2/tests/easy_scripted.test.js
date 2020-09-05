@@ -107,7 +107,7 @@ async function TestEasy() {
     assert(agent.steps == steps, 'agent.step == steps')
     console.log('[      OK ] test_collect_mineral_shards_raw')
   }
-  await test_collect_mineral_shards_raw()
+  // await test_collect_mineral_shards_raw()
 
   async function test_defeat_roaches() {
     console.log('[ RUN     ] test_defeat_roaches')
@@ -130,7 +130,7 @@ async function TestEasy() {
     assert(agent.steps == steps, `agent.steps == steps:\n  ${agent.steps} !== ${steps}`)
     console.log('[      OK ] test_defeat_roaches')
   }
-  await test_defeat_roaches()
+  // await test_defeat_roaches()
 
   async function test_defeat_roaches_raw() {
     console.log('[ RUN     ] test_defeat_roaches_raw')
@@ -138,7 +138,7 @@ async function TestEasy() {
       map_name: 'DefeatRoaches',
       players: [new sc2_env.Agent(Number(sc2_env.Race.terran))],
       agent_interface_format: new sc2_env.AgentInterfaceFormat({
-        action_space: Number(sc2_env.ActionSpace.RAW),
+        action_space: sc2_env.ActionSpace.RAW, // or: use_raw_actions = true,
         use_raw_units: true
       }),
       step_mul: step_mul,
