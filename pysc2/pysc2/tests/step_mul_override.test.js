@@ -25,7 +25,7 @@ async function StepMulOverrideTest() {
     await withPythonAsync(sc2_env.SC2EnvFactory(kwargs), async (env) => {
       const timestep = await env.step([actions.FUNCTIONS.no_op()], 1234)
       assert(timestep[0].observation.game_loop[0] == 0, 'Error: timestep[0].observation.game_loop[0] == 0')
-      await testCase.tearDown()
+      await testCase.tearDown(true)
     })
     console.log('[       OK ] test_returns_game_loop_zero_on_first_step_despite_override')
   }
