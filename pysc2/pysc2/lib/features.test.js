@@ -45,13 +45,12 @@ function setForEach(set, callback) {
 function assertAvail(expected) {
   const actual = testState.features.available_actions(testState.obs)
   const actual_names = new Set()
-  Object.keys(actual).forEach((key) => {
-    const i = actual[key]
-    actual_names.add(actions.FUNCTIONS[i].name)
+  actual.forEach((act) => {
+    actual_names.add(actions.FUNCTIONS[act].name)
   })
   const compareTo = expected && expected.length ? new Set(expected) : always_expected
   if (all(isIn(actual_names), compareTo) === false) {
-    throw new Error(`Sets not equal:\n   expected:\n    [${setForEach(actual_names, (val, _, results) => results.push(val))}]\n   recieved:\n    [${setForEach(compareTo, (val, _, results) => results.push(val))}]`)
+    throw new Error(`Sets not equal:\n   recieved:\n    [${setForEach(actual_names, (val, _, results) => results.push(val))}]\n   expected:\n    [${setForEach(compareTo, (val, _, results) => results.push(val))}]`)
   }
 }
 describe('features.js:', () => {
@@ -535,13 +534,13 @@ describe('features.js:', () => {
       expect(transform('Attack_unit', tag, [ntag]).getTargetUnitTag()).toBe(tag)
     })
     test('testCanPickleSpecs', () => {
-      console.log('testCanPickleSpecs: Skipping this suite for now.')
+      console.info('testCanPickleSpecs: Skipping this suite for now.')
     })
     test('testCanPickleFunctionCall', () => {
-      console.log('testCanPickleFunctionCall: Skipping this suite for now.')
+      console.info('testCanPickleFunctionCall: Skipping this suite for now.')
     })
     test('testCanDeepcopyNumpyFunctionCall', () => {
-      console.log('testCanDeepcopyNumpyFunctionCall: Skipping this suite for now.')
+      console.info('testCanDeepcopyNumpyFunctionCall: Skipping this suite for now.')
     })
     test('testSizeConstructors', () => {
       let feats = new features.Features(new features.AgentInterfaceFormat({

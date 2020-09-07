@@ -78,7 +78,6 @@ async function testHostRemoteAgent() {
           zip(game.hosts, game.host_ports)
             .map(([host, host_port]) => remote_controller.RemoteControllerFactory(host, host_port))
         )
-        console.log('here!')
         const join = new sc_pb.RequestJoinGame()
         const Interface = new sc_pb.InterfaceOptions()
         Interface.setRaw(true)
@@ -95,7 +94,6 @@ async function testHostRemoteAgent() {
         join.addClientPorts(clientPorts)
 
         await Promise.all(controllers.map((c) => c.join_game(join)))
-        console.log('A1')
         const gameSteps = []
         let hasPlayerResult = false
         for (let j = 0; j < STEPS; j++) {

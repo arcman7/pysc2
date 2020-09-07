@@ -80,7 +80,6 @@ class AvailableActionsTest(absltest.TestCase):
 
   def assertAvail(self, expected):
     actual = self.features.available_actions(self.obs)
-    # print()
     actual_names = {actions.FUNCTIONS[i].name for i in actual}
     self.assertEqual(actual_names, set(expected) | self.always_expected)
 
