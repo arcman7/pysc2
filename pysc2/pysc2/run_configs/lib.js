@@ -66,6 +66,7 @@ const VERSIONS = version_dict([
   new Version("4.9.3", 75025, "C305368C63621480462F8F516FB64374", null),
   new Version("4.10.0", 75689, "B89B5D6FA7CBF6452E721311BFBC6CB2", null),
   new Version("4.10.1", 75800, "DDFFF9EC4A171459A4F371C6CC189554", null),
+  new Version("5.0.2", 81433, "5FD8D4B6B52723B44862DF29F232CF31", null),
 ])
 
 class RunConfig {

@@ -360,7 +360,11 @@ String.prototype.rpad = function(length, char = ' ') {
   }
   return fill.join('') + this;
 }
-
+//eslint-disable-next-line
+String.prototype.center = function(space, char) {
+  const usedSpace = Math.floor(space / 2)
+  return this.padStart(this.length + usedSpace, char) + ''.padStart(usedSpace, char)
+}
 function isinstance(a, compare) {
   const keys = Object.keys(compare);
   if (Array.isArray(compare) && keys.length) {
@@ -804,29 +808,33 @@ function unpackbitsToShape(uint8data, shape = [1, 1]) {
   }
   return result
 }
-function ValueError(value) {
+
+class ValueError extends Error {
   /*
   The error thrown when an invalid argument is passed.
   */
-  const sender = (new Error) //eslint-disable-line
-    .stack
-    .split('\n')[2]
-    .replace(' at ', '');
+  constructor(value) {
+    super(value)
+    const sender = (new Error) //eslint-disable-line
+      .stack
+      .split('\n')[2]
+      .replace(' at ', '');
 
-  this.message = `The argument from ${sender} is an invalid arugment.`;
+    this.message = `The argument from ${sender} is an invalid arugment.`;
 
-  // Append the message if given.
-  if (value) {
-    this.message += ` Invalid argument: "${value}".`;
+    // Append the message if given.
+    if (value) {
+      this.message += ` Invalid argument: "${value}".`;
+    }
+
+    let str = this.message;
+
+    while (str.indexOf('  ') > -1) {
+      str = str.replace('  ', ' ');
+    }
+
+    this.message = str;
   }
-
-  let str = this.message;
-
-  while (str.indexOf('  ') > -1) {
-    str = str.replace('  ', ' ');
-  }
-
-  this.message = str;
 }
 function withPython(withInterface, callback) {
   if (!withInterface.__enter__ || !withInterface.__exit__) {
@@ -850,6 +858,34 @@ async function withPythonAsync(pendingWithInterface, callback) {
   tempResult = await callback(tempResult)
   await withInterface.__exit__.call(withInterface)
   return tempResult
+}
+
+// tensor flow version of xy_locs is twice as slow
+// async function xy_locs(mask) {
+//   // Javascript: Assuming mask is an array of bools
+//   // Mask should be a set of bools from comparison with a feature layer.//
+//   return (await np.whereAsync(mask)).arraySync().map(([x, y]) => new point.Point(x, y))
+// }
+function xy_locs(grid, compare) {
+  /**
+  * Mask is defined implicity as the result of comparison between
+    grid elements and the compare object.
+  * The booleans from comparison with a feature layer
+    are used to dermine when to store x,y locations.
+  */
+  const result = []
+  let colVal
+  let row
+  for (let y = 0; y < grid.length; y++) {
+    row = grid[y]
+    for (let x = 0; x < row.length; x++) {
+      colVal = row[x]
+      if (colVal == compare) {
+        result.push([x, y])
+      }
+    }
+  }
+  return result
 }
 
 /**
@@ -912,5 +948,6 @@ module.exports = {
   ValueError,
   withPython,
   withPythonAsync,
+  xy_locs,
   zip,
 }

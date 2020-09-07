@@ -15,6 +15,16 @@ const transform = require('./transform.js') //eslint-disable-line
 const remote_controller = require('./protocol.js') //eslint-disable-line
 const np = require('./numpy.js') //eslint-disable-line
 
+/*NOTE: Currently using this block to toggle rgb rendering and manual rendering
+line 2175 (as of commit c34643e6e02bdb46a4ffd7d2dd0170d38077315c)
+  draw_screen(surf) {
+    //Draw the screen area.//
+    if (this._render_rgb &&
+      this._obs.getObservation().hasRenderData() &&
+      this._obs.getObservation().getRenderData().hasMap() && false) {
+
+*/
+
 // const sc_error = s2clientprotocol.error_pb
 const sc_raw = s2clientprotocol.raw_pb
 const sc_pb = s2clientprotocol.sc2api_pb
@@ -339,7 +349,6 @@ class RendererHuman {
     this._obs_queue = deque(undefined, 100)
     // probably won't need these in javascript
     this._render_thread = null //threading.Thread(target=this.render_thread, name="Renderer")
-    // this._render_thread.start()
     this._game_times = deque(undefined, 100)  // Avg FPS over 100 frames.
     this._render_times = deque(undefined, 100)
     this._last_time = performance.now()
@@ -370,7 +379,6 @@ class RendererHuman {
 
   close() {
     if (this._obs_queue.length) {
-      //this._obs_queue.push(null) //??
       this._obs_queue = null
       this._render_thread = null
     }
@@ -2166,7 +2174,7 @@ class RendererHuman {
     //Draw the screen area.//
     if (this._render_rgb &&
       this._obs.getObservation().hasRenderData() &&
-      this._obs.getObservation().getRenderData().hasMap() && false) {
+      this._obs.getObservation().getRenderData().hasMap() && true) {
       this.draw_rendered_map(surf)
     } else {
       this.draw_base_map(surf)

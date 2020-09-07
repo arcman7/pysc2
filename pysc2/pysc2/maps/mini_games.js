@@ -1,18 +1,18 @@
 const path = require('path') //eslint-disable-line
 const lib = require(path.resolve(__dirname, './lib.js'))
-
+/*eslint-disable class-methods-use-this*/
 class MiniGame extends lib.Map {
-  get directory() { return this.constructor.directory }
+  get directory() { return MiniGame.directory }
 
-  get download() { return this.constructor.download }
+  get download() { return MiniGame.download }
 
-  get players() { return this.constructor.players }
+  get players() { return MiniGame.players }
 
-  get score_index() { return this.constructor.score_index }
+  get score_index() { return MiniGame.score_index }
 
-  get game_steps_per_episode() { return this.constructor.game_steps_per_episode }
+  get game_steps_per_episode() { return MiniGame.game_steps_per_episode }
 
-  get step_mul() { return this.constructor.step_mul }
+  get step_mul() { return MiniGame.step_mul }
 }
 MiniGame.directory = 'mini_games'
 MiniGame.download = 'https://github.com/deepmind/pysc2#get-the-maps'

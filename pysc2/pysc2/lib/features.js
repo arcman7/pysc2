@@ -15,7 +15,7 @@ const sw = stopwatch.sw
 const { raw_pb, sc2api_pb } = s2clientprotocol
 const sc_raw = raw_pb
 const sc_pb = sc2api_pb
-const { clip, Defaultdict, getArgsArray, getattr, getImageData, int, isinstance, len, namedtuple, setUpProtoAction, sum, unpackbits, ValueError, withPython, zip } = pythonUtils
+const { clip, DefaultDict, getArgsArray, getattr, getImageData, int, isinstance, len, namedtuple, setUpProtoAction, sum, unpackbits, ValueError, withPython, zip } = pythonUtils
 const EPSILON = 1e-5
 
 const FeatureType = Enum.Enum('FeatureType', {
@@ -1170,7 +1170,7 @@ class Features {
       new point.Point(1, -1),
       new point.Point(0, map_size.y)
     )
-    const offset = -map_size.div(4)
+    const offset = map_size.div(-4)
     this._world_tl_to_world_camera_rel = new transform.Linear(null, offset)
     if (feature_dimensions) {
       const world_camera_rel_to_feature_screen = new transform.Linear(
@@ -1200,8 +1200,9 @@ class Features {
   _update_camera(camera_center) {
     //Update the camera transform based on the new camera center.//
     this._world_tl_to_world_camera_rel.offset = (
-      -this._world_to_world_tl.fwd_pt(camera_center)
-      * this._world_tl_to_world_camera_rel.scale
+      this._world_to_world_tl.fwd_pt(camera_center)
+        .mul(this._world_tl_to_world_camera_rel.scale)
+        .mul(-1)
     )
   }
 
@@ -1469,8 +1470,7 @@ class Features {
         int(u.getBuildProgress() * 100), // discretize
       ])
     }
-    const ui = obs.getObservation().getUiData()
-
+    const ui = obs.getObservation().getUiData() || new sc_pb.ObservationUI()
     withPython(sw('ui'), () => {
       const groups = np.zeros([10, 2])
       ui.getGroupsList().forEach((g) => {
@@ -1530,7 +1530,7 @@ class Features {
     function full_unit_vec(u, pos_transform, is_raw = false) {
       //Compute unit features.//
       const screen_pos = pos_transform.fwd_pt(
-        point.Point.build(u.getPos())
+        new point.Point(u.getPos())
       )
       const screen_radius = pos_transform.fwd_dist(u.getRadius())
       function raw_order(i) {
@@ -1598,11 +1598,12 @@ class Features {
     raw = obs.getObservation().getRawData()
 
     if (aif.use_feature_units) {
+      const self = this
       withPython(sw('feature_units'), () => {
         // Update the camera location so we can calculate world to screen pos
-        this._update_camera(point.Point.build(raw.getPlayer().getCamera()))
+        self._update_camera(point.Point.build(raw.getPlayer().getCamera()))
         const feature_units = raw.getUnitsList().filter((u) => u.getIsOnScreen())
-          .map((u) => full_unit_vec(u, this._world_to_feature_screen_px))
+          .map((u) => full_unit_vec(u, self._world_to_feature_screen_px))
         out['feature_units'] = named_array.NamedNumpyArray(
           feature_units, [null, FeatureUnit],
         )
@@ -1611,7 +1612,7 @@ class Features {
         const feature_screen_size = aif.feature_dimensions.screen
         raw.getEffectsList().forEach((effect) => {
           effect.getPosList().forEach((pos) => {
-            const screen_pos = this._world_to_feature_screen_px.fwd_pt(
+            const screen_pos = self._world_to_feature_screen_px.fwd_pt(
               point.Point.build(pos)
             )
             if (screen_pos.x >= 0 && screen_pos.x < feature_screen_size.x
@@ -1797,7 +1798,7 @@ class Features {
 
     if (aif.use_unit_counts) {
       withPython(sw('unit_counts'), () => {
-        const unit_counts = new Defaultdict(0)
+        const unit_counts = new DefaultDict(0)
         raw.getUnitsList().forEach((u) => {
           if (u.getAlliance() !== sc_raw.Alliance.SELF) {
             return
@@ -1860,7 +1861,7 @@ class Features {
     Object.keys(actions.FUNCTIONS_AVAILABLE).forEach((i) => {
       const func = actions.FUNCTIONS_AVAILABLE[i]
       if (func.avail_fn(obs)) {
-        available_actions.add(func.id.key)
+        available_actions.add(func.id)
       }
     })
     const abilities = obs.getAbilitiesList()
@@ -1877,7 +1878,7 @@ class Features {
         if (actions.POINT_REQUIRED_FUNCS.get(a.getRequiresPoint())
           .hasOwnProperty(func.function_type.name)) {
           if (func.general_id == 0 || !hide_specific_actions) {
-            available_actions.add(func.id.key)
+            available_actions.add(func.id)
             found_applicable = true
           }
           if (func.general_id != 0) { // Always offer generic actions.
@@ -1887,7 +1888,7 @@ class Features {
               if (general_func.function_type === func.function_type) {
                 // Only the right type. Don't want to expose the general action
                 // to minimap if only the screen version is available.
-                available_actions.add(general_func.id.key)
+                available_actions.add(general_func.id)
                 found_applicable = true
                 break
               }
@@ -1926,10 +1927,7 @@ class Features {
     if (isinstance(func_call, sc_pb.Action)) {
       return func_call
     }
-    let func_id = func_call.function
-    if (func_id instanceof Enum.EnumMeta) {
-      func_id = Number(func_id)
-    }
+    const func_id = func_call.function
     let func
     try {
       if (this._raw) {
@@ -1979,7 +1977,7 @@ class Features {
       })
     })
 
-    // Convert them to python types.
+    // Convert them to javascript types.
     const kwargs = {}
     zip(func.args, func_call.arguments).forEach((pair) => {
       const [type_, a] = pair
