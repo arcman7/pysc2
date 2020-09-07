@@ -11,7 +11,6 @@ const features = require(path.resolve(__dirname, '..', 'lib', 'features.js'))
 const metrics = require(path.resolve(__dirname, '..', 'lib', 'metrics.js'))
 const portspicker = require(path.resolve(__dirname, '..', 'lib', 'portspicker.js'))
 const renderer_human = require(path.resolve(__dirname, '..', 'lib', 'renderer_human', 'backend.js'))
-// const run_parallel = require(path.resolve(__dirname, '..', 'lib', 'run_parallel.js'))
 const stopwatch = require(path.resolve(__dirname, '..', 'lib', 'stopwatch.js'))
 const pythonUtils = require(path.resolve(__dirname, '..', 'lib', 'pythonUtils.js'))
 
@@ -67,6 +66,8 @@ const Dimensions = features.Dimensions //eslint-disable-line
 const AgentInterfaceFormat = features.AgentInterfaceFormat
 const parse_agent_interface_format = features.parse_agent_interface_format //eslint-disable-line
 
+let crop_and_deduplicate_names
+
 function to_list(arg) {
   if (arg instanceof actions.FunctionCall || !Array.isArray(arg)) {
     return [arg]
@@ -75,7 +76,7 @@ function to_list(arg) {
 }
 
 function get_default(a, b) {
-  if (a == null) {
+  if (a === null || a === undefined) {
     return b
   }
   return a
@@ -269,8 +270,6 @@ class SC2Env extends environment.Base {
     this._default_score_multiplier = score_multiplier
     this._default_episode_length = game_steps_per_episode
     this._run_config = run_configs.get(version)
-    // not sure if javascript needs this
-    // this._parallel = run_parallel.RunParallel()  // Needed for multiplayer.
     this._game_info = null
 
     if (agent_interface_format == null) {
@@ -281,7 +280,6 @@ class SC2Env extends environment.Base {
       const tempAgents = [agent_interface_format]
       for (let i = 1; i < this._num_agents; i++) {
         tempAgents.push(new AgentInterfaceFormat(...agent_interface_format._pickle_args))
-        // tempAgents.push(tempAgents[0])
       }
       agent_interface_format = tempAgents
     }
@@ -380,9 +378,9 @@ class SC2Env extends environment.Base {
 
     if (aif.rgb_dimensions) {
       const render = new sc_pb.SpatialCameraSetup()
-      interfacee.setRender(render)
       render.setResolution(new sc_pb.Size2DI())
       render.setMinimapResolution(new sc_pb.Size2DI())
+      interfacee.setRender(render)
       aif.rgb_dimensions.screen.assign_to(render.getResolution())
       aif.rgb_dimensions.minimap.assign_to(render.getMinimapResolution())
     }
@@ -402,13 +400,15 @@ class SC2Env extends environment.Base {
     } else {
       this._ports = []
     }
+    const proc_ports = await portspicker.pick_unused_ports(this._players.length || 1)
 
     // Actually launch the game processes.
     this._sc2_procs = []
     this._interface_options.forEach((interfacee) => {
       this._sc2_procs.push(this._run_config.start({
-        port: this._ports.pop(),
-        want_rgb: interfacee.hasRender()
+        port: proc_ports.pop(),
+        want_rgb: interfacee.hasRender(),
+        // passedSw: new stopwatch.StopWatch(true),
       }))
     })
     this._sc2_procs = await Promise.all(this._sc2_procs)
@@ -482,13 +482,13 @@ class SC2Env extends environment.Base {
         create.addPlayerSetup(playerSetup)
       } else {
         playerSetup.setType(sc_pb.PlayerType.COMPUTER)
-        playerSetup.setDifficutly(p.difficulty)
-        playerSetup.setAiBuild(randomChoice(p.build))
+        playerSetup.setDifficulty(Array.isArray(p.build) ? Number(randomChoice(p.build)) : Number(p.build))
+        playerSetup.setAiBuild(Array.isArray(p.build) ? Number(randomChoice(p.build)) : Number(p.build))
+        playerSetup.setRace(Array.isArray(p.race) ? Number(randomChoice(p.race)) : Number(p.race))
         create.addPlayerSetup(playerSetup)
       }
     })
     await this._controllers[0].create_game(create)
-
     // Create the join requests.
     const agent_players = this._players.filter((p) => p instanceof Agent)
     const sanitized_names = crop_and_deduplicate_names(agent_players.map((p) => p.name))
@@ -499,7 +499,7 @@ class SC2Env extends environment.Base {
         join.setOptions(interfacee)
         join.setRace(Array.isArray(p.race) ? Number(randomChoice(p.race)) : Number(p.race))
         join.setPlayerName(name)
-        if (this._ports) {
+        if (this._ports.length) {
           join.setServerPorts(new sc_pb.PortSet())
           join.setSharedPort(0)
           join.getServerPorts().setGamePort(this._ports[0])
@@ -510,14 +510,12 @@ class SC2Env extends environment.Base {
             ports.setBasePort(this._ports[i * 2 + 3])
             join.addClientPorts(ports)
           }
-          join_reqs.push(join)
         }
+        join_reqs.push(join)
       })
     await Promise.all(zip(this._controllers, join_reqs).map(([c, join]) => c.join_game(join)))
-
     // #python_problems lol
     // Join the game. This must be run in parallel because Join is a blocking call to the game that waits until all clients have joined.
-
     this._game_info = await Promise.all(this._controllers.map((c) => c.game_info()))
     zip(this._game_info, this._interface_options).forEach(([g, interfacee]) => {
       const optionsRender = JSON.stringify(g.getOptions().getRender() ? g.getOptions().getRender().toObject() : 'undefined')
@@ -643,7 +641,7 @@ class SC2Env extends environment.Base {
     let actionsss = []
     zip(this._features, this._obs, actionss).forEach(([f, o, acts]) => {
       to_list(acts).forEach((a) => {
-        const obs = o.observation || o.getObservation()
+        const obs = o.getObservation()
         const func_call = a
         const skip_available = skip
         actionsss.push(f.transform_action(obs, func_call, skip_available))
@@ -852,7 +850,7 @@ class SC2Env extends environment.Base {
       this._state = environment.StepType.LAST
       discount = 0
       for (let i = 0; i < this._obs.length; i++) {
-        const o = this._obs.length[i]
+        const o = this._obs[i]
         const playerResultList = o.getPlayerResultList()
         const player_id = o.getObservation().getPlayerCommon().getPlayerId()
         for (let j = 0; j < playerResultList.length; j++) {
@@ -863,6 +861,7 @@ class SC2Env extends environment.Base {
         }
       }
     }
+
     let reward
     if (this._score_index >= 0) { // Game score, not win/loss reward.
       const cur_score = this._agent_obs.map((o) => {
@@ -877,7 +876,6 @@ class SC2Env extends environment.Base {
     } else {
       reward = outcome
     }
-
     if (this._renderer_human) {
       this._renderer_human.render(this._obs[0])
       const cmd = this._renderer_human.get_actions(
@@ -924,6 +922,7 @@ class SC2Env extends environment.Base {
       }
       return value
     }
+
     return zip(reward, this._agent_obs).map(([r, o]) => { //eslint-disable-line
       return new environment.TimeStep({
         step_type: this._state,
@@ -1031,7 +1030,7 @@ async function SC2EnvFactory(
   return sc2Env
 }
 
-function crop_and_deduplicate_names(names) {
+crop_and_deduplicate_names = function(names) {
   /*
   Crops and de-duplicates the passed names.
 

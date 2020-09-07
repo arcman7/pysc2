@@ -199,7 +199,7 @@ function raw_autocast(action, ability_id, unit_tags) {
 }
 
 function numpy_to_python(val) {
-  // Convert numpy types to their corresponding python types.//
+  // Convert numpy types to their corresponding javascript types.//
   if (isinstance(val, [Number, String, Boolean])) {
     return val
   }
@@ -214,7 +214,7 @@ function numpy_to_python(val) {
     return result
   }
   const isPointLikeObj = (val && val.hasOwnProperty('x') && val.hasOwnProperty('y'))
-  if (isinstance(val, point.Point) || isPointLikeObj) {
+  if ((val instanceof point.Point) || isPointLikeObj) {
     result.push(numpy_to_python(val.x))
     result.push(numpy_to_python(val.y))
     return result
@@ -1371,7 +1371,7 @@ Object.keys(ABILITY_IDS).forEach((key) => {
 const FUNCTIONS_AVAILABLE = {}
 FUNCTIONS.forEach((f) => {
   if (f.avail_fn) {
-    FUNCTIONS_AVAILABLE[f.id.key] = f
+    FUNCTIONS_AVAILABLE[f.id] = f
   }
 })
 
