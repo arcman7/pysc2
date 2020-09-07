@@ -12,10 +12,6 @@ const { debug_pb, sc2api_pb } = s2clientprotocol
 const sc_debug = debug_pb
 const sc_pb = sc2api_pb
 //eslint-disable-next-line
-String.prototype.center = String.prototype.center || function(space, char) {
-  const usedSpace = Math.floor(space / 2)
-  return this.padStart(this.length + usedSpace, char) + ''.padStart(usedSpace, char)
-}
 
 flags.defineBoolean('sc2_log_actions', false, 'Print all the actions sent to SC2. If you want observations\n as well, consider using `sc2_verbose_protocol`.')
 flags.defineInteger('sc2_timeout', 120, 'Timeout to connect and wait for rpc responses.')
@@ -526,7 +522,7 @@ class RemoteController {
         throw err
       }
     } finally {
-      this.close()
+      return this.close()
     }
   }
 

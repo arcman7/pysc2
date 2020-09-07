@@ -98,16 +98,6 @@ class ReplayStats(object):
     self.select_pt = 0
     self.select_rect = 0
     self.control_group = 0
-    # self.maps = collections.defaultdict(int)
-    # self.races = collections.defaultdict(int)
-    # self.unit_ids = collections.defaultdict(int)
-    # self.valid_abilities = collections.defaultdict(int)
-    # self.made_abilities = collections.defaultdict(int)
-    # self.valid_actions = collections.defaultdict(int)
-    # self.made_actions = collections.defaultdict(int)
-    # self.buffs = collections.defaultdict(int)
-    # self.upgrades = collections.defaultdict(int)
-    # self.effects = collections.defaultdict(int)
     self.maps = defaultdict(int)
     self.races = defaultdict(int)
     self.unit_ids = defaultdict(int)
