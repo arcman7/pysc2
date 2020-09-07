@@ -2,6 +2,8 @@ const path = require('path') //eslint-disable-line
 // import pickle
 const Enum = require('python-enum') //eslint-disable-line
 const named_array = require(path.resolve(__dirname, './named_array.js'))
+const pythonUtils = require(path.resolve(__dirname, './pythonUtils.js'))
+const { namedtuple } = pythonUtils
 
 function arrayEqual(a, b) {
   a.forEach((ele, i) => {
@@ -33,18 +35,10 @@ describe('named_array:', () => {
     c: 3,
   })
 
-  const TestNamedTuple = new (class TestNamedTuple {
-    static get _fields() { return ['a', 'b', 'c'] }
-
-    constructor(a, b, c) {
-      this.a = a
-      this.b = b
-      this.c = c
-    }
-  })()
+  class TestNamedTuple extends namedtuple('TestNamedTuple', ['a', 'b', 'c']) {}
 
   test('  test_bad_names', () => {
-    const BadNamedTuple = { a: undefined, b: undefined, _fields: ['a', 'b'] }
+    class BadNamedTuple extends namedtuple('BadNamedTuple', ['a', 'b']) {}
     const values = [1, 3, 6]
     const badNames = [
       null,
