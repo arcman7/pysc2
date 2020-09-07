@@ -1,5 +1,5 @@
 // Test that stepping without observing works correctly for multiple players.
-const path = require('path')
+const path = require('path') //eslint-disable-line
 const sc2_env = require(path.resolve(__dirname, '..', 'env', 'sc2_env.js'))
 const actions = require(path.resolve(__dirname, '..', 'lib', 'actions.js'))
 const utils = require(path.resolve(__dirname, './utils.js'))
@@ -29,14 +29,19 @@ async function StepMulOverrideTest() {
     })
     console.log('[       OK ] test_returns_game_loop_zero_on_first_step_despite_override')
   }
-  await test_returns_game_loop_zero_on_first_step_despite_override()
+  try {
+    await test_returns_game_loop_zero_on_first_step_despite_override()
+  } catch (err) {
+    console.error(err)
+    console.log('[  FAILED  ] test_returns_game_loop_zero_on_first_step_despite_override')
+  }
 
   async function test_respects_override() {
     console.log('[ RUN      ] test_respects_override')
     testCase.setUp()
     const kwargs = {
       map_name: 'DefeatRoaches',
-      players: [sc2_env.Agent(Number(sc2_env.Race.random))],
+      players: [new sc2_env.Agent(Number(sc2_env.Race.random))],
       step_mul: 1,
       agent_interface_format: AGENT_INTERFACE_FORMAT
     }
@@ -51,6 +56,11 @@ async function StepMulOverrideTest() {
     })
     console.log('[       OK ] test_respects_override')
   }
-  await test_respects_override()
+  try {
+    await test_respects_override()
+  } catch (err) {
+    console.error(err)
+    console.log('[  FAILED  ] test_respects_override')
+  }
 }
 StepMulOverrideTest()
