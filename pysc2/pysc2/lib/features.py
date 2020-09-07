@@ -1195,9 +1195,6 @@ class Features(object):
                       for f in SCREEN_FEATURES])
         out["feature_screen"] = named_array.NamedNumpyArray(stacks,
             names=[ScreenFeatures, None, None])
-        print('stacks.shape: ', stacks.shape)
-        print('out.feature_screen.shape: ', out.feature_screen.shape)
-        print('out.feature_screen.player_relative.shape: ', out.feature_screen.player_relative.shape)
       with sw("feature_minimap"):
         out["feature_minimap"] = named_array.NamedNumpyArray(
             np.stack([or_zeros(f.unpack(obs.observation),
@@ -1328,7 +1325,6 @@ class Features(object):
       """Compute unit features."""
       screen_pos = pos_transform.fwd_pt(
           point.Point.build(u.pos))
-      # print('screen_pos: ', screen_pos)
       screen_radius = pos_transform.fwd_dist(u.radius)
       def raw_order(i):
         if len(u.orders) > i:

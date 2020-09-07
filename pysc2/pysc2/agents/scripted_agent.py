@@ -215,12 +215,10 @@ class DefeatRoachesRaw(base_agent.BaseAgent):
   def step(self, obs):
     # super(DefeatRoachesRaw, self).step(obs)
     super().step(obs)
-    print('len(obs.observation.raw_units): ', len(obs.observation.raw_units))
     marines = [unit.tag for unit in obs.observation.raw_units
                if unit.alliance == _PLAYER_SELF]
     roaches = [unit for unit in obs.observation.raw_units
                if unit.alliance == _PLAYER_ENEMY]
-    print('len(marines): ', len(marines))
     if marines and roaches:
       # Find the roach with max y coord.
       target = sorted(roaches, key=lambda r: r.y)[0].tag
