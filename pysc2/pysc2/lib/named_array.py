@@ -117,7 +117,6 @@ class NamedNumpyArray(np.ndarray):
             names = [names]
         except TypeError:  # len of a namedtuple is a TypeError
           names = [names]
-
     # Validate names!
     if not isinstance(names, (list, tuple)) or len(names) != len(obj.shape):
       raise ValueError(
@@ -126,7 +125,6 @@ class NamedNumpyArray(np.ndarray):
     index_names = []
     only_none = obj.shape[0] > 0
     for i, o in enumerate(names):
-      # print('i: ', i, '  o:')
       if o is None:
         index_names.append(o)
       else:

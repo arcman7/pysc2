@@ -254,4 +254,55 @@ describe('named_array:', () => {
     arrayEqual([1, 3, 6], unpickled)
     console.warn('Definitely need better pickling and pickling tests here')
   })
+  test('  test_large_list_enum_properties', () => {
+    const numbers = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+    const numbers2 = numbers.map((n) => n * 2)
+    const numbers3 = numbers.map((n) => n * 3)
+    const numbers4 = numbers.map((n) => n * 4)
+    const Letters = Enum.IntEnum('Letters', {
+      a: 0,
+      b: 1,
+      c: 2,
+      d: 3,
+      e: 4,
+      f: 5,
+      g: 6,
+      h: 7,
+      i: 8,
+      j: 9,
+      k: 10,
+    })
+    let arr = named_array.NamedNumpyArray([numbers, numbers2, numbers3, numbers4], [null, Letters])
+    for (let index = 1; index <= 4; index++) {
+      try {
+        expect(arr[index - 1].a).toBe(index * 0)
+        expect(arr[index - 1].b).toBe(index * 1)
+        expect(arr[index - 1].c).toBe(index * 2)
+        expect(arr[index - 1].d).toBe(index * 3)
+        expect(arr[index - 1].e).toBe(index * 4)
+        expect(arr[index - 1].f).toBe(index * 5)
+        expect(arr[index - 1].g).toBe(index * 6)
+        expect(arr[index - 1].h).toBe(index * 7)
+        expect(arr[index - 1].i).toBe(index * 8)
+        expect(arr[index - 1].j).toBe(index * 9)
+        expect(arr[index - 1].k).toBe(index * 10)
+      } catch (err) {
+        console.error(`index = ${index}`)
+        throw err
+      }
+    }
+
+    const ABCD = Enum.IntEnum('ABCD', {
+      'A': 0,
+      'B': 1,
+      'C': 2,
+      'D': 3,
+    })
+
+    arr = named_array.NamedNumpyArray([[numbers], [numbers2], [numbers3], [numbers4]], [ABCD, null, null])
+    expect(arr.A[0]).toMatchObject(numbers)
+    expect(arr.B[0]).toMatchObject(numbers2)
+    expect(arr.C[0]).toMatchObject(numbers3)
+    expect(arr.D[0]).toMatchObject(numbers4)
+  })
 })

@@ -1195,6 +1195,9 @@ class Features(object):
                       for f in SCREEN_FEATURES])
         out["feature_screen"] = named_array.NamedNumpyArray(stacks,
             names=[ScreenFeatures, None, None])
+        print('stacks.shape: ', stacks.shape)
+        print('out.feature_screen.shape: ', out.feature_screen.shape)
+        print('out.feature_screen.player_relative.shape: ', out.feature_screen.player_relative.shape)
       with sw("feature_minimap"):
         out["feature_minimap"] = named_array.NamedNumpyArray(
             np.stack([or_zeros(f.unpack(obs.observation),

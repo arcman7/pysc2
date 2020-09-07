@@ -865,10 +865,8 @@ class SC2Env extends environment.Base {
     let reward
     if (this._score_index >= 0) { // Game score, not win/loss reward.
       const cur_score = this._agent_obs.map((o) => {
-        // console.log(' o[score_cumulative]: ', o['score_cumulative'])
         return o['score_cumulative'][this._score_index]
       })
-      console.log('cur_score: ', cur_score)
       if (this._episode_steps == 0) { // First reward is always 0.
         reward = Array(this._num_agents).fill(0)
       } else {
@@ -926,7 +924,6 @@ class SC2Env extends environment.Base {
     }
 
     return zip(reward, this._agent_obs).map(([r, o]) => { //eslint-disable-line
-      console.log(' reward: ', r)
       return new environment.TimeStep({
         step_type: this._state,
         reward: zero_on_first_step(r * this._score_multiplier),

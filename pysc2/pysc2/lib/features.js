@@ -1342,10 +1342,23 @@ class Features {
         const stacks = SCREEN_FEATURES.map((f) => {
           return or_zeros(f.unpack(obs.getObservation()), aif.feature_dimensions.screen)
         })
+        // console.log('stacks.shape: ', stacks.length, stacks[0].shape)//, stacks[0][0].length)
+        // console.log('np.stack(stacks).arraySync(): ', np.stack(stacks).arraySync())
         out['feature_screen'] = named_array.NamedNumpyArray(
           np.stack(stacks),
           /*names=*/[ScreenFeatures, null, null]
         )
+        // console.log('feature_screen.length: ', out.feature_screen.length)
+        // console.log('feature_screen.shape: ', out.feature_screen.shape)
+        // // console.log('feature_screen keys:', Object.keys(out.feature_screen))
+        // console.log('feature_screen.height_map:', out.feature_screen.height_map)
+        // console.log('feature_screen.visibility_map:', out.feature_screen.visibility_map)
+        // console.log('feature_screen.creep:', out.feature_screen.creep)
+        // console.log('feature_screen.power:', out.feature_screen.power)
+        // console.log('feature_screen.player_relative:', out.feature_screen.player_relative)
+        // console.log('feature_screen.player_id:', out.feature_screen.player_id)
+        // console.log('feature_screen.unit_type:', out.feature_screen.unit_type)
+        // console.log('feature_screen.selected:', out.feature_screen.selected)
       })
       withPython(sw('feature_minimap'), () => {
         const stacks = MINIMAP_FEATURES.map((f) => {
@@ -1540,7 +1553,6 @@ class Features {
         }
         return 0
       }
-      // console.log('u.getAlliance(): ', Cu.getAlliance(), ' u.getTag(): ', u.getTag())
       const features = [
         // Match unit_vec order
         u.getUnitType(),
@@ -1638,22 +1650,20 @@ class Features {
       let raw_units
       withPython(sw('raw_units'), () => {
         withPython(sw('to_list'), () => {
-          // raw_units = raw.getUnitsList().map((u) => full_unit_vec(u, this._world_to_minimap_px, /*is_raw=*/true))
-          raw_units = raw.getUnitsList().map((u) => {
-            const u_vec = full_unit_vec(u, this._world_to_minimap_px, true)
-            // console.log('u.getAlliance(): ', u.getAlliance(), ' u.getTag(): ', u.getTag(), ' unit_vec.alliance: ', u_vec.alliance, u_vec)
-            return u_vec
-          })
+          raw_units = raw.getUnitsList().map((u) => full_unit_vec(u, this._world_to_minimap_px, /*is_raw=*/true))
+          // raw_units = raw.getUnitsList().map((u) => {
+          //   const u_vec = full_unit_vec(u, this._world_to_minimap_px, true)
+          //   return u_vec
+          // })
         })
         withPython(sw('to_numpy'), () => {
           out['raw_units'] = named_array.NamedNumpyArray(
             raw_units, [null, FeatureUnit]
           )
-          raw.getUnitsList().forEach((u, i) => {
-            const u_vec = out['raw_units'][i]
-            console.log('u.getAlliance(): ', u.getAlliance(), ' u.getTag(): ', u.getTag(), ' unit_vec.alliance: ', u_vec.alliance, ' (x, y): ', u_vec.x, u_vec.y)
-          })
-
+          // raw.getUnitsList().forEach((u, i) => {
+          //   const u_vec = out['raw_units'][i]
+          //   console.log('u.getAlliance(): ', u.getAlliance(), ' u.getTag(): ', u.getTag(), ' unit_vec.alliance: ', u_vec.alliance, ' (x, y): ', u_vec.x, u_vec.y)
+          // })
         })
         if (raw_units) {
           const temp = []

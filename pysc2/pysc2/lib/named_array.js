@@ -10,6 +10,7 @@ const Enum = require('python-enum') //eslint-disable-line
 const np = require(path.resolve(__dirname, './numpy.js'))
 const pythonUtils = require(path.resolve(__dirname, './pythonUtils.js'))
 const { isinstance } = pythonUtils
+
 Array.prototype.valueAt = function valueAt() { //eslint-disable-line
   let value = this
   let args = arguments //eslint-disable-line
@@ -49,69 +50,41 @@ Array.prototype.where = function where(conditionFunc, start = this._named_array_
   }
   return this.getProxy(results, true)
 }
-function assign(values, name, keyPathArray) {
-  let value = values
-  let parent
-  let lookUpIndex
-  if (name === null || name === undefined) {
-    return
-  }
-  let i = 0
-  let index
-  while (i < keyPathArray.length) {
-    if (i === (keyPathArray.length - 1)) {
-      parent = value
-    }
-    index = keyPathArray[i]
-    i++
-    if (value === undefined) {
-      console.log('values:\n  ', values, '\nname:\n  ', name, '\nkeyPathArray:\n  ', keyPathArray)
-    }
-    lookUpIndex = index
-    value = value[index]
-  }
-  Object.defineProperty(parent, name, {
-    get: function() { return parent[lookUpIndex] },
-    set: function(val) { parent[lookUpIndex] = val; return val || true }
-  })
-}
-function unpack(values, names, nameIndex = 0, keyPathArray = []) {
+
+function unpack(values, names, fullNamesList, nameListIndex = 0) {
   //sanitize input
-  if (isinstance(names, Enum.EnumMeta)) {
+  if (names === null) {
+    names = []
+  } else if (isinstance(names, Enum.EnumMeta)) {
     names = names.member_names_
-  } else if (names.contructor && names.constructor._fields) {
+  } else if (names.constructor && names.constructor._fields) {
     names = names.constructor._fields
+  } else if (names._fields) {
+    names = names._fields
   } else if (!Array.isArray(names)) {
     names = Object.keys(names)
   }
-  let nameList = names[nameIndex]
-  if (nameList === undefined) {
-    return
-  }
-  if (nameList === null) {
-    nameList = names
-  }
-  if (typeof nameList === 'string') {
-    nameList = names
-  } else if (nameList._fields) {
-    nameList = nameList._fields
-  } else if (nameList.constructor && nameList.constructor._fields) {
-    nameList = nameList.constructor._fields
-  } else if (isinstance(nameList, Enum.EnumMeta)) {
-    nameList = nameList.member_names_
-  }
 
-  nameList.forEach((name, index) => {
-    assign(values, name, keyPathArray.concat(index))
-    if (values.length <= index) {
-      return
+  values.forEach((ele, i) => {
+    const name = names[i]
+    if (name === undefined) {
+      // do nothing
+    } else {
+      Object.defineProperty(values, name, {
+        get: function() { return values[i] },
+        set: function(val) { values[i] = val; return val || true }
+      })
     }
-    unpack(values, names, nameIndex + 1, keyPathArray.concat(index))
+
+    if (ele && ele.length) {
+      const index = nameListIndex + 1
+      unpack(ele, fullNamesList[index], fullNamesList, index)
+    }
   })
 }
 
 class NamedDict {
-  //A dict where you can use `d["element"]` or `d.element`.//
+  // A dict where you can use `d["element"]` or `d.element`.//
   constructor(kwargs) {
     if (!kwargs) {
       return
@@ -194,18 +167,11 @@ class NamedNumpyArray extends Array {// extends np.ndarray:
       if (this.shape[0] === 0 && names && names[0] === null) {
         // Support arrays of length 0.
         names = [null]
-      } else {
         // Allow just a single dimension if the array is also single dimension.
-        try {
-          if (names.length > 1) {
-            names = [names]
-          }
-        } catch (err) { // len of a namedtuple is a TypeError
-          names = [names]
-        }
+      } else if (names.length > 1) {
+        names = [names]
       }
     }
-
     // Validate names!
     if (!isinstance(names, Array) || names.length !== this.shape.length) {
       throw new Error(`ValueError: Names must be a list of length equal to the array shape: ${names.length} != ${this.shape.length}.`)
@@ -249,8 +215,9 @@ class NamedNumpyArray extends Array {// extends np.ndarray:
     }
     const copy = values.map((e) => e)
     this._named_array_values = copy
-    // Finally convert to a NamedNumpyArray.
-    unpack(this, names)
+    // Finally convert to a NamedNumpyArray
+    const nameListIndex = 0
+    unpack(this, names[nameListIndex], names, nameListIndex)
   }
 
   valueAt() {
@@ -347,7 +314,6 @@ function getNamedNumpyArray(values, names) {
         target[key] = value
         return value || true
       },
-      // ownKeys: (target) => Object.keys(target).concat(['length']),
       getOwnPropertyDescriptor: function(target, key) {
         const notEnumerable = {
           'extends': true,
@@ -360,14 +326,10 @@ function getNamedNumpyArray(values, names) {
         if (key === 'length') {
           return Object.getOwnPropertyDescriptor(target, key)
         }
-        // if (key === 'extends') {
-        //   return { value: this.get(target, key), enumerable: false, configurable: true }
-        // }
         if (notEnumerable[key]) {
           return { value: this.get(target, key), enumerable: false, configurable: true }
         }
         return Object.getOwnPropertyDescriptor(target, key)
-        // return { value: this.get(target, key), enumerable: true, configurable: true }
       }
     })
   }

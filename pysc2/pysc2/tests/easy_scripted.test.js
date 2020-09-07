@@ -9,7 +9,6 @@ const { assert, withPythonAsync } = pythonUtils
 // Solve the nm_easy map using a fixed policy by reading the feature layers.
 
 async function TestEasy() {
-  console.log('TestEasy')
   const testCase = new utils.TestCase()
   const steps = 200
   const step_mul = 16
@@ -36,7 +35,12 @@ async function TestEasy() {
     assert(agent.steps == steps, `agent.steps == steps:\n  ${agent.steps} !== ${steps}`)
     console.log('[      OK ] test_move_to_beacon')
   }
-  // await test_move_to_beacon()
+  try {
+    await test_move_to_beacon()
+  } catch (err) {
+    console.error(err)
+    console.log('[   FAIL  ]  test_move_to_beacon')
+  }
 
   async function test_collect_mineral_shards() {
     console.log('[ RUN     ] test_collect_mineral_shards')
@@ -59,7 +63,12 @@ async function TestEasy() {
     assert(agent.steps == steps, `agent.steps == steps:\n  ${agent.steps} !== ${steps}`)
     console.log('[      OK ] test_collect_mineral_shards')
   }
-  // await test_collect_mineral_shards()
+  try {
+    await test_collect_mineral_shards()
+  } catch (err) {
+    console.error(err)
+    console.log('[   FAIL  ] test_collect_mineral_shards')
+  }
 
   async function test_collect_mineral_shards_feature_units() {
     console.log('[ RUN     ] test_collect_mineral_shards_feature_units')
@@ -83,7 +92,12 @@ async function TestEasy() {
     assert(agent.steps == steps, 'agent.step == steps')
     console.log('[      OK ] test_collect_mineral_shards_feature_units')
   }
-  // await test_collect_mineral_shards_feature_units()
+  try {
+    await test_collect_mineral_shards_feature_units()
+  } catch (err) {
+    console.error(err)
+    console.log('[   FAIL  ] test_collect_mineral_shards_feature_units')
+  }
 
   async function test_collect_mineral_shards_raw() {
     console.log('[ RUN     ] test_collect_mineral_shards_raw')
@@ -107,8 +121,12 @@ async function TestEasy() {
     assert(agent.steps == steps, 'agent.step == steps')
     console.log('[      OK ] test_collect_mineral_shards_raw')
   }
-  // await test_collect_mineral_shards_raw()
-
+  try {
+    await test_collect_mineral_shards_raw()
+  } catch (err) {
+    console.error(err)
+    console.log('[   FAIL  ] test_collect_mineral_shards_raw')
+  }
   async function test_defeat_roaches() {
     console.log('[ RUN     ] test_defeat_roaches')
     const kwargs = {
@@ -130,7 +148,12 @@ async function TestEasy() {
     assert(agent.steps == steps, `agent.steps == steps:\n  ${agent.steps} !== ${steps}`)
     console.log('[      OK ] test_defeat_roaches')
   }
-  // await test_defeat_roaches()
+  try {
+    await test_defeat_roaches()
+  } catch (err) {
+    console.error(err)
+    console.log('[   FAIL  ] test_defeat_roaches')
+  }
 
   async function test_defeat_roaches_raw() {
     console.log('[ RUN     ] test_defeat_roaches_raw')
@@ -153,8 +176,12 @@ async function TestEasy() {
     assert(agent.episodes <= agent.reward, `\n agent.episodes <= agent.reward:\n ${agent.episodes}    !<=    ${agent.reward}`)
     assert(agent.steps == steps, `agent.steps == steps:\n  ${agent.steps} !== ${steps}`)
     console.log('[      OK ] test_defeat_roaches_raw')
+  } try {
+    await test_defeat_roaches_raw()
+  } catch (err) {
+    console.error(err)
+    console.log('[   FAIL  ] test_defeat_roaches_raw')
   }
-  await test_defeat_roaches_raw()
 }
 
 TestEasy()

@@ -94,7 +94,6 @@ class CollectMineralShardsFeatureUnits extends base_agent.BaseAgent {
       }
     })
     const marine_xy = [marine_unit.x, marine_unit.y]
-    console.log('marine_xy: ', marine_xy)
     if (!marine_unit.is_selected) {
       //Nothing selected or the wrong marine is selected.
       this._marine_selected = true
@@ -104,7 +103,6 @@ class CollectMineralShardsFeatureUnits extends base_agent.BaseAgent {
       //Find and move to the nearest mineral.
       let minerals = []
       obs.observation.feature_units.forEach((unit) => {
-        console.log('unit.alliance: ', unit.alliance)
         if (unit.alliance == _PLAYER_NEUTRAL) {
           minerals.push([unit.x, unit.y])
         }
@@ -232,9 +230,7 @@ class DefeatRoachesRaw extends base_agent.BaseAgent {
   step(obs) {
     super.step(obs)
     const marines = []
-    console.log()
     obs.observation.raw_units.forEach((unit) => {
-      console.log('unit.alliance: ', unit.alliance)
       if (unit.alliance == _PLAYER_SELF) {
         marines.push(unit.tag)
       }
@@ -247,11 +243,8 @@ class DefeatRoachesRaw extends base_agent.BaseAgent {
     })
 
     if (marines.length && roaches.length) {
-      console.log('calling RAW_FUNCTIONS.Attack_unit')
       //Find the roach with max y coord.
       const target = roaches.sort((r1, r2) => r2.y - r1.y)[0].tag
-      console.log('marines: ', marines)
-      console.log('target: ', target)
       return RAW_FUNCTIONS.Attack_unit('now', marines, target)
     }
     return FUNCTIONS.no_op()
