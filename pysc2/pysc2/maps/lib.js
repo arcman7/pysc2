@@ -17,6 +17,7 @@ const path = require('path') //eslint-disable-line
   import the maps lib and use `get`. Using `get` from this lib will work, but only
   if you've imported the map module somewhere.
 */
+/*eslint-disable class-methods-use-this*/
 
 class DuplicateMapError extends Error {
   constructor(msg) {
@@ -51,6 +52,42 @@ class Map {
     players: Max number of players for this map.
     battle_net: The map name on battle.net, if it exists.
   */
+  get directory() {
+    return Map.directory
+  }
+
+  get filename() {
+    return Map.filename
+  }
+
+  get download() {
+    return Map.download
+  }
+
+  get game_steps_per_episode() {
+    return Map.game_steps_per_episode
+  }
+
+  get step_mul() {
+    return Map.step_mul
+  }
+
+  get score_index() {
+    return Map.score_index
+  }
+
+  get score_multiplier() {
+    return Map.score_multiplier
+  }
+
+  get players() {
+    return Map.players
+  }
+
+  get battle_net() {
+    return Map.battle_net
+  }
+
   get path() {
     //The full path to the map file: directory, filename and file ending.//
     if (this.filename) {

@@ -113,7 +113,6 @@ class StarcraftProcess {
       args.extend(extra_args)
     }
 
-
     // rest of set up happens in _setupController called by factory
     const self = this
     this._setupController = this._setupController.bind(this)
@@ -159,11 +158,11 @@ class StarcraftProcess {
     }
   }
 
-  close() {
+  async close() {
     //Shut down the game and clean up.//
     if (this.hasOwnProperty('_controller') && this._controller) {
-      this._controller.quit()
-      this._controller.close()
+      await this._controller.quit()
+      await this._controller.close()
       this._controller = null
     }
     this._shutdown()
@@ -201,7 +200,7 @@ class StarcraftProcess {
   }
 
   __exit__() {
-    this.close()
+    return this.close()
   }
 
   __del__() {
