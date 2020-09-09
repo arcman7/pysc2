@@ -402,7 +402,6 @@ class SC2Env(environment.Base):
     """Create the game, and join it."""
     map_inst = random.choice(self._maps)
     self._map_name = map_inst.name
-
     self._step_mul = max(1, self._default_step_mul or map_inst.step_mul)
     self._score_index = get_default(self._default_score_index,
                                     map_inst.score_index)
@@ -585,7 +584,6 @@ class SC2Env(environment.Base):
     step_mul = step_mul or self._step_mul
     if step_mul <= 0:
       raise ValueError("step_mul should be positive, got {}".format(step_mul))
-
     target_game_loop = self._episode_steps + step_mul
     if not self._realtime:
       # Send any delayed actions that were scheduled up to the target game loop.

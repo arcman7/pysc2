@@ -667,7 +667,6 @@ class SC2Env extends environment.Base {
     if (step_mul <= 0) {
       throw new ValueError(`step_mul should be positive, got ${step_mul}`)
     }
-
     const target_game_loop = this._episode_steps + step_mul
     if (!(this._realtime)) {
       // Send any delayed actions that were scheduled up to the target game loop.
@@ -742,7 +741,6 @@ class SC2Env extends environment.Base {
       }
       await this._step_to(act_game_loop, current_game_loop)
       current_game_loop = act_game_loop
-
       const actionss = []
       for (let i = 0; i < this._delayed_actions.length; i++) {
         const deque = this._delayed_actions[i]
@@ -764,7 +762,6 @@ class SC2Env extends environment.Base {
     if (step_mul < 0) {
       throw new ValueError('We should never need to step backwards')
     }
-    // console.log({ game_loop, current_game_loop, step_mul })
     if (step_mul > 0) {
       await withPython(this._metrics.measure_step_time(step_mul), async () => {
         if (!this._controllers[0].status_ended) { // May already have ended.
@@ -922,7 +919,6 @@ class SC2Env extends environment.Base {
       }
       return value
     }
-
     return zip(reward, this._agent_obs).map(([r, o]) => { //eslint-disable-line
       return new environment.TimeStep({
         step_type: this._state,

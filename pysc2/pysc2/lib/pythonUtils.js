@@ -64,21 +64,28 @@ function arrayDtype(array) {
   return arrayDtype(array[0])
 }
 
-function arrayShape(array) {
-  let shape = []
-  let keepgoing = true
-  let count = 0
-  while (keepgoing) {
-    if (array.length > 0) {
-      count += 1
-      shape.push(array.length)
-      array = array[0]
-    } else {
-      keepgoing = false
-      if (count == 1) {
-        shape = [1]
-      }
-    }
+function arrayShape(arr, zeroFirst) {
+  if (arr.length > 1) {
+    zeroFirst = true
+  }
+  if (typeof arr[0] == 'object') {
+    zeroFirst = false
+  }
+  if (arr.shape) {
+    return arr.shape
+  }
+  const shape = []
+  let keepGoing = true
+  if (!Array.isArray(arr)) {
+    throw new Error('@param arr must be an array. Got: ' + arr)
+  }
+  if (zeroFirst && !Array.isArray(arr[0])) {
+    shape.push(0)
+  }
+  while (keepGoing) {
+    shape.push(arr.length)
+    arr = arr[0]
+    keepGoing = Array.isArray(arr)
   }
   return shape
 }

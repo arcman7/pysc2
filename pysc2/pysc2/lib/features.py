@@ -1553,7 +1553,6 @@ class Features(object):
                                         dtype=np.int32)
       out["camera_size"] = np.array((self._camera_size.x, self._camera_size.y),
                                     dtype=np.int32)
-
     if not self._raw:
       out["available_actions"] = np.array(
           self.available_actions(obs.observation), dtype=np.int32)
@@ -1576,7 +1575,6 @@ class Features(object):
     # Send the entire proto as well (in a function, so it isn't copied).
     if self._send_observation_proto:
       out["_response_observation"] = lambda: obs
-
     return out
 
   @sw.decorate
