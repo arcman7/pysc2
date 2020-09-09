@@ -22,9 +22,6 @@ async function TestObservationSpec() {
         assert(typeof o == 'string', 'o instanceof String')
         return
       }
-      // console.log('== k: ', k)
-      // console.log('== obs_spec[k]: ', obs_spec[k])
-      // console.log('== arrayShape(obs[k]): ', arrayShape(obs[k]))
       const descr = `${k}: spec: ${obs_spec[k]} != obs: ${arrayShape(o)}`
       if (arrayCompare(arrayShape(o), [0]) == true) {
         assert(obs_spec[k].includes(0) == true, descr)
