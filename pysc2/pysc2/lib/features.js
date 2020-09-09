@@ -287,13 +287,8 @@ class Feature extends namedtuple('Feature', ['index', 'name', 'layer_set', 'full
       // New layer that isn't implemented in this SC2 version.
       return null
     }
-    // console.log('-----------------------------------')
     let data = plane.getData()
-    // console.log('data: ', data.length)
     const buffer = data.buffer
-    // console.log('is ArrayBuffer: '/*, buffer instanceof ArrayBuffer*/, buffer.byteLength, ' byteOffset: ', data.byteOffset)
-    // console.log('buffer length: ', buffer.byteLength)
-    // console.log('bits per pixel: ', plane.getBitsPerPixel())
 
     if (plane.getBitsPerPixel() !== 8 && plane.getBitsPerPixel() !== 1) {
       data = new Feature.dtypes[plane.getBitsPerPixel()](
@@ -301,8 +296,6 @@ class Feature extends namedtuple('Feature', ['index', 'name', 'layer_set', 'full
       )
     }
 
-    // console.log('typeArray data: ', data.length)
-    // console.log('shape: ', size.x, ' x ', size.y)
     if (plane.getBitsPerPixel() === 1) {
       data = unpackbits(data)
       if (data.length !== (size.x * size.y)) {
@@ -1236,11 +1229,9 @@ class Features {
       "score_by_vital": [ScoreByVital._keys.length, ScoreVitals._keys.length],
       "single_select": [0, UnitLayer._keys.length], // Only (n, 7) for n in (0, 1).
     })
-
     if (!this._raw) {
       obs_spec["available_actions"] = [0]
     }
-
     const aif = this._agent_interface_format
     if (aif.feature_dimensions) {
       obs_spec["feature_screen"] = [

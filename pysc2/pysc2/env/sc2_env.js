@@ -436,10 +436,7 @@ class SC2Env extends environment.Base {
   async _create_join() {
     // Create the game, and join it.//
     const map_inst = randomChoice(this._maps)
-    console.log('map_inst: ', map_inst)
-    console.log('this._maps: ', this._maps)
     this._map_name = map_inst.name
-    // console.log('this._default_step_mul')
     this._step_mul = Math.max(1, this._default_step_mul || map_inst.step_mul)
     this._score_index = get_default(this._default_score_index, map_inst.score_index)
     this._score_multiplier = get_default(this._default_score_multiplier, map_inst.score_multiplier)
@@ -647,7 +644,6 @@ class SC2Env extends environment.Base {
         const obs = o.getObservation()
         const func_call = a
         const skip_available = skip
-        console.log()
         actionsss.push(f.transform_action(obs, func_call, skip_available))
       })
     })
@@ -667,8 +663,6 @@ class SC2Env extends environment.Base {
   }
 
   async _step(step_mul = null) {
-    console.log('step_mul: ', step_mul)
-    console.log('this._step_mul: ', this._step_mul)
     step_mul = step_mul || this._step_mul
     if (step_mul <= 0) {
       throw new ValueError(`step_mul should be positive, got ${step_mul}`)
@@ -681,13 +675,11 @@ class SC2Env extends environment.Base {
         up_to_game_loop,
         this._episode_steps, //current game_loop
       )
-      // console.log('current_game_loop: ', current_game_loop)
       const game_loop = target_game_loop
       await this._step_to(
         game_loop,
         current_game_loop,
       )
-      // console.log('check 3.3')
     }
 
     return this._observe(target_game_loop)
@@ -770,7 +762,6 @@ class SC2Env extends environment.Base {
     if (step_mul < 0) {
       throw new ValueError('We should never need to step backwards')
     }
-    // console.log({ game_loop, current_game_loop, step_mul })
     if (step_mul > 0) {
       await withPython(this._metrics.measure_step_time(step_mul), async () => {
         if (!this._controllers[0].status_ended) { // May already have ended.
@@ -928,7 +919,6 @@ class SC2Env extends environment.Base {
       }
       return value
     }
-
     return zip(reward, this._agent_obs).map(([r, o]) => { //eslint-disable-line
       return new environment.TimeStep({
         step_type: this._state,

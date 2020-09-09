@@ -68,7 +68,7 @@ function arrayShape(arr, zeroFirst) {
   if (arr.length > 1) {
     zeroFirst = true
   }
-  if (typeof arr[0] == 'string') {
+  if (typeof arr[0] == 'object') {
     zeroFirst = false
   }
   if (arr.shape) {
