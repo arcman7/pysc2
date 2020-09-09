@@ -124,9 +124,9 @@ class TestObservationSpec(utils.TestCase):
         self.assertIsInstance(o, str)
         continue
       descr = "%s: spec: %s != obs: %s" % (k, obs_spec[k], o.shape)
-      # print('== k: ', k)
-      # print('== obs_spec[k]: ', obs_spec[k])
-      # print('== o.shape: ', o.shape)
+      print('== k: ', k)
+      print('== obs_spec[k]: ', obs_spec[k])
+      print('== o.shape: ', o.shape)
       if o.shape == (0,):  # Empty tensor can't have a shape.
         self.assertIn(0, obs_spec[k], descr)
       else:
